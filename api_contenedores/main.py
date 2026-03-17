@@ -6,7 +6,7 @@ from routers import movimientos, historial_estado, fotos, facturacion
 from routers import arrendamiento, ventas, dashboard, auth
 
 app = FastAPI(
-    title="API - Sistema de Logística y Monitoreo de Contenedores",
+    title="API - Sistema de Logística y Monitoreo de Multiples Contenedores",
     description="API REST para gestión, control y monitoreo de contenedores logísticos. Proyecto Talento Tech 2026.",
     version="1.0.0",
     contact={"name": "Talento Tech 2026"},
