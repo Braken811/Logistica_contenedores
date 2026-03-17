@@ -1,22 +1,16 @@
 from datetime import date, timedelta
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+from fastapi import APIRouter
+from collections import Counter
 
-from database import get_db
 from schemas import DashboardStats
-from auth_utils import get_current_user
-import models
+from data_utils import load_data
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 
 @router.get("/stats", response_model=DashboardStats,
             summary="Estadísticas generales del sistema")
-def get_stats(
-    db: Session = Depends(get_db),
-    _: models.Usuario = Depends(get_current_user)
-):
+def get_stats():
     """
     RF07 — Devuelve KPIs consolidados:
     - Total de contenedores
@@ -24,57 +18,43 @@ def get_stats(
     - Arrendamientos activos y próximos a vencer (≤7 días)
     - Total de movimientos registrados
     """
+    contenedores = load_data("contenedores.json")
+    tipos = load_data("tipos_contenedores.json")
+    clientes = load_data("clientes.json")
+    arrendamientos = load_data("arrendamiento.json")
+    movimientos = load_data("movimientos.json")
+
     # Total
-    total = db.query(func.count(models.Contenedor.id_contenedor)).scalar()
+    total = len(contenedores)
 
     # Por estado
-    por_estado_rows = db.query(
-        models.Contenedor.estado,
-        func.count(models.Contenedor.id_contenedor)
-    ).group_by(models.Contenedor.estado).all()
-    por_estado = {row[0]: row[1] for row in por_estado_rows}
+    por_estado = Counter(c["estado"] for c in contenedores)
 
     # Por tipo
-    por_tipo_rows = db.query(
-        models.TipoContenedor.nombre,
-        func.count(models.Contenedor.id_contenedor)
-    ).join(models.TipoContenedor,
-           models.Contenedor.id_tipo == models.TipoContenedor.id_tipo
-    ).group_by(models.TipoContenedor.nombre).all()
-    por_tipo = {row[0]: row[1] for row in por_tipo_rows}
+    tipo_dict = {t["id_tipo"]: t["nombre"] for t in tipos}
+    por_tipo = Counter(tipo_dict.get(c["id_tipo"], "Desconocido") for c in contenedores)
 
     # Por cliente
-    por_cliente_rows = db.query(
-        models.Cliente.nombre,
-        func.count(models.Contenedor.id_contenedor)
-    ).join(models.Cliente,
-           models.Contenedor.id_cliente == models.Cliente.id_cliente
-    ).group_by(models.Cliente.nombre).all()
-    por_cliente = {row[0]: row[1] for row in por_cliente_rows}
+    cliente_dict = {cl["id_cliente"]: cl["nombre"] for cl in clientes}
+    por_cliente = Counter(cliente_dict.get(c["id_cliente"], "Desconocido") for c in contenedores)
 
     # Arrendamientos activos
-    activos = db.query(func.count(models.ArrendamientoContenedor.id_arrendamiento)).filter(
-        models.ArrendamientoContenedor.estado_arrendamiento == "activo"
-    ).scalar()
+    activos = sum(1 for a in arrendamientos if a.get("estado_arrendamiento") == "activo")
 
     # Próximos a vencer (≤7 días)
-    hoy   = date.today()
+    hoy = date.today()
     limit = hoy + timedelta(days=7)
-    proximos = db.query(func.count(models.ArrendamientoContenedor.id_arrendamiento)).filter(
-        models.ArrendamientoContenedor.fecha_fin >= hoy,
-        models.ArrendamientoContenedor.fecha_fin <= limit,
-        models.ArrendamientoContenedor.estado_arrendamiento == "activo"
-    ).scalar()
+    proximos = sum(1 for a in arrendamientos if a.get("estado_arrendamiento") == "activo" and hoy <= date.fromisoformat(a["fecha_fin"]) <= limit)
 
     # Total movimientos
-    total_movimientos = db.query(func.count(models.Movimiento.id_movimiento)).scalar()
+    total_movimientos = len(movimientos)
 
     return DashboardStats(
-        total_contenedores    =total or 0,
-        por_estado            =por_estado,
-        por_tipo              =por_tipo,
-        por_cliente           =por_cliente,
-        arrendamientos_activos=activos or 0,
-        proximos_vencer       =proximos or 0,
-        total_movimientos     =total_movimientos or 0,
+        total_contenedores    =total,
+        por_estado            =dict(por_estado),
+        por_tipo              =dict(por_tipo),
+        por_cliente           =dict(por_cliente),
+        arrendamientos_activos=activos,
+        proximos_vencer       =proximos,
+        total_movimientos     =total_movimientos,
     )

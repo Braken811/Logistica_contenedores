@@ -1,0 +1,10 @@
+[
+  {
+    "id_usuario": 1,
+    "nombres": "Admin",
+    "apellidos": "Sistema",
+    "email": "admin@example.com",
+    "user": "admin",
+    "rol": "admin"
+  }
+]

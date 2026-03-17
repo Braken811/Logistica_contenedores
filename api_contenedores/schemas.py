@@ -28,7 +28,6 @@ class UsuarioCreate(BaseModel):
     apellidos: Optional[str] = None
     email    : Optional[str] = None
     user     : str
-    password : str           # texto plano → se hashea en el router
     rol      : RolUsuario
 
 class UsuarioUpdate(BaseModel):
@@ -44,21 +43,6 @@ class UsuarioOut(BaseModel):
     email     : Optional[str]
     user      : str
     rol       : str
-
-    class Config:
-        from_attributes = True
-
-
-# ── Auth ──────────────────────────────────────────────────────────────────────
-class LoginRequest(BaseModel):
-    user    : str
-    password: str
-
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type  : str = "bearer"
-    rol         : str
-    nombres     : str
 
 
 # ── Clientes ──────────────────────────────────────────────────────────────────
@@ -83,9 +67,6 @@ class ClienteOut(BaseModel):
     email     : Optional[str]
     direccion : Optional[str]
 
-    class Config:
-        from_attributes = True
-
 
 # ── Tipos de Contenedores ─────────────────────────────────────────────────────
 class TipoContenedorCreate(BaseModel):
@@ -96,9 +77,6 @@ class TipoContenedorOut(BaseModel):
     id_tipo    : int
     nombre     : str
     descripcion: Optional[str]
-
-    class Config:
-        from_attributes = True
 
 
 # ── Contenedores ──────────────────────────────────────────────────────────────
@@ -124,9 +102,6 @@ class ContenedorOut(BaseModel):
     ubicacion_actual: Optional[str]
     created_at      : Optional[date]
     updated_at      : Optional[date]
-
-    class Config:
-        from_attributes = True
 
 
 # ── Movimientos ───────────────────────────────────────────────────────────────
@@ -165,9 +140,6 @@ class HistorialEstadoOut(BaseModel):
     estado       : str
     fecha_inicio : date
     fecha_fin    : Optional[date]
-
-    class Config:
-        from_attributes = True
 
 
 # ── Fotos ─────────────────────────────────────────────────────────────────────

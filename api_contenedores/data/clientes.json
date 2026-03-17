@@ -1,0 +1,10 @@
+[
+  {
+    "id_cliente": 1,
+    "nombre": "Cliente Ejemplo",
+    "nit": "123456789",
+    "telefono": "555-1234",
+    "email": "cliente@example.com",
+    "direccion": "Calle 123"
+  }
+]

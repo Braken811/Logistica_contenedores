@@ -1,0 +1,12 @@
+[
+  {
+    "id_contenedor": 1,
+    "id_codigo": "CONT001",
+    "id_tipo": 1,
+    "id_cliente": 1,
+    "estado": "disponible",
+    "ubicacion_actual": "Depósito Central",
+    "created_at": "2024-01-01",
+    "updated_at": "2024-01-01"
+  }
+]

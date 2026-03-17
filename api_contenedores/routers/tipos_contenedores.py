@@ -1,30 +1,21 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, status
 
-from database import get_db
 from schemas import TipoContenedorCreate, TipoContenedorOut
-from auth_utils import get_current_user, require_admin
-import models
+from data_utils import load_data, save_data, get_next_id
 
 router = APIRouter(prefix="/tipos-contenedores", tags=["Tipos de Contenedores"])
 
 
 @router.get("/", response_model=List[TipoContenedorOut], summary="Listar tipos")
-def get_tipos(
-    db: Session = Depends(get_db),
-    _: models.Usuario = Depends(get_current_user)
-):
-    return db.query(models.TipoContenedor).all()
+def get_tipos():
+    return load_data("tipos_contenedores.json")
 
 
 @router.get("/{tipo_id}", response_model=TipoContenedorOut)
-def get_tipo(
-    tipo_id: int,
-    db: Session = Depends(get_db),
-    _: models.Usuario = Depends(get_current_user)
-):
-    tipo = db.query(models.TipoContenedor).filter(models.TipoContenedor.id_tipo == tipo_id).first()
+def get_tipo(tipo_id: int):
+    tipos = load_data("tipos_contenedores.json")
+    tipo = next((t for t in tipos if t["id_tipo"] == tipo_id), None)
     if not tipo:
         raise HTTPException(status_code=404, detail="Tipo no encontrado")
     return tipo
@@ -32,26 +23,20 @@ def get_tipo(
 
 @router.post("/", response_model=TipoContenedorOut, status_code=status.HTTP_201_CREATED,
              summary="Crear tipo de contenedor")
-def create_tipo(
-    data: TipoContenedorCreate,
-    db: Session = Depends(get_db),
-    _: models.Usuario = Depends(require_admin)
-):
-    nuevo = models.TipoContenedor(**data.model_dump())
-    db.add(nuevo)
-    db.commit()
-    db.refresh(nuevo)
+def create_tipo(data: TipoContenedorCreate):
+    tipos = load_data("tipos_contenedores.json")
+    nuevo = data.model_dump()
+    nuevo["id_tipo"] = get_next_id(tipos, "id_tipo")
+    tipos.append(nuevo)
+    save_data("tipos_contenedores.json", tipos)
     return nuevo
 
 
 @router.delete("/{tipo_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_tipo(
-    tipo_id: int,
-    db: Session = Depends(get_db),
-    _: models.Usuario = Depends(require_admin)
-):
-    tipo = db.query(models.TipoContenedor).filter(models.TipoContenedor.id_tipo == tipo_id).first()
+def delete_tipo(tipo_id: int):
+    tipos = load_data("tipos_contenedores.json")
+    tipo = next((t for t in tipos if t["id_tipo"] == tipo_id), None)
     if not tipo:
         raise HTTPException(status_code=404, detail="Tipo no encontrado")
-    db.delete(tipo)
-    db.commit()
+    tipos.remove(tipo)
+    save_data("tipos_contenedores.json", tipos)
