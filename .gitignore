@@ -27,5 +27,6 @@ build/
 *.tar.gz
 *.zip
 .env
+api_contenedores/.env
 .DS_Store
 Thumbs.db

@@ -101,6 +101,21 @@ class Facturacion(Base):
 
     contenedor = relationship("Contenedor")
 
+# Arrendamiento
+class Arrendamiento(Base):
+    __tablename__ = "arrendamiento"
+
+    id_arrendamiento = Column(Integer, primary_key=True, index=True)
+    id_cliente = Column(Integer, ForeignKey("clientes.id_cliente"), nullable=False)
+    id_contenedor = Column(Integer, ForeignKey("contenedores.id_contenedor"), nullable=False)
+    fecha_inicio = Column(Date, nullable=False)
+    fecha_fin = Column(Date)
+    valor_alquiler = Column(Float, nullable=False)
+    estado_arrendamiento = Column(String, nullable=False)
+
+    cliente = relationship("Cliente")
+    contenedor = relationship("Contenedor")
+
 # Ventas
 class Venta(Base):
     __tablename__ = "ventas"
@@ -113,8 +128,3 @@ class Venta(Base):
 
     contenedor = relationship("Contenedor")
     cliente = relationship("Cliente")
-
-# Ventas (assuming similar structure, but not defined in schemas, wait schemas has ventas? Wait, in schemas it's not there, but in data/ventas.json, perhaps similar to facturacion)
-# The schemas don't have Ventas, but there's ventas.json. Maybe it's similar. For now, skip or assume.
-
-# Actually, looking back, schemas has up to Arrendamiento. Ventas might be separate, but for now, I'll proceed with these.

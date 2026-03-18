@@ -157,6 +157,29 @@ class FotoOut(BaseModel):
         from_attributes = True
 
 
+# ── Arrendamiento ─────────────────────────────────────────────────────────────
+class ArrendamientoCreate(BaseModel):
+    id_cliente          : int
+    id_contenedor       : int
+    fecha_inicio        : date
+    fecha_fin           : Optional[date] = None
+    valor_alquiler      : float
+    estado_arrendamiento: str
+
+class ArrendamientoUpdate(BaseModel):
+    fecha_fin           : Optional[date] = None
+    valor_alquiler      : Optional[float] = None
+    estado_arrendamiento: Optional[str]   = None
+
+class ArrendamientoOut(BaseModel):
+    id_arrendamiento    : int
+    id_cliente          : int
+    id_contenedor       : int
+    fecha_inicio        : date
+    fecha_fin           : Optional[date]
+    valor_alquiler      : float
+    estado_arrendamiento: str
+
 # ── Facturación ───────────────────────────────────────────────────────────────
 class FacturacionCreate(BaseModel):
     id_contenedor    : int
