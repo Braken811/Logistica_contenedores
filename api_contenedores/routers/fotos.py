@@ -1,11 +1,13 @@
 import os
 import shutil
 from typing import List
-from fastapi import APIRouter, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, HTTPException, UploadFile, File, status, Depends
 from datetime import date
+from sqlalchemy.orm import Session
 
 from schemas import FotoOut
-from data_utils import load_data, save_data, get_next_id
+from database import get_db
+from models import Foto, Contenedor
 
 router = APIRouter(prefix="/fotos", tags=["Fotos de Contenedor"])
 
@@ -15,20 +17,17 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.get("/contenedor/{contenedor_id}", response_model=List[FotoOut],
             summary="Fotos de un contenedor")
-def get_fotos(contenedor_id: int):
-    contenedores = load_data("contenedores.json")
-    if not any(c["id_contenedor"] == contenedor_id for c in contenedores):
+def get_fotos(contenedor_id: int, db: Session = Depends(get_db)):
+    if not db.query(Contenedor).filter(Contenedor.id_contenedor == contenedor_id).first():
         raise HTTPException(status_code=404, detail="Contenedor no encontrado")
 
-    fotos = load_data("fotos.json")
-    return [f for f in fotos if f["id_contenedor"] == contenedor_id]
+    return db.query(Foto).filter(Foto.id_contenedor == contenedor_id).all()
 
 
 @router.post("/contenedor/{contenedor_id}", response_model=FotoOut,
              status_code=status.HTTP_201_CREATED, summary="Subir foto")
-def upload_foto(contenedor_id: int, file: UploadFile = File(...)):
-    contenedores = load_data("contenedores.json")
-    if not any(c["id_contenedor"] == contenedor_id for c in contenedores):
+def upload_foto(contenedor_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    if not db.query(Contenedor).filter(Contenedor.id_contenedor == contenedor_id).first():
         raise HTTPException(status_code=404, detail="Contenedor no encontrado")
 
     ext = os.path.splitext(file.filename)[1]
@@ -38,15 +37,10 @@ def upload_foto(contenedor_id: int, file: UploadFile = File(...)):
     with open(filepath, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    fotos = load_data("fotos.json")
-    nueva_foto = {
-        "id_foto": get_next_id(fotos, "id_foto"),
-        "id_contenedor": contenedor_id,
-        "ruta_imagen": filepath,
-        "fecha_subida": date.today().isoformat()
-    }
-    fotos.append(nueva_foto)
-    save_data("fotos.json", fotos)
+    nueva_foto = Foto(id_contenedor=contenedor_id, ruta_imagen=filepath, fecha_subida=date.today())
+    db.add(nueva_foto)
+    db.commit()
+    db.refresh(nueva_foto)
     return nueva_foto
 
 

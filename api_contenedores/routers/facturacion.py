@@ -1,52 +1,46 @@
 from typing import List
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from datetime import date
+from sqlalchemy.orm import Session
 
 from schemas import FacturacionCreate, FacturacionOut
-from data_utils import load_data, save_data, get_next_id
+from database import get_db
+from models import Facturacion, Contenedor
 
 router = APIRouter(prefix="/facturacion", tags=["Facturación"])
 
 
 @router.get("/", response_model=List[FacturacionOut], summary="Listar facturaciones")
-def get_facturaciones():
-    facturaciones = load_data("facturacion.json")
-    return sorted(facturaciones, key=lambda x: x.get("fecha_facturacion", ""), reverse=True)
+def get_facturaciones(db: Session = Depends(get_db)):
+    return db.query(Facturacion).order_by(Facturacion.fecha_facturacion.desc()).all()
 
 
 @router.get("/contenedor/{contenedor_id}", response_model=List[FacturacionOut],
             summary="Facturaciones de un contenedor")
-def get_facturaciones_contenedor(contenedor_id: int):
-    contenedores = load_data("contenedores.json")
-    if not any(c["id_contenedor"] == contenedor_id for c in contenedores):
+def get_facturaciones_contenedor(contenedor_id: int, db: Session = Depends(get_db)):
+    if not db.query(Contenedor).filter(Contenedor.id_contenedor == contenedor_id).first():
         raise HTTPException(status_code=404, detail="Contenedor no encontrado")
 
-    facturaciones = load_data("facturacion.json")
-    filtered = [f for f in facturaciones if f["id_contenedor"] == contenedor_id]
-    return sorted(filtered, key=lambda x: x.get("fecha_facturacion", ""))
+    return db.query(Facturacion).filter(Facturacion.id_contenedor == contenedor_id).order_by(Facturacion.fecha_facturacion).all()
 
 
 @router.post("/", response_model=FacturacionOut, status_code=status.HTTP_201_CREATED,
              summary="Registrar facturación")
-def create_facturacion(data: FacturacionCreate):
-    contenedores = load_data("contenedores.json")
-    if not any(c["id_contenedor"] == data.id_contenedor for c in contenedores):
+def create_facturacion(data: FacturacionCreate, db: Session = Depends(get_db)):
+    if not db.query(Contenedor).filter(Contenedor.id_contenedor == data.id_contenedor).first():
         raise HTTPException(status_code=404, detail="Contenedor no encontrado")
 
-    facturaciones = load_data("facturacion.json")
-    nuevo = data.model_dump()
-    nuevo["id_factura"] = get_next_id(facturaciones, "id_factura")
-    nuevo["fecha_facturacion"] = date.today().isoformat()
-    facturaciones.append(nuevo)
-    save_data("facturacion.json", facturaciones)
+    nuevo = Facturacion(**data.model_dump(), fecha_facturacion=date.today())
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
     return nuevo
 
 
 @router.delete("/{factura_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_facturacion(factura_id: int):
-    facturaciones = load_data("facturacion.json")
-    f = next((f for f in facturaciones if f["id_factura"] == factura_id), None)
+def delete_facturacion(factura_id: int, db: Session = Depends(get_db)):
+    f = db.query(Facturacion).filter(Facturacion.id_factura == factura_id).first()
     if not f:
         raise HTTPException(status_code=404, detail="Factura no encontrada")
-    facturaciones.remove(f)
-    save_data("facturacion.json", facturaciones)
+    db.delete(f)
+    db.commit()

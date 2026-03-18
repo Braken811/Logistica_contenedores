@@ -1,21 +1,22 @@
 from typing import List
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
+from sqlalchemy.orm import Session
 
 from schemas import ClienteCreate, ClienteUpdate, ClienteOut
-from data_utils import load_data, save_data, get_next_id
+from database import get_db
+from models import Cliente
 
 router = APIRouter(prefix="/clientes", tags=["Clientes"])
 
 
 @router.get("/", response_model=List[ClienteOut], summary="Listar clientes")
-def get_clientes():
-    return load_data("clientes.json")
+def get_clientes(db: Session = Depends(get_db)):
+    return db.query(Cliente).all()
 
 
 @router.get("/{cliente_id}", response_model=ClienteOut, summary="Obtener cliente por ID")
-def get_cliente(cliente_id: int):
-    clientes = load_data("clientes.json")
-    cliente = next((c for c in clientes if c["id_cliente"] == cliente_id), None)
+def get_cliente(cliente_id: int, db: Session = Depends(get_db)):
+    cliente = db.query(Cliente).filter(Cliente.id_cliente == cliente_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return cliente
@@ -23,28 +24,28 @@ def get_cliente(cliente_id: int):
 
 @router.post("/", response_model=ClienteOut, status_code=status.HTTP_201_CREATED,
              summary="Crear cliente")
-def create_cliente(data: ClienteCreate):
-    clientes = load_data("clientes.json")
-    if any(c["nit"] == data.nit for c in clientes):
+def create_cliente(data: ClienteCreate, db: Session = Depends(get_db)):
+    if db.query(Cliente).filter(Cliente.nit == data.nit).first():
         raise HTTPException(status_code=400, detail="Ya existe un cliente con ese NIT")
 
-    nuevo = data.model_dump()
-    nuevo["id_cliente"] = get_next_id(clientes, "id_cliente")
-    clientes.append(nuevo)
-    save_data("clientes.json", clientes)
+    nuevo = Cliente(**data.model_dump())
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
     return nuevo
 
 
 @router.put("/{cliente_id}", response_model=ClienteOut, summary="Actualizar cliente")
-def update_cliente(cliente_id: int, data: ClienteUpdate):
-    clientes = load_data("clientes.json")
-    cliente = next((c for c in clientes if c["id_cliente"] == cliente_id), None)
+def update_cliente(cliente_id: int, data: ClienteUpdate, db: Session = Depends(get_db)):
+    cliente = db.query(Cliente).filter(Cliente.id_cliente == cliente_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
 
     update_data = data.model_dump(exclude_unset=True)
-    cliente.update(update_data)
-    save_data("clientes.json", clientes)
+    for field, value in update_data.items():
+        setattr(cliente, field, value)
+    db.commit()
+    db.refresh(cliente)
     return cliente
 
 

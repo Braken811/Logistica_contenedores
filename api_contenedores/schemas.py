@@ -175,28 +175,18 @@ class FacturacionOut(BaseModel):
         from_attributes = True
 
 
-# ── Arrendamiento ─────────────────────────────────────────────────────────────
-class ArrendamientoCreate(BaseModel):
-    id_cliente          : int
-    id_contenedor       : int
-    fecha_inicio        : date
-    fecha_fin           : Optional[date] = None
-    valor_alquiler      : float
-    estado_arrendamiento: str
+# ── Ventas ───────────────────────────────────────────────────────────────
+class VentaCreate(BaseModel):
+    id_contenedor: int
+    id_cliente   : int
+    precio       : float
 
-class ArrendamientoUpdate(BaseModel):
-    fecha_fin           : Optional[date] = None
-    valor_alquiler      : Optional[float] = None
-    estado_arrendamiento: Optional[str]   = None
-
-class ArrendamientoOut(BaseModel):
-    id_arrendamiento    : int
-    id_cliente          : int
-    id_contenedor       : int
-    fecha_inicio        : date
-    fecha_fin           : Optional[date]
-    valor_alquiler      : float
-    estado_arrendamiento: str
+class VentaOut(BaseModel):
+    id_venta     : int
+    id_contenedor: int
+    id_cliente   : int
+    fecha_venta  : Optional[date]
+    precio       : float
 
     class Config:
         from_attributes = True
