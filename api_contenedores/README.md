@@ -2,7 +2,7 @@
 
 ## Configuración de PostgreSQL
 
-### 1. Instalar PostgreSQL
+### 1. Instalar PostgreSQL y pg admin
 Descarga e instala PostgreSQL desde https://www.postgresql.org/download/
 
 ### 2. Crear la base de datos
