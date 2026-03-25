@@ -1,6 +1,7 @@
 from typing import List
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.orm import Session
+from auth_utils import hash_password
 
 from schemas import UsuarioCreate, UsuarioUpdate, UsuarioOut
 from database import get_db
@@ -28,7 +29,9 @@ def create_usuario(data: UsuarioCreate, db: Session = Depends(get_db)):
     if db.query(Usuario).filter(Usuario.user == data.user).first():
         raise HTTPException(status_code=400, detail="El nombre de usuario ya existe")
 
-    nuevo = Usuario(**data.model_dump())
+    datos = data.model_dump()
+    datos["password"] = hash_password(datos["password"])
+    nuevo = Usuario(**datos)
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)

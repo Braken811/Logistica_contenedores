@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers import usuarios, clientes, tipos_contenedores, contenedores
 from routers import movimientos, historial_estado, fotos, facturacion
 from routers import arrendamiento, ventas, dashboard
+from routers import auth
 
 app = FastAPI(
     title="API - Sistema de Logística y Monitoreo de Multiples Contenedores",
@@ -32,6 +33,7 @@ app.include_router(facturacion.router)
 app.include_router(arrendamiento.router)
 app.include_router(ventas.router)
 app.include_router(dashboard.router)
+app.include_router(auth.router)
 
 
 @app.get("/", tags=["Root"])

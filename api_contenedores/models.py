@@ -13,6 +13,7 @@ class Usuario(Base):
     apellidos = Column(String)
     email = Column(String)
     user = Column(String, unique=True, nullable=False)
+    password = column(String, nullable=False)
     rol = Column(SQLEnum(RolUsuario), nullable=False)
 
 # Clientes

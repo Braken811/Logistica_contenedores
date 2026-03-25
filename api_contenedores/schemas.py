@@ -28,6 +28,7 @@ class UsuarioCreate(BaseModel):
     apellidos: Optional[str] = None
     email    : Optional[str] = None
     user     : str
+    password : str
     rol      : RolUsuario
 
 class UsuarioUpdate(BaseModel):
@@ -242,3 +243,14 @@ class DashboardStats(BaseModel):
     arrendamientos_activos : int
     proximos_vencer        : int   # arrendamientos que vencen en ≤7 días
     total_movimientos      : int
+
+# ── Autenticación ─────────────────────────────────────────────────────────────
+class LoginRequest(BaseModel):
+    user: str
+    password: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    rol: str
+    nombres: str
