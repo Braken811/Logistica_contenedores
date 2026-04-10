@@ -46,7 +46,6 @@ pip install -r requirements.txt
 ### 3. Configurar variables de entorno
 ```bash
 cp .env.example .env
-# Edita .env con tus credenciales de SQL Server
 ```
 
 ### 4. Ejecutar el servidor
