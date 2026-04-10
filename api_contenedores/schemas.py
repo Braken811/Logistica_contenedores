@@ -249,6 +249,15 @@ class LoginRequest(BaseModel):
     user: str
     password: str
 
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    role: str          # 'admin' | 'operador'
+
+class TokenData(BaseModel):
+    user: Optional[str] = None
+    role: Optional[str] = None
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"

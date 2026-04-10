@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from schemas import FotoOut
 from database import get_db
 from models import Foto, Contenedor
+from auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/fotos", tags=["Fotos de Contenedor"])
 
@@ -17,7 +18,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.get("/contenedor/{contenedor_id}", response_model=List[FotoOut],
             summary="Fotos de un contenedor")
-def get_fotos(contenedor_id: int, db: Session = Depends(get_db)):
+def get_fotos(contenedor_id: int, current=Depends(get_current_user), db: Session = Depends(get_db)):
     if not db.query(Contenedor).filter(Contenedor.id_contenedor == contenedor_id).first():
         raise HTTPException(status_code=404, detail="Contenedor no encontrado")
 
@@ -26,7 +27,7 @@ def get_fotos(contenedor_id: int, db: Session = Depends(get_db)):
 
 @router.post("/contenedor/{contenedor_id}", response_model=FotoOut,
              status_code=status.HTTP_201_CREATED, summary="Subir foto")
-def upload_foto(contenedor_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
+def upload_foto(contenedor_id: int, current=Depends(get_current_user), file: UploadFile = File(...), db: Session = Depends(get_db)):
     if not db.query(Contenedor).filter(Contenedor.id_contenedor == contenedor_id).first():
         raise HTTPException(status_code=404, detail="Contenedor no encontrado")
 
@@ -46,7 +47,7 @@ def upload_foto(contenedor_id: int, file: UploadFile = File(...), db: Session = 
 
 @router.delete("/{foto_id}", status_code=status.HTTP_204_NO_CONTENT,
                summary="Eliminar foto")
-def delete_foto(foto_id: int):
+def delete_foto(foto_id: int, current=Depends(get_current_user)):
     fotos = load_data("fotos.json")
     foto = next((f for f in fotos if f["id_foto"] == foto_id), None)
     if not foto:

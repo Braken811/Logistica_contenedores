@@ -6,13 +6,14 @@ from sqlalchemy.orm import Session
 from schemas import ContenedorCreate, ContenedorUpdate, ContenedorOut, EstadoContenedor
 from database import get_db
 from models import Contenedor, HistorialEstado, Movimiento, Foto, Arrendamiento, Facturacion
+from auth.dependencies import get_current_user, only_admin
 
 router = APIRouter(prefix="/contenedores", tags=["Contenedores"])
 
 
 # ── RF06: Consulta y búsqueda ─────────────────────────────────────────────────
 @router.get("/", response_model=List[ContenedorOut], summary="Listar / buscar contenedores")
-def get_contenedores(
+def get_contenedores(current=Depends(get_current_user), 
     db: Session = Depends(get_db),
     codigo    : Optional[str]              = Query(None, description="Filtrar por código"),
     estado    : Optional[EstadoContenedor] = Query(None, description="Filtrar por estado"),
@@ -41,7 +42,7 @@ def get_contenedores(
 
 
 @router.get("/{contenedor_id}", response_model=ContenedorOut, summary="Obtener contenedor")
-def get_contenedor(contenedor_id: int, db: Session = Depends(get_db)):
+def get_contenedor(contenedor_id: int, current=Depends(get_current_user), db: Session = Depends(get_db)):
     c = db.query(Contenedor).filter(Contenedor.id_contenedor == contenedor_id).first()
     if not c:
         raise HTTPException(status_code=404, detail="Contenedor no encontrado")
@@ -51,7 +52,7 @@ def get_contenedor(contenedor_id: int, db: Session = Depends(get_db)):
 # ── RF04: Agregar contenedor ──────────────────────────────────────────────────
 @router.post("/", response_model=ContenedorOut, status_code=status.HTTP_201_CREATED,
              summary="Crear contenedor")
-def create_contenedor(data: ContenedorCreate, db: Session = Depends(get_db)):
+def create_contenedor(data: ContenedorCreate, admin=Depends(only_admin), db: Session = Depends(get_db)):
     if db.query(Contenedor).filter(Contenedor.id_codigo == data.id_codigo).first():
         raise HTTPException(status_code=400, detail="El código del contenedor ya existe")
 
@@ -64,7 +65,7 @@ def create_contenedor(data: ContenedorCreate, db: Session = Depends(get_db)):
 
 # ── RF04: Editar contenedor ───────────────────────────────────────────────────
 @router.put("/{contenedor_id}", response_model=ContenedorOut, summary="Actualizar contenedor")
-def update_contenedor(contenedor_id: int, data: ContenedorUpdate, db: Session = Depends(get_db)):
+def update_contenedor(contenedor_id: int, data: ContenedorUpdate, admin=Depends(only_admin), db: Session = Depends(get_db)):
     c = db.query(Contenedor).filter(Contenedor.id_contenedor == contenedor_id).first()
     if not c:
         raise HTTPException(status_code=404, detail="Contenedor no encontrado")
@@ -81,7 +82,7 @@ def update_contenedor(contenedor_id: int, data: ContenedorUpdate, db: Session = 
 # ── RF05: Actualizar estado operativo ─────────────────────────────────────────
 @router.patch("/{contenedor_id}/estado", response_model=ContenedorOut,
               summary="Actualizar estado operativo")
-def update_estado(contenedor_id: int, estado: EstadoContenedor, db: Session = Depends(get_db)):
+def update_estado(contenedor_id: int, estado: EstadoContenedor, admin=Depends(only_admin), db: Session = Depends(get_db)):
     """
     Actualiza el estado del contenedor y guarda el cambio en Historial_Estado.
     """

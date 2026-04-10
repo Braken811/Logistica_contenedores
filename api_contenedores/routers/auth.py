@@ -1,35 +1,34 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
 from database import get_db
-from schemas import LoginRequest, TokenResponse
-from auth_utils import verify_password, create_access_token
-import models
+from models import Usuario
+from schemas import Token, LoginRequest
+from auth.hashing import verify_password
+from auth.jwt import create_access_token
 
-router = APIRouter(prefix="/auth", tags=["Autenticación"])
+router = APIRouter(prefix='/auth', tags=['Autenticación'])
 
-
-@router.post("/login", response_model=TokenResponse, summary="Iniciar sesión")
-def login(credentials: LoginRequest, db: Session = Depends(get_db)):
+@router.post('/login', response_model=Token)
+def login(data: LoginRequest, db: Session = Depends(get_db)):
     """
     Autentica un usuario y devuelve un JWT.
     - **user**: nombre de usuario
     - **password**: contraseña en texto plano
     """
-    usuario = db.query(models.Usuario).filter(
-        models.Usuario.user == credentials.user
-    ).first()
+    # Buscar el usuario en la tabla Usuario
+    usuario = db.query(Usuario).filter(
+        Usuario.user == data.user).first()
+    
+    if usuario and verify_password(data.password, usuario.password):
+        token = create_access_token(user=usuario.user, role=usuario.rol)
+        return {
+            'access_token': token,
+            'token_type': 'bearer',
+            'role': usuario.rol
+        }
 
-    if not usuario or not verify_password(credentials.password, usuario.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuario o contraseña incorrectos"
-        )
-
-    token = create_access_token({"sub": str(usuario.id_usuario), "rol": usuario.rol})
-
-    return TokenResponse(
-        access_token=token,
-        rol=usuario.rol,
-        nombres=usuario.nombres
+    # Si no coincide ningun usuario
+    raise HTTPException(
+        status_code=401,
+        detail='Usuario o contraseña incorrectos'
     )

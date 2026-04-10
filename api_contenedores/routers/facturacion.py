@@ -6,18 +6,19 @@ from sqlalchemy.orm import Session
 from schemas import FacturacionCreate, FacturacionOut
 from database import get_db
 from models import Facturacion, Contenedor
+from auth.dependencies import only_admin
 
 router = APIRouter(prefix="/facturacion", tags=["Facturación"])
 
 
 @router.get("/", response_model=List[FacturacionOut], summary="Listar facturaciones")
-def get_facturaciones(db: Session = Depends(get_db)):
+def get_facturaciones(admin=Depends(only_admin), db: Session = Depends(get_db)):
     return db.query(Facturacion).order_by(Facturacion.fecha_facturacion.desc()).all()
 
 
 @router.get("/contenedor/{contenedor_id}", response_model=List[FacturacionOut],
             summary="Facturaciones de un contenedor")
-def get_facturaciones_contenedor(contenedor_id: int, db: Session = Depends(get_db)):
+def get_facturaciones_contenedor(contenedor_id: int, admin=Depends(only_admin), db: Session = Depends(get_db)):
     if not db.query(Contenedor).filter(Contenedor.id_contenedor == contenedor_id).first():
         raise HTTPException(status_code=404, detail="Contenedor no encontrado")
 
@@ -26,7 +27,7 @@ def get_facturaciones_contenedor(contenedor_id: int, db: Session = Depends(get_d
 
 @router.post("/", response_model=FacturacionOut, status_code=status.HTTP_201_CREATED,
              summary="Registrar facturación")
-def create_facturacion(data: FacturacionCreate, db: Session = Depends(get_db)):
+def create_facturacion(data: FacturacionCreate, admin=Depends(only_admin), db: Session = Depends(get_db)):
     if not db.query(Contenedor).filter(Contenedor.id_contenedor == data.id_contenedor).first():
         raise HTTPException(status_code=404, detail="Contenedor no encontrado")
 
@@ -38,7 +39,7 @@ def create_facturacion(data: FacturacionCreate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{factura_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_facturacion(factura_id: int, db: Session = Depends(get_db)):
+def delete_facturacion(factura_id: int, admin=Depends(only_admin), db: Session = Depends(get_db)):
     f = db.query(Facturacion).filter(Facturacion.id_factura == factura_id).first()
     if not f:
         raise HTTPException(status_code=404, detail="Factura no encontrada")

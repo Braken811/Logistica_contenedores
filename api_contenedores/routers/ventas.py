@@ -6,17 +6,18 @@ from sqlalchemy.orm import Session
 from schemas import VentaCreate, VentaOut
 from database import get_db
 from models import Venta, Contenedor, Cliente
+from auth.dependencies import only_admin
 
 router = APIRouter(prefix="/ventas", tags=["Ventas"])
 
 
 @router.get("/", response_model=List[VentaOut], summary="Listar ventas")
-def get_ventas(db: Session = Depends(get_db)):
+def get_ventas(admin=Depends(only_admin), db: Session = Depends(get_db)):
     return db.query(Venta).order_by(Venta.fecha_venta.desc()).all()
 
 
 @router.get("/{venta_id}", response_model=VentaOut)
-def get_venta(venta_id: int, db: Session = Depends(get_db)):
+def get_venta(venta_id: int, admin=Depends(only_admin), db: Session = Depends(get_db)):
     v = db.query(Venta).filter(Venta.id_venta == venta_id).first()
     if not v:
         raise HTTPException(status_code=404, detail="Venta no encontrada")
@@ -25,7 +26,7 @@ def get_venta(venta_id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=VentaOut, status_code=status.HTTP_201_CREATED,
              summary="Registrar venta")
-def create_venta(data: VentaCreate, db: Session = Depends(get_db)):
+def create_venta(data: VentaCreate, admin=Depends(only_admin), db: Session = Depends(get_db)):
     if not db.query(Contenedor).filter(Contenedor.id_contenedor == data.id_contenedor).first():
         raise HTTPException(status_code=404, detail="Contenedor no encontrado")
 
@@ -40,7 +41,7 @@ def create_venta(data: VentaCreate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{venta_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_venta(venta_id: int, db: Session = Depends(get_db)):
+def delete_venta(venta_id: int, admin=Depends(only_admin), db: Session = Depends(get_db)):
     v = db.query(Venta).filter(Venta.id_venta == venta_id).first()
     if not v:
         raise HTTPException(status_code=404, detail="Venta no encontrada")
