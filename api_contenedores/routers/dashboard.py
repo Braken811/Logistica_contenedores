@@ -6,13 +6,14 @@ from sqlalchemy.orm import Session
 from schemas import DashboardStats
 from database import get_db
 from models import Contenedor, TipoContenedor, Cliente, Arrendamiento, Movimiento
+from auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 
 @router.get("/stats", response_model=DashboardStats,
             summary="Estadísticas generales del sistema")
-def get_stats(db: Session = Depends(get_db)):
+def get_stats(current=Depends(get_current_user), db: Session = Depends(get_db)):
     """
     RF07 — Devuelve KPIs consolidados:
     - Total de contenedores

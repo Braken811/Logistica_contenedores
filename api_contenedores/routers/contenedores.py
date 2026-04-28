@@ -109,7 +109,7 @@ def update_estado(contenedor_id: int, estado: EstadoContenedor, admin=Depends(on
 # ── RF04: Eliminar contenedor ─────────────────────────────────────────────────
 @router.delete("/{contenedor_id}", status_code=status.HTTP_204_NO_CONTENT,
                summary="Eliminar contenedor")
-def delete_contenedor(contenedor_id: int, db: Session = Depends(get_db)):
+def delete_contenedor(contenedor_id: int, admin=Depends(only_admin), db: Session = Depends(get_db)):
     c = db.query(Contenedor).filter(Contenedor.id_contenedor == contenedor_id).first()
     if not c:
         raise HTTPException(status_code=404, detail="Contenedor no encontrado")
@@ -119,7 +119,7 @@ def delete_contenedor(contenedor_id: int, db: Session = Depends(get_db)):
 
 # ── RF10: Historial completo del contenedor ───────────────────────────────────
 @router.get("/{contenedor_id}/historial", summary="Historial completo del contenedor")
-def get_historial_contenedor(contenedor_id: int, db: Session = Depends(get_db)):
+def get_historial_contenedor(contenedor_id: int, current=Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Devuelve en un solo endpoint:
     movimientos, cambios de estado, fotos, arrendamientos y facturaciones.

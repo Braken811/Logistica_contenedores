@@ -47,14 +47,13 @@ def upload_foto(contenedor_id: int, current=Depends(get_current_user), file: Upl
 
 @router.delete("/{foto_id}", status_code=status.HTTP_204_NO_CONTENT,
                summary="Eliminar foto")
-def delete_foto(foto_id: int, current=Depends(get_current_user)):
-    fotos = load_data("fotos.json")
-    foto = next((f for f in fotos if f["id_foto"] == foto_id), None)
+def delete_foto(foto_id: int, current=Depends(get_current_user), db: Session = Depends(get_db)):
+    foto = db.query(Foto).filter(Foto.id_foto == foto_id).first()
     if not foto:
         raise HTTPException(status_code=404, detail="Foto no encontrada")
 
-    if os.path.exists(foto["ruta_imagen"]):
-        os.remove(foto["ruta_imagen"])
+    if os.path.exists(foto.ruta_imagen):
+        os.remove(foto.ruta_imagen)
 
-    fotos.remove(foto)
-    save_data("fotos.json", fotos)
+    db.delete(foto)
+    db.commit()

@@ -53,9 +53,8 @@ def update_cliente(cliente_id: int, data: ClienteUpdate, admin=Depends(only_admi
 @router.delete("/{cliente_id}", status_code=status.HTTP_204_NO_CONTENT,
                summary="Eliminar cliente")
 def delete_cliente(cliente_id: int, admin=Depends(only_admin), db: Session = Depends(get_db)):
-    clientes = load_data("clientes.json")
-    cliente = next((c for c in clientes if c["id_cliente"] == cliente_id), None)
+    cliente = db.query(Cliente).filter(Cliente.id_cliente == cliente_id).first()
     if not cliente:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    clientes.remove(cliente)
-    save_data("clientes.json", clientes)
+    db.delete(cliente)
+    db.commit()
