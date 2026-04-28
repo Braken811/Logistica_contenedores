@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles 
 
 from routers import usuarios, clientes, tipos_contenedores, contenedores
 from routers import movimientos, historial_estado, fotos, facturacion
@@ -35,6 +37,9 @@ app.include_router(ventas.router)
 app.include_router(dashboard.router)
 app.include_router(auth.router)
 
+# ── Servir archivos estáticos ────────────────────────────────────────────────
+app.mount("/static", StaticFiles(directory="static", html=False), name="static")
+
 
 @app.get("/", tags=["Root"])
 def root():
@@ -44,3 +49,18 @@ def root():
         "docs": "/docs",
         "estado": "activo",
     }
+@app.get("/login", response_class=FileResponse)
+async def login():
+    response = FileResponse("login.html")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+@app.get("/dashboard", response_class=FileResponse)
+async def dashboard_page():
+    response = FileResponse("dashboard.html")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response

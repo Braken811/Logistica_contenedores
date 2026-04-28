@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Mazolo Contenedores — Sistema de Logística">
+    <meta name="theme-color" content="#112244">
+    <title>Mazolo Contenedores — Acceso</title>
+
+    <!-- Dependencias externas -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* ═══════════════════════════════════════════════════════════════════════════
+              TOKENS DE DISEÑO
+           ═══════════════════════════════════════════════════════════════════════════ */
+        :root {
+            --red:              #D32F2F;
+            --red-dark:         #b71c1c;
+            --red-glow:         rgba(211, 47, 47, 0.18);
+            --navy-dark:        #080f1e;
+            --panel-bg:         #112244;
+            --border-color:     rgba(255, 255, 255, 0.15);
+            --text-muted:       rgba(180, 205, 235, 0.75);
+            --text-light:       rgba(180, 210, 240, 0.8);
+            --white:            #f0f6ff;
+            --success:          #00c896;
+            --error-bg:         rgba(211, 47, 47, 0.12);
+            --error-border:     rgba(211, 47, 47, 0.35);
+            --input-bg:         rgba(255, 255, 255, 0.08);
+            --input-border:     rgba(255, 255, 255, 0.15);
+            --transition-fast:  .2s ease;
+            --transition-medium:.25s ease;
+            --transition-slow:  .35s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+              RESET Y BASE
+           ═══════════════════════════════════════════════════════════════════════════ */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--navy-dark);
+            min-height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+              PANEL IZQUIERDO — FORMULARIO
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .auth-panel {
+            width: 460px;
+            min-height: 100vh;
+            background: var(--panel-bg);
+            border-right: 1px solid rgba(255, 255, 255, 0.07);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2.5rem 2.5rem 1.5rem;
+            position: relative;
+            z-index: 10;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        .auth-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--red), #ff6b6b, var(--red));
+            background-size: 200% 100%;
+            animation: shimmer-line 3s ease infinite;
+        }
+
+        @keyframes shimmer-line {
+            0%   { background-position: -200% 0; }
+            100% { background-position:  200% 0; }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+              LOGO CENTRADO
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .logo-area {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            padding-top: .5rem;
+        }
+
+        .logo-area img {
+            height: 80px;
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 0 16px var(--red-glow));
+            margin-bottom: .75rem;
+        }
+
+        .logo-fallback {
+            width: 70px;
+            height: 70px;
+            background: var(--red);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 1.3rem;
+            color: #fff;
+            box-shadow: 0 8px 24px var(--red-glow);
+            margin-bottom: .75rem;
+        }
+
+        .logo-name {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 1.1rem;
+            color: var(--white);
+            letter-spacing: .04em;
+            text-align: center;
+        }
+
+        .logo-name span {
+            color: var(--red);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+              CONTENEDOR DE VISTAS
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .views-container {
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .view {
+            display: none;
+            width: 100%;
+        }
+
+        .view.active {
+            display: block;
+            animation: view-forward var(--transition-slow);
+        }
+
+        .view.active.back {
+            animation: view-backward var(--transition-slow);
+        }
+
+        @keyframes view-forward {
+            from { opacity: 0; transform: translateX(20px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes view-backward {
+            from { opacity: 0; transform: translateX(-20px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        .view-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 1.8rem;
+            color: var(--white);
+            line-height: 1.1;
+            margin-bottom: .4rem;
+        }
+
+        .view-sub {
+            font-size: .875rem;
+            color: var(--text-muted);
+            font-weight: 300;
+            margin-bottom: 1.75rem;
+            line-height: 1.6;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+              CAMPOS DE FORMULARIO
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .field {
+            margin-bottom: 1.2rem;
+        }
+
+        .field label {
+            display: block;
+            font-size: .7rem;
+            font-weight: 600;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: .45rem;
+            transition: color var(--transition-medium);
+        }
+
+        .field:focus-within label {
+            color: var(--red);
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-wrap .icon-left {
+            position: absolute;
+            left: .9rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(160, 185, 215, 0.4);
+            font-size: .95rem;
+            pointer-events: none;
+            transition: color var(--transition-medium);
+        }
+
+        .input-wrap:focus-within .icon-left {
+            color: var(--red);
+        }
+
+        .input-wrap input {
+            width: 100%;
+            padding: .85rem 2.8rem .85rem 2.6rem;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 10px;
+            color: var(--white);
+            font-family: 'DM Sans', sans-serif;
+            font-size: .9rem;
+            transition: border-color var(--transition-medium), 
+                        background var(--transition-medium), 
+                        box-shadow var(--transition-medium), 
+                        transform var(--transition-fast);
+            outline: none;
+        }
+
+        .input-wrap input::placeholder {
+            color: rgba(180, 210, 240, 0.25);
+        }
+
+        .input-wrap input:focus {
+            border-color: var(--red);
+            background: rgba(211, 47, 47, 0.07);
+            box-shadow: 0 0 0 3px var(--red-glow);
+            transform: translateY(-1px);
+        }
+
+        .input-wrap input.is-error {
+            border-color: var(--red);
+            background: var(--error-bg);
+        }
+
+        .input-wrap input.is-success {
+            border-color: var(--success);
+        }
+
+        .btn-eye {
+            position: absolute;
+            right: .75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: rgba(160, 185, 215, 0.45);
+            cursor: pointer;
+            padding: .2rem;
+            line-height: 1;
+            transition: color var(--transition-fast);
+        }
+
+        .btn-eye:hover {
+            color: var(--red);
+        }
+
+        .field-error {
+            display: none;
+            font-size: .76rem;
+            color: #ff8a80;
+            margin-top: .35rem;
+            align-items: center;
+            gap: .3rem;
+        }
+
+        .field-error.show {
+            display: flex;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+              ALERTA GLOBAL
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .alert-global {
+            display: none;
+            align-items: flex-start;
+            gap: .6rem;
+            padding: .85rem 1rem;
+            border-radius: 10px;
+            font-size: .85rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .alert-global.error {
+            display: flex;
+            background: var(--error-bg);
+            border: 1px solid var(--error-border);
+            border-left: 3px solid var(--red);
+            color: #ffb3b3;
+            animation: shake .4s ease;
+        }
+
+        .alert-global.success {
+            display: flex;
+            background: rgba(0, 200, 150, 0.1);
+            border: 1px solid rgba(0, 200, 150, 0.3);
+            border-left: 3px solid var(--success);
+            color: #80ffd8;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60%  { transform: translateX(-5px); }
+            40%, 80%  { transform: translateX(5px); }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+              BOTÓN PRINCIPAL
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .btn-main {
+            width: 100%;
+            padding: .95rem;
+            background: var(--red);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-family: 'Archivo Black', sans-serif;
+            font-size: .95rem;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+            margin-top: 1.75rem;
+            position: relative;
+            overflow: hidden;
+            transition: background var(--transition-fast), 
+                        transform .15s, 
+                        box-shadow var(--transition-fast);
+        }
+
+        .btn-main::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            transition: left .5s ease;
+            pointer-events: none;
+        }
+
+        .btn-main:hover::before {
+            left: 140%;
+        }
+
+        .btn-main:hover {
+            background: var(--red-dark);
+            box-shadow: 0 8px 24px rgba(211, 47, 47, 0.35);
+            transform: translateY(-2px);
+        }
+
+        .btn-main:active {
+            transform: translateY(0);
+        }
+
+        .btn-main.loading {
+            pointer-events: none;
+            opacity: .85;
+        }
+
+        .spinner-ring {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .65s linear infinite;
+        }
+
+        .btn-main.loading .spinner-ring {
+            display: block;
+        }
+
+        .btn-main.loading .btn-label {
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+              LINK DE CAMBIO DE VISTA (ahora informativo)
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .switch-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: .85rem;
+            color: var(--text-muted);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+              CONTADOR DE INTENTOS
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .attempts-counter {
+            text-align: center;
+            font-size: .78rem;
+            margin-top: .6rem;
+            display: none;
+            font-weight: 500;
+            transition: color var(--transition-medium);
+        }
+
+        .attempts-counter.show {
+            display: block;
+        }
+
+        .attempts-counter.try1 { color: var(--text-muted); }
+        .attempts-counter.try2 { color: #ffca28; }
+        .attempts-counter.try3 { color: #ff8a80; }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+              OVERLAY DE ACCESO DENEGADO
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .denied-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(180, 0, 0, 0.97);
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn .3s ease;
+        }
+
+        .denied-overlay.show {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        .denied-icon {
+            font-size: 5rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 1.5rem;
+            animation: icon-pulse .6s ease infinite alternate;
+        }
+
+        @keyframes icon-pulse {
+            from { transform: scale(1);   opacity: .8; }
+            to   { transform: scale(1.05); opacity: 1; }
+        }
+
+        .denied-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 2.5rem;
+            color: #fff;
+            letter-spacing: .15em;
+            text-transform: uppercase;
+            margin-bottom: .75rem;
+        }
+
+        .denied-sub {
+            font-size: 1rem;
+            color: rgba(255, 200, 200, 0.8);
+            font-weight: 300;
+        }
+
+        .denied-countdown {
+            margin-top: 2rem;
+            font-size: .85rem;
+            color: rgba(255, 180, 180, 0.7);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+              TOAST
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9000;
+            display: flex;
+            flex-direction: column;
+            gap: .5rem;
+            pointer-events: none;
+            min-width: 280px;
+        }
+
+        .toast-item {
+            padding: .85rem 1.25rem;
+            border-radius: 10px;
+            font-size: .875rem;
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            backdrop-filter: blur(10px);
+            animation: toast-in .3s ease;
+        }
+
+        .toast-item.success {
+            background: rgba(0, 200, 150, 0.15);
+            border: 1px solid rgba(0, 200, 150, 0.3);
+            color: #80ffd8;
+        }
+
+        .toast-item.error {
+            background: rgba(211, 47, 47, 0.15);
+            border: 1px solid rgba(211, 47, 47, 0.3);
+            color: #ff8a80;
+        }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+              PANEL HERO
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .hero-panel {
+            flex: 1;
+            position: relative;
+            background: url('/static/fondo.png') center center / cover no-repeat;
+            overflow: hidden;
+            image-rendering: -webkit-optimize-contrast;
+            filter: brightness(1.08) contrast(1.05);
+        }
+
+        .hero-panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                105deg,
+                rgba(10, 22, 40, 0.65) 0%,
+                rgba(10, 22, 40, 0.35) 55%,
+                rgba(10, 22, 40, 0.12) 100%
+            );
+        }
+
+        .status-pills {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: .5rem;
+            z-index: 2;
+        }
+
+        .pill {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .4rem .85rem;
+            background: rgba(8, 15, 30, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(8px);
+            font-size: .72rem;
+            color: rgba(200, 220, 240, 0.9);
+        }
+
+        .pill .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            animation: pulse-dot 2s ease infinite;
+            flex-shrink: 0;
+        }
+
+        .dot-green  { background: var(--success); }
+        .dot-yellow { background: #ffca28; }
+        .dot-red    { background: var(--red); }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%      { opacity: .5; transform: scale(.8); }
+        }
+
+        .hero-content {
+            position: absolute;
+            bottom: 3rem;
+            left: 3rem;
+            z-index: 2;
+            max-width: 480px;
+        }
+
+        .hero-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            font-size: .7rem;
+            font-weight: 600;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: var(--red);
+            border: 1px solid rgba(211, 47, 47, 0.45);
+            padding: .3rem .8rem;
+            border-radius: 20px;
+            margin-bottom: 1.2rem;
+            backdrop-filter: blur(6px);
+            background: rgba(211, 47, 47, 0.1);
+        }
+
+        .hero-title {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: clamp(2.2rem, 4vw, 3.8rem);
+            color: #fff;
+            line-height: 1.05;
+            margin-bottom: 1.1rem;
+            text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .hero-title span {
+            color: var(--red);
+        }
+
+        .hero-desc {
+            font-size: .95rem;
+            color: rgba(210, 230, 250, 0.8);
+            font-weight: 300;
+            line-height: 1.7;
+            max-width: 380px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+              RESPONSIVE
+           ═══════════════════════════════════════════════════════════════════════════ */
+        @media (max-width: 768px) {
+            body {
+                overflow: auto;
+            }
+
+            .auth-panel {
+                width: 100%;
+                min-height: 100vh;
+            }
+
+            .hero-panel {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- OVERLAY DE ACCESO DENEGADO -->
+    <div class="denied-overlay" id="deniedOverlay">
+        <i class="bi bi-shield-x denied-icon"></i>
+        <div class="denied-title">Acceso Denegado</div>
+        <div class="denied-sub">Demasiados intentos fallidos. Sesión terminada.</div>
+        <div class="denied-countdown" id="deniedCountdown">Redirigiendo en 3 segundos...</div>
+    </div>
+
+    <!-- PANEL FORMULARIO -->
+    <div class="auth-panel">
+
+        <!-- Logo con fallback -->
+        <div class="logo-area">
+            <img src="/static/image.png" alt="Mazolo Contenedores"
+                 onerror="this.style.display='none';document.getElementById('logoFb').style.display='flex'">
+            <div class="logo-fallback" id="logoFb" style="display:none">MZ</div>
+            <div class="logo-name">Mazolo<span>Log</span></div>
+        </div>
+
+        <div class="views-container">
+
+            <!-- ── VISTA: LOGIN ──────────────────────────────── -->
+            <div class="view active" id="viewLogin">
+                <div class="view-title">Bienvenido de nuevo</div>
+                <div class="view-sub">Ingresa tus credenciales para acceder al sistema.</div>
+
+                <div class="alert-global" id="loginAlert">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span id="loginAlertMsg"></span>
+                </div>
+
+                <form id="loginForm" novalidate>
+                    <div class="field">
+                        <label>Usuario</label>
+                        <div class="input-wrap">
+                            <input type="text" id="loginUser" placeholder="Nombre de usuario" autocomplete="username">
+                            <i class="bi bi-person icon-left"></i>
+                        </div>
+                        <div class="field-error" id="err-loginUser">
+                            <i class="bi bi-exclamation-circle-fill"></i> El usuario es obligatorio.
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>Contraseña</label>
+                        <div class="input-wrap">
+                            <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+                            <i class="bi bi-lock icon-left"></i>
+                            <button type="button" class="btn-eye" onclick="togglePassword('loginPass', this)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="field-error" id="err-loginPass">
+                            <i class="bi bi-exclamation-circle-fill"></i> La contraseña es obligatoria.
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-main" id="btnLogin">
+                        <span class="btn-label"><i class="bi bi-arrow-right-circle"></i> Ingresar al sistema</span>
+                        <span class="spinner-ring"></span>
+                    </button>
+                </form>
+
+                <div class="switch-link">
+                    ¿Necesitas acceso? Contacta al administrador.
+                </div>
+            </div>
+
+            <!-- ── VISTA: CLAVE DE ACCESO ────────────────────── -->
+            <div class="view" id="viewAccessKey">
+                <div class="view-title">Verificación de acceso</div>
+                <div class="view-sub">Ingresa la clave de acceso del administrador para continuar.</div>
+
+                <div class="alert-global" id="accessAlert">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <span id="accessAlertMsg"></span>
+                </div>
+
+                <div class="field">
+                    <label>Clave de acceso</label>
+                    <div class="input-wrap">
+                        <input type="password" id="accessKey" placeholder="Clave de acceso" autocomplete="off">
+                        <i class="bi bi-key icon-left"></i>
+                        <button type="button" class="btn-eye" onclick="togglePassword('accessKey', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                    <div class="field-error" id="err-accessKey">
+                        <i class="bi bi-exclamation-circle-fill"></i> Clave incorrecta.
+                    </div>
+                </div>
+
+                <div class="attempts-counter" id="attemptsCounter"></div>
+
+                <button class="btn-main" id="btnAccess" onclick="verifyAccessKey()">
+                    <span class="btn-label"><i class="bi bi-lock-fill"></i> Confirmar acceso</span>
+                    <span class="spinner-ring"></span>
+                </button>
+
+                <p style="text-align:center;margin-top:1.2rem;font-size:.72rem;color:rgba(160,185,215,0.4)">
+                    Esta clave es proporcionada por el administrador del sistema.
+                </p>
+
+                <div class="switch-link">
+                    <button onclick="goTo('viewLogin', 'back')">Volver al inicio de sesión</button>
+                </div>
+            </div>
+
+        </div><!-- /views-container -->
+    </div><!-- /auth-panel -->
+
+    <!-- HERO PANEL -->
+    <div class="hero-panel">
+        <div class="status-pills">
+            <div class="pill"><div class="dot dot-green"></div> Sistema operativo</div>
+            <div class="pill"><div class="dot dot-yellow"></div> 3 alertas activas</div>
+            <div class="pill"><div class="dot dot-red"></div> 2 contratos por vencer</div>
+        </div>
+
+        <div class="hero-content">
+            <div class="hero-tag"><i class="bi bi-geo-alt-fill"></i> Monitoreo en tiempo real</div>
+            <h1 class="hero-title">Gestión de<br><span>contenedores</span><br>logísticos</h1>
+            <p class="hero-desc">Control operativo completo, trazabilidad de movimientos y análisis estadístico de tu flota.</p>
+        </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════
+        // ESTADO GLOBAL
+        // ═══════════════════════════════════════════════════════════════
+        let accessAttempts = 0;
+        const MAX_ATTEMPTS  = 3;
+        const ACCESS_KEY    = 'utb'; // TODO: reemplazar con POST /auth/verify-key
+
+        // ═══════════════════════════════════════════════════════════════
+        // USUARIOS DEMO (al conectar backend, esta lógica se reemplaza por JWT)
+        // ═══════════════════════════════════════════════════════════════
+        const DEMO_USERS = {
+            'admin':      { password: '1234', role: 'admin' },
+            'supervisor': { password: '1234', role: 'supervisor' },
+            'operador':   { password: '1234', role: 'operador' },
+            'auditor':    { password: '1234', role: 'auditor' }
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        // NAVEGACIÓN ENTRE VISTAS
+        // ═══════════════════════════════════════════════════════════════
+        function goTo(viewId, dir = 'forward') {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active', 'back'));
+            const next = document.getElementById(viewId);
+            if (next) {
+                next.classList.add('active');
+                if (dir === 'back') {
+                    next.classList.add('back');
+                    setTimeout(() => next.classList.remove('back'), 400);
+                }
+            }
+            clearAllAlerts();
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // TOGGLE CONTRASEÑA
+        // ═══════════════════════════════════════════════════════════════
+        function togglePassword(inputId, button) {
+            const input = document.getElementById(inputId);
+            const icon  = button.querySelector('i');
+            const show  = input.type === 'password';
+            input.type  = show ? 'text' : 'password';
+            icon.className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // VALIDACIÓN DE CAMPOS
+        // ═══════════════════════════════════════════════════════════════
+        function setFieldError(inputId, errorId, show = true) {
+            const input = document.getElementById(inputId);
+            const error = document.getElementById(errorId);
+            if (show) {
+                input.classList.add('is-error');
+                input.classList.remove('is-success');
+                error.classList.add('show');
+            } else {
+                input.classList.remove('is-error');
+                input.classList.add('is-success');
+                error.classList.remove('show');
+            }
+        }
+
+        function clearAllAlerts() {
+            document.querySelectorAll('.alert-global').forEach(a => a.classList.remove('error', 'success'));
+            document.querySelectorAll('.field-error').forEach(e => e.classList.remove('show'));
+            document.querySelectorAll('input').forEach(i => i.classList.remove('is-error', 'is-success'));
+        }
+
+        function showAlert(alertId, msgId, message, type) {
+            const alert = document.getElementById(alertId);
+            const span  = document.getElementById(msgId);
+            alert.classList.remove('error', 'success');
+            void alert.offsetWidth;
+            span.textContent = message;
+            alert.classList.add(type);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // TOAST
+        // ═══════════════════════════════════════════════════════════════
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast-item ${type}`;
+            toast.innerHTML = `<i class="bi bi-${type === 'success' ? 'check-circle-fill' : 'x-circle-fill'}"></i> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3500);
+        }
+
+        function setLoading(buttonId, isLoading) {
+            document.getElementById(buttonId).classList.toggle('loading', isLoading);
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // LOGIN CON ASIGNACIÓN DE ROL
+        // ═══════════════════════════════════════════════════════════════
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearAllAlerts();
+
+            const user = document.getElementById('loginUser').value.trim();
+            const pass = document.getElementById('loginPass').value;
+            let valid = true;
+
+            if (!user) { setFieldError('loginUser', 'err-loginUser'); valid = false; }
+            if (!pass) { setFieldError('loginPass', 'err-loginPass'); valid = false; }
+            if (!valid) return;
+
+            setLoading('btnLogin', true);
+            await delay(1400); // Simular llamada a POST /auth/login
+            setLoading('btnLogin', false);
+
+            // Verificar credenciales demo
+            const userRecord = DEMO_USERS[user];
+            if (userRecord && userRecord.password === pass) {
+                // Éxito: guardar sesión y rol
+                setFieldError('loginUser', 'err-loginUser', false);
+                setFieldError('loginPass', 'err-loginPass', false);
+                accessAttempts = 0;
+                updateAttemptsUI();
+
+                // Almacenar datos de sesión
+                try {
+                    sessionStorage.setItem('authenticated', 'true');
+                    sessionStorage.setItem('username', user);
+                    sessionStorage.setItem('role', userRecord.role);
+                } catch (e) {}
+
+                goTo('viewAccessKey', 'forward');
+                document.getElementById('accessKey').value = '';
+                setTimeout(() => document.getElementById('accessKey').focus(), 350);
+            } else {
+                showAlert('loginAlert', 'loginAlertMsg', 'Usuario o contraseña incorrectos.', 'error');
+                document.getElementById('loginUser').classList.add('is-error');
+                document.getElementById('loginPass').classList.add('is-error');
+                document.getElementById('loginPass').value = '';
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // CLAVE DE ACCESO
+        // ═══════════════════════════════════════════════════════════════
+        function updateAttemptsUI() {
+            const counter = document.getElementById('attemptsCounter');
+            if (accessAttempts === 0) { counter.classList.remove('show'); return; }
+            counter.className = `attempts-counter show try${accessAttempts}`;
+            const remaining = MAX_ATTEMPTS - accessAttempts;
+            counter.textContent = `Intento ${accessAttempts} de ${MAX_ATTEMPTS} — ${remaining} restante${remaining !== 1 ? 's' : ''}`;
+        }
+
+        async function verifyAccessKey() {
+            clearAllAlerts();
+            const input = document.getElementById('accessKey');
+            const value = input.value.trim();
+            if (!value) { setFieldError('accessKey', 'err-accessKey'); return; }
+            setLoading('btnAccess', true);
+            await delay(900);
+            setLoading('btnAccess', false);
+            if (value === ACCESS_KEY) {
+                input.classList.add('is-success');
+                showToast('Acceso concedido. Redirigiendo al panel...');
+                await delay(1000);
+                window.location.href = '/dashboard';
+            } else {
+                accessAttempts++;
+                input.value = '';
+                input.classList.add('is-error');
+                updateAttemptsUI();
+                if (accessAttempts >= MAX_ATTEMPTS) {
+                    showDenied();
+                } else {
+                    const remaining = MAX_ATTEMPTS - accessAttempts;
+                    showAlert('accessAlert', 'accessAlertMsg', `Clave incorrecta. ${remaining} intento${remaining !== 1 ? 's' : ''} restante${remaining !== 1 ? 's' : ''}.`, 'error');
+                    document.getElementById('btnAccess').disabled = true;
+                    setTimeout(() => {
+                        document.getElementById('btnAccess').disabled = false;
+                        input.classList.remove('is-error');
+                        input.focus();
+                    }, 3000);
+                }
+            }
+        }
+
+        function showDenied() {
+            const overlay = document.getElementById('deniedOverlay');
+            const countdown = document.getElementById('deniedCountdown');
+            overlay.classList.add('show');
+            let seconds = 3;
+            countdown.textContent = `Redirigiendo en ${seconds} segundos...`;
+            const timer = setInterval(() => {
+                seconds--;
+                countdown.textContent = seconds > 0 ? `Redirigiendo en ${seconds} segundo${seconds !== 1 ? 's' : ''}...` : 'Redirigiendo...';
+                if (seconds <= 0) {
+                    clearInterval(timer);
+                    accessAttempts = 0;
+                    overlay.classList.remove('show');
+                    document.getElementById('accessKey').value = '';
+                    updateAttemptsUI();
+                    clearAllAlerts();
+                    goTo('viewLogin', 'back');
+                }
+            }, 1000);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // LIMPIAR ERRORES AL ESCRIBIR
+        // ═══════════════════════════════════════════════════════════════
+        document.addEventListener('input', (e) => {
+            const input = e.target;
+            if (input.tagName !== 'INPUT') return;
+            input.classList.remove('is-error');
+            const error = document.getElementById('err-' + input.id);
+            if (error) error.classList.remove('show');
+            document.querySelectorAll('.alert-global').forEach(a => a.classList.remove('error', 'success'));
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('loginUser').focus();
+            document.getElementById('loginUser').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); document.getElementById('loginPass').focus(); }
+            });
+        });
+    </script>
+</body>
+</html>

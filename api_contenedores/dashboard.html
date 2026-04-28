@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Mazolo Contenedores — Sistema de Logística">
+    <meta name="theme-color" content="#0b1525">
+    <title>Mazolo Contenedores — Panel de Operaciones</title>
+
+    <!-- CDN Dependencias -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+
+    <style>
+        /* ═══════════════════════ VARIABLES & THEME ═══════════════════════ */
+        :root {
+            --navy: #0b1525; --navy-light: #0e1d35; --navy-lighter: #112040;
+            --sidebar-width: 240px; --sidebar-collapsed-width: 70px; --topbar-height: 60px;
+            --card-bg: rgba(20, 40, 72, 0.85); --card-gradient: linear-gradient(135deg, rgba(22, 44, 78, 0.9) 0%, rgba(14, 30, 56, 0.9) 100%);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --red: #D32F2F; --red-dark: #b71c1c; --red-glow: rgba(211, 47, 47, 0.15);
+            --text-primary: #e8f0fc; --text-muted: rgba(160, 185, 215, 0.6); --text-secondary: rgba(200, 215, 235, 0.85);
+            --success: #00c896; --warning: #ffca28; --info: #42a5f5;
+            --transition-fast: .15s ease; --transition-medium: .25s ease;
+            --shadow-card: 0 4px 24px rgba(0,0,0,0.25);
+            --sidebar-bg: linear-gradient(180deg, #0f2040 0%, #0c1830 100%);
+            --topbar-bg: #0e1d35; --input-bg: rgba(255,255,255,0.04); --btn-hover-bg: rgba(255,255,255,0.08);
+            --modal-bg: #112040; --modal-text: #e8f0fc; --modal-muted: rgba(160, 185, 215, 0.7);
+            --modal-input-bg: rgba(255,255,255,0.06); --modal-border: rgba(255,255,255,0.15);
+        }
+        [data-bs-theme="light"] {
+            --navy: #f4f7fc; --navy-light: #ffffff; --navy-lighter: #ffffff;
+            --card-bg: rgba(255,255,255,0.9); --card-gradient: linear-gradient(135deg, #ffffff 0%, #f0f4fa 100%);
+            --border-color: rgba(0,0,0,0.08); --red: #c62828; --red-dark: #8e0000; --red-glow: rgba(198, 40, 40, 0.1);
+            --text-primary: #1a2b4c; --text-muted: rgba(0,0,0,0.5); --text-secondary: rgba(0,0,0,0.7);
+            --success: #00897b; --warning: #f9a825; --info: #1e88e5;
+            --shadow-card: 0 4px 24px rgba(0,0,0,0.06); --sidebar-bg: linear-gradient(180deg, #ffffff 0%, #f4f7fc 100%);
+            --topbar-bg: #ffffff; --input-bg: rgba(0,0,0,0.03); --btn-hover-bg: rgba(0,0,0,0.04);
+            --modal-bg: #ffffff; --modal-text: #1a2b4c; --modal-muted: rgba(0,0,0,0.6);
+            --modal-input-bg: rgba(0,0,0,0.04); --modal-border: rgba(0,0,0,0.12);
+        }
+
+        /* Base & Transiciones globales */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--navy); color: var(--text-primary); min-height: 100vh; display: flex; overflow: hidden; }
+        :focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+        
+        /* Transición suave para cambio de tema en todos los componentes */
+        .sidebar, .topbar, .card, .kpi-card, .btn, .input, .select, .badge, .toast, .modal-box,
+        .nav-item, .theme-toggle, .search-box, .filter-select, .filter-input, .btn-reset, .btn-primary-sm,
+        .btn-notif, .notif-panel, .data-table td, .data-table th, .zone-card, .modal-overlay, body {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* ═══════════════════════ SIDEBAR ═══════════════════════ */
+        .sidebar { width: var(--sidebar-width); height: 100vh; background: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; z-index: 100; transition: width .3s ease, transform .3s ease; overflow: hidden; }
+        .sidebar.collapsed { width: var(--sidebar-collapsed-width); }
+        .sidebar.collapsed .brand-name, .sidebar.collapsed .brand-sub, .sidebar.collapsed .nav-section-label,
+        .sidebar.collapsed .nav-item span:not(.nav-badge), .sidebar.collapsed .user-name, .sidebar.collapsed .user-role { display: none; }
+        .sidebar.collapsed .nav-item { justify-content: center; padding: .6rem; }
+        .sidebar.collapsed .nav-badge { position: absolute; top: 4px; right: 4px; font-size: .55rem; }
+        .sidebar-toggle-btn { position: absolute; top: 12px; right: -14px; width: 28px; height: 28px; background: var(--red); border: none; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 110; font-size: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: background .2s, transform .2s; }
+        .sidebar-toggle-btn:hover { background: var(--red-dark); }
+        .sidebar-brand { height: var(--topbar-height); display: flex; align-items: center; gap: .7rem; padding: 0 1.25rem; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+        .brand-logo { width: 32px; height: 32px; background: var(--red); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: 'Archivo Black', sans-serif; font-size: .7rem; color: #fff; flex-shrink: 0; box-shadow: 0 4px 12px var(--red-glow); }
+        .brand-name { font-family: 'Archivo Black', sans-serif; font-size: .88rem; color: var(--text-primary); line-height: 1.1; }
+        .brand-sub { font-size: .62rem; color: var(--text-muted); }
+        .sidebar-nav { padding: .75rem .6rem; flex: 1; overflow-y: auto; }
+        .nav-section-label { font-size: .6rem; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--text-muted); padding: .6rem .65rem .3rem; margin-top: .4rem; }
+        .nav-item { display: flex; align-items: center; gap: .65rem; padding: .58rem .8rem; border-radius: 8px; color: var(--text-muted); font-size: .82rem; cursor: pointer; transition: background var(--transition-fast), color var(--transition-fast); margin-bottom: 1px; position: relative; user-select: none; text-decoration: none; }
+        .nav-item:hover { background: var(--btn-hover-bg); color: var(--text-primary); }
+        .nav-item.active { background: linear-gradient(90deg, rgba(211,47,47,0.15) 0%, rgba(211,47,47,0.03) 100%); color: var(--text-primary); }
+        .nav-item.active::before { content: ''; position: absolute; left: 0; top: 18%; bottom: 18%; width: 3px; background: var(--red); border-radius: 0 3px 3px 0; }
+        .nav-item i { font-size: .92rem; flex-shrink: 0; width: 20px; text-align: center; color: inherit; }
+        .nav-badge { margin-left: auto; background: var(--red); color: #fff; font-size: .6rem; font-weight: 700; padding: .12rem .42rem; border-radius: 20px; }
+        .nav-badge.yellow { background: var(--warning); color: #0b1525; }
+        .sidebar-footer { padding: .65rem .6rem; border-top: 1px solid var(--border-color); }
+        .user-card { display: flex; align-items: center; gap: .65rem; padding: .5rem .65rem; border-radius: 8px; cursor: pointer; transition: background var(--transition-fast); }
+        .user-card:hover { background: var(--btn-hover-bg); }
+        .user-avatar { width: 32px; height: 32px; background: linear-gradient(135deg, var(--red), #ff6b6b); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .65rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+        .user-name { font-size: .8rem; font-weight: 600; color: var(--text-primary); }
+        .user-role { font-size: .64rem; color: var(--text-muted); }
+
+        /* ═══════════════════════ TOPBAR ═══════════════════════ */
+        .topbar { height: var(--topbar-height); background: var(--topbar-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem; position: fixed; top: 0; left: var(--sidebar-width); right: 0; z-index: 90; transition: left .3s; }
+        .sidebar.collapsed ~ .topbar { left: var(--sidebar-collapsed-width); }
+        .sidebar.collapsed ~ .main-wrapper { margin-left: var(--sidebar-collapsed-width); }
+        .topbar-left { display: flex; align-items: center; gap: 1rem; }
+        .page-title { font-family: 'Archivo Black', sans-serif; font-size: 1.05rem; color: var(--text-primary); }
+        .breadcrumb { font-size: .68rem; color: var(--text-muted); margin-top: .1rem; }
+        .system-status { display: inline-flex; align-items: center; gap: .35rem; font-size: .72rem; padding: .25rem .65rem; border-radius: 20px; margin-left: .75rem; background: rgba(0,200,150,0.08); border: 1px solid rgba(0,200,150,0.2); color: var(--success); font-weight: 500; white-space: nowrap; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: pulse-dot 2s ease infinite; }
+        @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.4} }
+        .topbar-right { display: flex; align-items: center; gap: .6rem; }
+        .search-box { display: flex; align-items: center; gap: .45rem; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: .4rem .8rem; width: 200px; transition: border-color var(--transition-fast); }
+        .search-box:focus-within { border-color: rgba(211,47,47,0.35); }
+        .search-box input { background: none; border: none; color: var(--text-primary); font-size: .8rem; font-family: inherit; outline: none; width: 100%; }
+        .search-box input::placeholder { color: var(--text-muted); }
+        .search-box i { color: var(--text-muted); font-size: .82rem; }
+        .topbar-btn { width: 34px; height: 34px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .9rem; transition: background var(--transition-fast), color var(--transition-fast); position: relative; }
+        .topbar-btn:hover { background: var(--btn-hover-bg); color: var(--text-primary); }
+        .notif-dot { position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; background: var(--red); border-radius: 50%; border: 1.5px solid var(--navy-light); }
+        .theme-toggle { background: none; border: none; color: var(--text-muted); font-size: 1.1rem; cursor: pointer; padding: .25rem .4rem; border-radius: 6px; transition: color .2s, background .2s; }
+        .theme-toggle:hover { color: var(--text-primary); background: var(--btn-hover-bg); }
+
+        /* ═══════════════════════ MAIN CONTENT ═══════════════════════ */
+        .main-wrapper { margin-left: var(--sidebar-width); margin-top: var(--topbar-height); flex: 1; min-width: 0; transition: margin-left .3s; }
+        .content { padding: 1.5rem; overflow-y: auto; height: calc(100vh - var(--topbar-height)); }
+        .page { display: none; }
+        .page.active { display: block; animation: page-in .28s ease; }
+        @keyframes page-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 13px; padding: 1.35rem; box-shadow: var(--shadow-card); }
+        .card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.35); }
+
+        /* KPI */
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.1rem; margin-bottom: 1.35rem; }
+        .kpi-card { background: var(--card-gradient); border: 1px solid var(--border-color); border-radius: 13px; padding: 1.2rem 1.25rem 1rem; position: relative; overflow: hidden; transition: transform .15s, box-shadow .15s; box-shadow: var(--shadow-card); }
+        .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.35); }
+        .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 13px 13px 0 0; }
+        .kpi-card.red::before    { background: var(--red); } .kpi-card.green::before  { background: var(--success); }
+        .kpi-card.blue::before   { background: var(--info); } .kpi-card.yellow::before { background: var(--warning); }
+        .kpi-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: .92rem; margin-bottom: .85rem; }
+        .kpi-icon.red    { background: rgba(211,47,47,0.12); color: #ff6b6b; } .kpi-icon.green  { background: rgba(0,200,150,0.12); color: var(--success); }
+        .kpi-icon.blue   { background: rgba(66,165,245,0.12); color: var(--info); } .kpi-icon.yellow { background: rgba(255,202,40,0.12); color: var(--warning); }
+        .kpi-value { font-family: 'Archivo Black', sans-serif; font-size: 2rem; line-height: 1; margin-bottom: .25rem; color: var(--text-primary); }
+        .kpi-label { font-size: .75rem; color: var(--text-muted); }
+        .kpi-trend { position: absolute; top: 1.1rem; right: 1rem; font-size: .65rem; font-weight: 600; display: flex; align-items: center; gap: .15rem; padding: .2rem .48rem; border-radius: 20px; }
+        .kpi-trend.up    { background: rgba(0,200,150,0.1); color: var(--success); }
+        .kpi-trend.down  { background: rgba(211,47,47,0.1); color: #ff8a80; }
+        .kpi-trend.stable{ background: rgba(255,202,40,0.1); color: var(--warning); }
+
+        /* Skeleton */
+        .skeleton { background: linear-gradient(90deg, rgba(128,128,128,0.08) 25%, rgba(128,128,128,0.15) 50%, rgba(128,128,128,0.08) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .skeleton-value { height: 28px; width: 60%; margin-bottom: .6rem; } .skeleton-text { height: 14px; width: 80%; }
+
+        /* Charts */
+        .charts-row { display: grid; grid-template-columns: 1.3fr 1fr; gap: 1.1rem; margin-bottom: 1.1rem; }
+        .charts-row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; margin-bottom: 1.1rem; }
+        .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+        .chart-title { font-family: 'Archivo Black', sans-serif; font-size: .88rem; color: var(--text-primary); }
+        .chart-subtitle { font-size: .65rem; color: var(--text-muted); margin-top: .1rem; }
+        .chart-badge { font-size: .65rem; padding: .2rem .55rem; border-radius: 20px; background: rgba(128,128,128,0.1); border: 1px solid var(--border-color); color: var(--text-muted); }
+        .chart-wrap { position: relative; height: 200px; }
+
+        /* Filters & Controls */
+        .filters-bar { display: flex; align-items: center; gap: .65rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .filter-select, .filter-input { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-family: inherit; font-size: .78rem; padding: .44rem .8rem; outline: none; transition: border-color var(--transition-fast); min-width: 140px; }
+        .filter-select:focus, .filter-input:focus { border-color: rgba(211,47,47,0.4); }
+        .filter-select option { background: var(--navy-lighter); color: var(--text-primary); }
+        .btn-reset { background: none; border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-muted); font-size: .78rem; padding: .44rem .8rem; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: .3rem; transition: color var(--transition-fast), border-color var(--transition-fast); white-space: nowrap; }
+        .btn-reset:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.15); }
+        .btn-primary-sm { background: var(--red); border: none; border-radius: 8px; color: #fff; font-size: .78rem; font-family: 'Archivo Black', sans-serif; padding: .48rem .95rem; cursor: pointer; display: flex; align-items: center; gap: .3rem; transition: background var(--transition-fast), transform var(--transition-fast); margin-left: auto; letter-spacing: .03em; white-space: nowrap; }
+        .btn-primary-sm:hover { background: var(--red-dark); transform: translateY(-1px); }
+        .btn-primary-sm:disabled { opacity: 0.6; pointer-events: none; }
+
+        /* Table & Pagination */
+        .data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .8rem; }
+        .data-table thead th { padding: .58rem .9rem; text-align: left; font-size: .62rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border-color); white-space: nowrap; background: transparent; cursor: pointer; user-select: none; }
+        .data-table thead th:hover { color: var(--text-primary); }
+        .data-table thead th .sort-icon { margin-left: 5px; font-size: .7rem; opacity: 0.5; }
+        .data-table thead th.sorted .sort-icon { opacity: 1; color: var(--red); }
+        .data-table tbody tr { transition: background .12s; }
+        .data-table tbody tr:hover { background: var(--btn-hover-bg); }
+        .data-table tbody td { padding: .72rem .9rem; color: var(--text-primary); vertical-align: middle; }
+        .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); }
+        .badge-status { display: inline-flex; align-items: center; gap: .28rem; padding: .22rem .62rem; border-radius: 20px; font-size: .66rem; font-weight: 600; white-space: nowrap; }
+        .badge-status::before { content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+        .badge-status.disponible { background: rgba(0,200,150,0.1); color: var(--success); } .badge-status.disponible::before { background: var(--success); }
+        .badge-status.asignado { background: rgba(66,165,245,0.1); color: var(--info); } .badge-status.asignado::before { background: var(--info); }
+        .badge-status.en_transito { background: rgba(255,202,40,0.1); color: var(--warning); } .badge-status.en_transito::before { background: var(--warning); }
+        .badge-status.en_patio { background: rgba(171,71,188,0.1); color: #ce93d8; } .badge-status.en_patio::before { background: #ce93d8; }
+        .badge-status.en_mantenimiento { background: rgba(255,152,0,0.1); color: #ffb74d; } .badge-status.en_mantenimiento::before { background: #ffb74d; }
+        .badge-status.fuera_de_servicio { background: rgba(211,47,47,0.1); color: #ff8a80; } .badge-status.fuera_de_servicio::before { background: var(--red); }
+        .table-actions { display: flex; gap: .3rem; }
+        .btn-icon { width: 27px; height: 27px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: .78rem; cursor: pointer; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-muted); transition: background .12s, color .12s; }
+        .btn-icon:hover { background: var(--btn-hover-bg); color: var(--text-primary); }
+        .btn-icon.danger:hover { background: rgba(211,47,47,0.1); color: #ff8a80; border-color: rgba(211,47,47,0.25); }
+
+        .pagination-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; flex-wrap: wrap; gap: 1rem; }
+        .pagination-controls { display: flex; align-items: center; gap: .5rem; }
+        .page-btn { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-muted); padding: .3rem .7rem; border-radius: 6px; cursor: pointer; font-size: .78rem; transition: all .2s; }
+        .page-btn:hover:not(:disabled) { background: var(--btn-hover-bg); color: var(--text-primary); }
+        .page-btn.active { background: var(--red); color: #fff; border-color: var(--red); }
+        .page-btn:disabled { opacity: .5; cursor: default; }
+        .rows-per-page { display: flex; align-items: center; gap: .5rem; font-size: .78rem; color: var(--text-muted); }
+        .rows-per-page select { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; padding: .3rem; font-size: .75rem; }
+
+        /* Table Loader Overlay */
+        .table-wrapper { position: relative; min-height: 200px; }
+        .table-loader { position: absolute; inset: 0; background: rgba(11, 21, 37, 0.7); display: flex; align-items: center; justify-content: center; z-index: 10; opacity: 0; pointer-events: none; transition: opacity .2s; border-radius: 13px; }
+        .table-loader.active { opacity: 1; pointer-events: auto; }
+        .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.2); border-top-color: var(--red); border-radius: 50%; animation: spin .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Alerts & Notifs */
+        .alerts-list { display: flex; flex-direction: column; gap: .65rem; }
+        .alert-row { display: flex; align-items: flex-start; gap: .75rem; padding: .8rem .95rem; border-radius: 10px; border: 1px solid var(--border-color); background: var(--card-bg); }
+        .alert-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .85rem; flex-shrink: 0; }
+        .alert-icon.warn  { background: rgba(255,202,40,0.12); color: var(--warning); }
+        .alert-icon.error { background: rgba(211,47,47,0.1);  color: #ff8a80; }
+        .alert-text { font-size: .8rem; line-height: 1.4; color: var(--text-primary); }
+        .alert-time { font-size: .66rem; color: var(--text-muted); margin-top: .2rem; }
+
+        .notif-panel { position: fixed; top: var(--topbar-height); right: 0; width: 320px; height: calc(100vh - var(--topbar-height)); background: var(--navy-lighter); border-left: 1px solid var(--border-color); z-index: 500; display: flex; flex-direction: column; transform: translateX(320px); transition: transform .3s ease; box-shadow: -4px 0 24px rgba(0,0,0,0.3); }
+        .notif-panel.open { transform: translateX(0); }
+        .notif-overlay { position: fixed; inset: 0; z-index: 499; display: none; background: rgba(0,0,0,0.4); }
+        .notif-overlay.show { display: block; }
+        .notif-panel-header { padding: 1.25rem 1.25rem .9rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: flex-start; justify-content: space-between; }
+        .notif-panel-title { font-family: 'Archivo Black', sans-serif; font-size: .95rem; color: var(--text-primary); }
+        .notif-badge { background: var(--red); color: #fff; font-size: .62rem; font-weight: 700; padding: .15rem .45rem; border-radius: 20px; margin-left: .5rem; }
+        .notif-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; }
+        .notif-panel-body { flex: 1; overflow-y: auto; padding: .75rem; }
+        .notif-section { margin-bottom: 1.1rem; }
+        .notif-section-label { font-size: .62rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .6rem; }
+        .notif-item { display: flex; align-items: flex-start; gap: .65rem; padding: .7rem .75rem; border-radius: 9px; border: 1px solid var(--border-color); background: var(--card-bg); margin-bottom: .5rem; }
+        .notif-item-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: .8rem; flex-shrink: 0; }
+        .notif-item-icon.warn  { background: rgba(255,202,40,0.12); color: var(--warning); }
+        .notif-item-icon.error { background: rgba(211,47,47,0.1);   color: #ff8a80; }
+        .notif-item-icon.info  { background: rgba(66,165,245,0.1);   color: var(--info); }
+        .notif-item-text { font-size: .78rem; line-height: 1.4; color: var(--text-primary); }
+        .notif-item-time { font-size: .65rem; color: var(--text-muted); margin-top: .2rem; }
+        .notif-panel-footer { padding: .85rem 1.25rem; border-top: 1px solid var(--border-color); }
+        .btn-notif { width: 100%; padding: .65rem; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-muted); font-size: .78rem; cursor: pointer; font-family: inherit; margin-bottom: .5rem; display: flex; align-items: center; justify-content: center; gap: .4rem; }
+        .btn-notif:hover { background: var(--btn-hover-bg); color: var(--text-primary); }
+
+        /* Zones */
+        .zones-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; margin-bottom: 1.1rem; }
+        .zones-map-wrap { height: 400px; border-radius: 13px; overflow: hidden; border: 1px solid var(--border-color); }
+        .zones-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: .9rem; margin-bottom: 1.1rem; }
+        .zone-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 11px; padding: 1rem 1.1rem; text-align: center; }
+        .zone-card .num { font-family: 'Archivo Black', sans-serif; font-size: 1.6rem; color: var(--text-primary); }
+
+        /* ═══════════════════════ MODALS (FIXED FOR DARK MODE) ═══════════════════════ */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: center; justify-content: center; }
+        .modal-overlay.show { display: flex; animation: modal-fade .25s ease; }
+        @keyframes modal-fade { from { opacity: 0; } to { opacity: 1; } }
+        .modal-box { 
+            background: var(--modal-bg); 
+            border: 1px solid var(--modal-border); 
+            border-radius: 14px; 
+            padding: 1.75rem; 
+            width: 460px; 
+            max-width: 94vw; 
+            animation: modal-slide .28s ease;
+            color: var(--modal-text);
+        }
+        @keyframes modal-slide { from { opacity: 0; transform: translateY(-18px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .modal-title { font-family: 'Archivo Black', sans-serif; font-size: 1rem; color: var(--modal-text); margin-bottom: .3rem; }
+        .modal-sub { font-size: .78rem; color: var(--modal-muted); margin-bottom: 1.35rem; }
+        .modal-field { margin-bottom: .95rem; }
+        .modal-label { display: block; font-size: .65rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--modal-muted); margin-bottom: .38rem; }
+        .modal-input, .modal-select { 
+            width: 100%; 
+            padding: .7rem .9rem; 
+            background: var(--modal-input-bg); 
+            border: 1.5px solid var(--modal-border); 
+            border-radius: 9px; 
+            color: var(--modal-text); 
+            font-family: inherit; 
+            font-size: .85rem; 
+            outline: none; 
+        }
+        .modal-input:focus, .modal-select:focus { border-color: rgba(211,47,47,0.4); }
+        .modal-input::placeholder { color: var(--modal-muted); }
+        /* FIX: Select options en dark mode */
+        .modal-select option { background: var(--modal-bg); color: var(--modal-text); }
+        [data-bs-theme="dark"] .modal-select option { background: #1a2b4c; color: #e8f0fc; }
+        [data-bs-theme="light"] .modal-select option { background: #ffffff; color: #1a2b4c; }
+        
+        .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
+        .modal-actions { display: flex; gap: .65rem; justify-content: flex-end; margin-top: 1.35rem; padding-top: 1.1rem; border-top: 1px solid var(--modal-border); }
+        .btn-cancel { background: var(--modal-input-bg); border: 1px solid var(--modal-border); border-radius: 8px; color: var(--modal-muted); font-size: .82rem; padding: .6rem 1.1rem; cursor: pointer; font-family: inherit; }
+        .btn-cancel:hover { background: var(--btn-hover-bg); color: var(--modal-text); }
+        .btn-save { background: var(--red); border: none; border-radius: 8px; color: #fff; font-family: 'Archivo Black', sans-serif; font-size: .82rem; padding: .6rem 1.4rem; cursor: pointer; }
+        .btn-save:disabled { opacity: 0.6; pointer-events: none; }
+
+        /* Toasts */
+        .toast-stack { position: fixed; bottom: 1.75rem; right: 1.75rem; z-index: 9999; display: flex; flex-direction: column; gap: .5rem; pointer-events: none; }
+        .toast { padding: .75rem 1.1rem; border-radius: 10px; font-size: .82rem; display: flex; align-items: center; gap: .5rem; backdrop-filter: blur(12px); animation: toast-in .28s ease; position: relative; overflow: hidden; pointer-events: auto; transition: opacity .3s; }
+        .toast.success { background: rgba(0,200,150,0.12); border: 1px solid rgba(0,200,150,0.25); color: #80ffd8; }
+        .toast.error { background: rgba(211,47,47,0.12); border: 1px solid rgba(211,47,47,0.3); color: #ff8a80; }
+        .toast.info { background: rgba(66,165,245,0.1); border: 1px solid rgba(66,165,245,0.22); color: #90caf9; }
+        .toast-progress { position: absolute; bottom: 0; left: 0; height: 3px; background: currentColor; opacity: .5; width: 100%; animation: shrink-progress 3.5s linear forwards; }
+        @keyframes shrink-progress { to { width: 0%; } }
+        @keyframes toast-in { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* Responsive */
+        @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(2,1fr); } .charts-row { grid-template-columns: 1fr; } .charts-row-3 { grid-template-columns: 1fr 1fr; } .zones-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) { 
+            .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); }
+            .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
+            .sidebar-overlay.show { display: block; }
+            .topbar, .main-wrapper { left: 0; margin-left: 0; }
+            .kpi-grid { grid-template-columns: 1fr 1fr; } .charts-row-3 { grid-template-columns: 1fr; } 
+            .notif-panel { width: 100%; } .filters-bar { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Overlay móvil -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileSidebar()"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <button class="sidebar-toggle-btn" id="sidebarToggle" title="Colapsar menú" aria-label="Toggle sidebar"><i class="bi bi-chevron-left"></i></button>
+        <div class="sidebar-brand">
+            <div class="brand-logo">MZ</div>
+            <div><div class="brand-name">Mazolo</div><div class="brand-sub">Contenedores</div></div>
+        </div>
+        <nav class="sidebar-nav" id="sidebarNav"></nav>
+        <div class="sidebar-footer">
+            <div class="user-card" onclick="logout()">
+                <div class="user-avatar" id="userAvatar">AD</div>
+                <div><div class="user-name" id="sidebarUser">Administrador</div><div class="user-role" id="sidebarRole">Rol: admin</div></div>
+                <i class="bi bi-box-arrow-right" style="margin-left:auto;color:var(--text-muted);font-size:.85rem" aria-hidden="true"></i>
+            </div>
+        </div>
+    </aside>
+
+    <!-- TOPBAR -->
+    <header class="topbar" id="topbar">
+        <div class="topbar-left">
+            <div>
+                <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+                    <span class="page-title" id="pageTitle">Panel de Operaciones</span>
+                    <span class="system-status" id="systemStatus"><span class="status-dot"></span> En línea</span>
+                    <span class="last-update" id="lastUpdate" style="font-size:.68rem;color:var(--text-muted);margin-left:.5rem">Actualizado hace 0 min</span>
+                </div>
+                <div class="breadcrumb" id="breadcrumb">Inicio › Panel de Operaciones</div>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <div class="search-box">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input type="text" placeholder="Buscar contenedor..." id="globalSearch" oninput="handleGlobalSearch(this.value)" aria-label="Buscar contenedor">
+            </div>
+            <button class="theme-toggle" id="themeToggle" title="Cambiar tema" aria-label="Cambiar tema"><i class="bi bi-sun-fill"></i></button>
+            <div class="topbar-btn" id="notifBtn" onclick="toggleNotifPanel()" aria-label="Notificaciones"><i class="bi bi-bell-fill"></i><span class="notif-dot" id="notifDot" style="display:none"></span></div>
+            <div class="topbar-btn" onclick="logout()" aria-label="Cerrar sesión"><i class="bi bi-power"></i></div>
+        </div>
+    </header>
+
+    <!-- NOTIFICACIONES -->
+    <div class="notif-overlay" id="notifOverlay" onclick="closeNotifPanel()"></div>
+    <div class="notif-panel" id="notifPanel">
+        <div class="notif-panel-header">
+            <div><div class="notif-panel-title">Notificaciones<span class="notif-badge" id="notifBadge">0</span></div><div style="font-size:.65rem;color:var(--text-muted)">Centro de alertas</div></div>
+            <button class="notif-close" onclick="closeNotifPanel()" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="notif-panel-body" id="notifBody"></div>
+        <div class="notif-panel-footer">
+            <button class="btn-notif" onclick="markAllNotificationsRead()"><i class="bi bi-check2-all"></i> Marcar todas leídas</button>
+            <div style="font-size:.65rem;color:var(--text-muted);text-align:center;margin-top:.5rem">Conectar con /dashboard/notificaciones</div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-wrapper">
+        <div class="content">
+            <!-- PANEL -->
+            <div class="page active" id="page-panel">
+                <div class="kpi-grid" id="kpiGrid">
+                    <div class="kpi-card red"><div class="kpi-icon red"><i class="bi bi-box-seam-fill"></i></div><div class="kpi-value" id="kpiTotal">0</div><div class="kpi-label">Total contenedores</div><div class="kpi-trend up"><i class="bi bi-arrow-up"></i> +4.2%</div></div>
+                    <div class="kpi-card green"><div class="kpi-icon green"><i class="bi bi-check-circle-fill"></i></div><div class="kpi-value" id="kpiDisp">0</div><div class="kpi-label">Disponibles</div><div class="kpi-trend up"><i class="bi bi-arrow-up"></i> +2</div></div>
+                    <div class="kpi-card blue"><div class="kpi-icon blue"><i class="bi bi-truck"></i></div><div class="kpi-value" id="kpiTrans">0</div><div class="kpi-label">En tránsito</div><div class="kpi-trend down"><i class="bi bi-arrow-down"></i> -1</div></div>
+                    <div class="kpi-card yellow"><div class="kpi-icon yellow"><i class="bi bi-exclamation-triangle-fill"></i></div><div class="kpi-value" id="kpiAlert">0</div><div class="kpi-label">Alertas activas</div><div class="kpi-trend stable"><i class="bi bi-dash"></i> Sin cambio</div></div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;margin-bottom:1rem"><span id="updateLabel">Última actualización: hace 0 min</span></div>
+                <div class="charts-row">
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Movimientos por mes</div><div class="chart-subtitle">Historial 2024-2025</div></div><span class="chart-badge">Línea</span></div><div class="chart-wrap"><canvas id="chartMovements"></canvas></div></div>
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Por tipo de contenedor</div><div class="chart-subtitle">Distribución actual</div></div><span class="chart-badge">Dona</span></div><div class="chart-wrap"><canvas id="chartTypes"></canvas></div></div>
+                </div>
+                <div class="charts-row-3">
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Por estado operativo</div></div></div><div class="chart-wrap"><canvas id="chartStates"></canvas></div></div>
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Contenedores por cliente</div></div></div><div class="chart-wrap"><canvas id="chartClients"></canvas></div></div>
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Arrendamientos</div></div></div><div class="chart-wrap"><canvas id="chartRentals"></canvas></div></div>
+                </div>
+                <div class="card" style="margin-bottom:1.1rem"><div class="chart-header"><div><div class="chart-title">Alertas de arrendamiento</div><div class="chart-subtitle">Contratos próximos a vencer</div></div></div><div class="alerts-list" id="alertsList"></div></div>
+                <div class="card"><div class="chart-header"><div><div class="chart-title">Últimos movimientos</div><div class="chart-subtitle" id="movCount">0 registros</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>ID</th><th>Contenedor</th><th>Origen</th><th>Destino</th><th>Transporte</th><th>Responsable</th><th>Fecha</th></tr></thead><tbody id="movTable"></tbody></table></div></div>
+            </div>
+
+            <!-- CONTENEDORES -->
+            <div class="page" id="page-contenedores">
+                <div class="filters-bar">
+                    <input class="filter-input" id="filtCode" type="text" placeholder="Buscar por código..." oninput="debouncedFilterContainers()" aria-label="Filtrar por código">
+                    <select class="filter-select" id="filtState" onchange="filterContainers()" aria-label="Filtrar por estado"><option value="">Todos los estados</option><option value="disponible">Disponible</option><option value="asignado">Asignado</option><option value="en_transito">En tránsito</option><option value="en_patio">En patio</option><option value="en_mantenimiento">En mantenimiento</option><option value="fuera_de_servicio">Fuera de servicio</option></select>
+                    <select class="filter-select" id="filtClient" onchange="filterContainers()" aria-label="Filtrar por cliente"><option value="">Todos los clientes</option></select>
+                    <select class="filter-select" id="filtType" onchange="filterContainers()" aria-label="Filtrar por tipo"><option value="">Todos los tipos</option></select>
+                    <button class="btn-reset" onclick="resetFilters()" aria-label="Limpiar filtros"><i class="bi bi-x-circle"></i> Limpiar</button>
+                    <button class="btn-primary-sm" id="btnExportCont" onclick="exportCSV('contenedores')"><i class="bi bi-download"></i> Exportar CSV</button>
+                    <button class="btn-primary-sm" id="btnNewContainer" onclick="openContainerModal()"><i class="bi bi-plus-lg"></i> Nuevo</button>
+                </div>
+                <div class="card">
+                    <div class="chart-header"><div><div class="chart-title">Inventario de contenedores</div><div class="chart-subtitle" id="contMetaInfo">Cargando...</div></div></div>
+                    <div class="table-wrapper">
+                        <div class="table-loader" id="contLoader"><div class="loader-spinner"></div></div>
+                        <div style="overflow-x:auto"><table class="data-table" id="contTable"><thead><tr>
+                            <th onclick="sortContainers('codigo')">Código <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th onclick="sortContainers('tipo')">Tipo <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th onclick="sortContainers('cliente')">Cliente <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th onclick="sortContainers('estado')">Estado <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th>Ubicación</th>
+                            <th onclick="sortContainers('fecha')">Fecha <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th>Acciones</th>
+                        </tr></thead><tbody id="contTableBody"></tbody></table></div>
+                    </div>
+                    <div class="pagination-bar" id="contPagination"></div>
+                </div>
+            </div>
+
+            <!-- ZONAS -->
+            <div class="page" id="page-zonas">
+                <div class="filters-bar">
+                    <select class="filter-select" id="filtZone" onchange="filterZones()" aria-label="Filtrar por zona"><option value="">Todas las zonas</option><option value="Puerto Cartagena">Puerto Cartagena</option><option value="Barranquilla">Barranquilla</option><option value="Bogotá">Bogotá</option><option value="Medellín">Medellín</option><option value="Cali">Cali</option><option value="Bucaramanga">Bucaramanga</option><option value="Taller/Mantenimiento">Taller/Mantenimiento</option></select>
+                    <select class="filter-select" id="filtZoneState" onchange="filterZones()" aria-label="Filtrar por estado"><option value="">Todos los estados</option><option value="disponible">Disponible</option><option value="asignado">Asignado</option><option value="en_transito">En tránsito</option><option value="en_patio">En patio</option><option value="en_mantenimiento">En mantenimiento</option><option value="fuera_de_servicio">Fuera de servicio</option></select>
+                    <button class="btn-reset" onclick="resetZones()" aria-label="Limpiar"><i class="bi bi-x-circle"></i> Limpiar</button>
+                </div>
+                <div class="zones-cards" id="zonesCards"></div>
+                <div class="zones-grid">
+                    <div class="zones-map-wrap" id="leafletMap"></div>
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Distribución por zona</div><div class="chart-subtitle" id="zoneCount">0 zonas</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Zona</th><th>Total</th><th>Disponibles</th><th>Tránsito</th><th>Patio</th><th>Otros</th></tr></thead><tbody id="zoneTable"></tbody></table></div></div>
+                </div>
+            </div>
+
+            <!-- MOVIMIENTOS -->
+            <div class="page" id="page-movimientos">
+                <div class="filters-bar">
+                    <select class="filter-select" id="movFilterContainer" onchange="filterMovements()" aria-label="Filtrar por contenedor"><option value="">Todos los contenedores</option></select>
+                    <input class="filter-input" type="date" id="movFilterStart" onchange="filterMovements()" aria-label="Fecha inicio">
+                    <input class="filter-input" type="date" id="movFilterEnd" onchange="filterMovements()" aria-label="Fecha fin">
+                    <button class="btn-reset" onclick="resetMovementFilters()"><i class="bi bi-x-circle"></i> Limpiar</button>
+                    <button class="btn-primary-sm" id="btnExportMov" onclick="exportCSV('movimientos')"><i class="bi bi-download"></i> Exportar CSV</button>
+                </div>
+                <div class="card"><div class="chart-header"><div><div class="chart-title">Historial de Movimientos</div><div class="chart-subtitle" id="movPageCount">0 registros</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>ID</th><th>Contenedor</th><th>Origen</th><th>Destino</th><th>Transporte</th><th>Responsable</th><th>Fecha</th></tr></thead><tbody id="movPageTable"></tbody></table></div></div>
+            </div>
+
+            <!-- ARRENDAMIENTOS -->
+            <div class="page" id="page-arrendamientos">
+                <div class="filters-bar">
+                    <select class="filter-select" id="arrFilterState" onchange="filterRentals()"><option value="">Todos los estados</option><option value="activo">Activos</option><option value="finalizado">Finalizados</option></select>
+                    <button class="btn-reset" onclick="resetRentalFilters()"><i class="bi bi-x-circle"></i> Limpiar</button>
+                </div>
+                <div class="card"><div class="chart-header"><div><div class="chart-title">Contratos de Arrendamiento</div><div class="chart-subtitle" id="arrCount">0 contratos</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Contenedor</th><th>Cliente</th><th>Inicio</th><th>Fin</th><th>Día fact.</th><th>Estado</th></tr></thead><tbody id="arrTable"></tbody></table></div></div>
+            </div>
+
+            <!-- HISTORIAL -->
+            <div class="page" id="page-historial">
+                <div class="filters-bar"><select class="filter-select" id="histFilterContainer" onchange="showHistory()"><option value="">Seleccionar contenedor</option></select></div>
+                <div class="card" id="historyContainer">
+                    <div class="empty-state" id="historyEmpty"><i class="bi bi-clock-history" style="font-size:2rem;opacity:.5"></i><p style="margin-top:.5rem">Seleccione un contenedor para ver su historial completo.</p></div>
+                    <div id="historyContent" style="display:none"></div>
+                </div>
+            </div>
+
+            <!-- USUARIOS (Admin Only) -->
+            <div class="page" id="page-usuarios">
+                <div class="filters-bar"><button class="btn-primary-sm" onclick="openUserModal()"><i class="bi bi-plus-lg"></i> Nuevo usuario</button></div>
+                <div class="card"><div class="chart-header"><div><div class="chart-title">Gestión de Usuarios</div><div class="chart-subtitle">Solo administradores</div></div></div>
+                <div class="table-wrapper"><table class="data-table"><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="usersTable"></tbody></table></div></div>
+            </div>
+
+            <!-- PLACEHOLDERS -->
+            <div class="page" id="page-clientes"><div class="card"><div class="chart-header"><div><div class="chart-title">Clientes</div></div></div><table class="data-table"><thead><tr><th>Nombre</th><th>Contacto</th><th>Teléfono</th><th>Email</th></tr></thead><tbody id="clientsTable"></tbody></table></div></div>
+            <div class="page" id="page-facturacion"><div class="card"><div class="chart-header"><div><div class="chart-title">Facturación</div></div></div><table class="data-table"><thead><tr><th>Factura</th><th>Cliente</th><th>Monto</th><th>Vencimiento</th><th>Estado</th></tr></thead><tbody><tr><td>FAC-001</td><td>Petrocol S.A.</td><td>$2,500,000</td><td>2025-05-15</td><td><span class="badge-status disponible">Pagada</span></td></tr></tbody></table></div></div>
+            <div class="page" id="page-reportes"><div class="card" style="padding:3rem;text-align:center"><i class="bi bi-bar-chart-fill" style="font-size:2.5rem;opacity:.3;color:var(--text-muted)"></i><div class="chart-title" style="margin-top:1rem">Reportes</div><p style="color:var(--text-muted);margin-top:.5rem">Disponible al conectar backend.</p></div></div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div class="modal-overlay" id="modalContainer">
+        <div class="modal-box"><div class="modal-title" id="modalTitle">Nuevo contenedor</div><div class="modal-sub">El código debe ser único.</div>
+            <div class="modal-grid"><div class="modal-field"><label class="modal-label">Código</label><input class="modal-input" id="mCode" placeholder="MZLO-011"></div>
+            <div class="modal-field"><label class="modal-label">Tipo</label><select class="modal-select" id="mType"><option>20 pies DV</option><option>40 pies High Cube</option><option>40 HC Reefer</option><option>Open Top</option><option>45 pies</option><option>40 ST</option><option>10 pies</option></select></div>
+            <div class="modal-field"><label class="modal-label">Cliente</label><select class="modal-select" id="mClient"><option>Petrocol S.A.</option><option>Ecopetrol</option><option>LogiExpress</option><option>TransCarga</option><option>MaritimaCo</option></select></div>
+            <div class="modal-field"><label class="modal-label">Estado</label><select class="modal-select" id="mState"><option value="disponible">Disponible</option><option value="asignado">Asignado</option><option value="en_transito">En tránsito</option><option value="en_patio">En patio</option><option value="en_mantenimiento">En mantenimiento</option><option value="fuera_de_servicio">Fuera de servicio</option></select></div></div>
+            <div class="modal-field"><label class="modal-label">Ubicación</label><input class="modal-input" id="mLocation" placeholder="Puerto Cartagena — Zona A"></div>
+            <div class="modal-field"><label class="modal-label">Fotografía (URL)</label><input class="modal-input" id="mPhoto" placeholder="https://... (opcional)"></div>
+            <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modalContainer')">Cancelar</button><button class="btn-save" id="saveContainerBtn" onclick="saveContainer()"><i class="bi bi-floppy-fill"></i> Guardar</button></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalConfirm">
+        <div class="modal-box"><div class="modal-title"><i class="bi bi-trash-fill" style="margin-right:.4rem"></i>Confirmar eliminación</div><div class="modal-sub" id="confirmMsg"></div><div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modalConfirm')">Cancelar</button><button class="btn-save" id="confirmBtn" style="background:var(--red)"><i class="bi bi-trash-fill"></i> Eliminar</button></div></div>
+    </div>
+
+    <div class="modal-overlay" id="modalUser">
+        <div class="modal-box"><div class="modal-title" id="userModalTitle">Nuevo usuario</div><div class="modal-sub">Los usuarios creados podrán acceder según su rol.</div>
+            <div class="modal-grid"><div class="modal-field"><label class="modal-label">Nombre completo</label><input class="modal-input" id="uName" placeholder="Juan Pérez"></div>
+            <div class="modal-field"><label class="modal-label">Nombre de usuario</label><input class="modal-input" id="uUsername" placeholder="jperez"></div>
+            <div class="modal-field"><label class="modal-label">Contraseña temporal</label><input class="modal-input" id="uPass" type="password" placeholder="••••••••"></div>
+            <div class="modal-field"><label class="modal-label">Rol</label><select class="modal-select" id="uRole"><option value="admin">Administrador</option><option value="supervisor">Supervisor</option><option value="operador">Operador</option><option value="auditor">Auditor</option></select></div></div>
+            <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modalUser')">Cancelar</button><button class="btn-save" id="saveUserBtn" onclick="saveUser()"><i class="bi bi-floppy-fill"></i> Guardar</button></div>
+        </div>
+    </div>
+
+    <div class="toast-stack" id="toastStack"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        /* ═══════════════════════ 1. CONFIG & UTILS ═══════════════════════ */
+        const CONFIG = { DEV_MODE: true, API_BASE: 'http://localhost:8000/api', TOKEN_KEY: 'mz_auth', DEBUG: false };
+        const sanitizeHTML = (str) => typeof str === 'string' ? (DOMPurify?.sanitize(str) || str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))) : str;
+        const debounce = (fn, delay=300) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a), delay); }; };
+        function showToast(msg, type='success') {
+            const c=document.getElementById('toastStack'), t=document.createElement('div');
+            t.className=`toast ${type}`; t.setAttribute('role','alert'); t.setAttribute('aria-live','assertive');
+            t.innerHTML=`<i class="bi bi-${type==='success'?'check-circle-fill':'x-circle-fill'}"></i> ${sanitizeHTML(msg)}<div class="toast-progress"></div>`;
+            c.appendChild(t); setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300)},3500);
+        }
+        function togglePassword(id, btn) { const i=document.getElementById(id), ic=btn.querySelector('i'); i.type=i.type==='password'?'text':'password'; ic.className=i.type==='password'?'bi bi-eye':'bi bi-eye-slash'; }
+
+        /* ═══════════════════════ 2. STATE & DB ═══════════════════════ */
+        const DEFAULT_DB = {
+            contenedores: [
+                {id:1, codigo:'MZLO-001', tipo:'20 pies DV', cliente:'Petrocol S.A.', estado:'disponible', ubicacion:'Puerto Cartagena — Zona A', fecha:'2025-01-10'},
+                {id:2, codigo:'MZLO-002', tipo:'40 pies High Cube', cliente:'Ecopetrol', estado:'en_transito', ubicacion:'Bucaramanga — Terminal', fecha:'2025-02-14'},
+                {id:3, codigo:'MZLO-003', tipo:'40 HC Reefer', cliente:'LogiExpress', estado:'en_patio', ubicacion:'Barranquilla — Patio 2', fecha:'2025-01-22'},
+                {id:4, codigo:'MZLO-004', tipo:'Open Top', cliente:'TransCarga', estado:'asignado', ubicacion:'Bogotá — Bodega Central', fecha:'2025-03-05'},
+                {id:5, codigo:'MZLO-005', tipo:'45 pies', cliente:'MaritimaCo', estado:'en_mantenimiento', ubicacion:'Taller Industrial Sur', fecha:'2025-03-18'},
+                {id:6, codigo:'MZLO-006', tipo:'40 ST', cliente:'Petrocol S.A.', estado:'fuera_de_servicio', ubicacion:'Depósito Centro', fecha:'2025-02-01'},
+                {id:7, codigo:'MZLO-007', tipo:'20 pies DV', cliente:'Ecopetrol', estado:'disponible', ubicacion:'Puerto Cartagena — Zona B', fecha:'2025-04-01'},
+                {id:8, codigo:'MZLO-008', tipo:'10 pies', cliente:'LogiExpress', estado:'asignado', ubicacion:'Medellín — Terminal Norte', fecha:'2025-04-10'},
+                {id:9, codigo:'MZLO-009', tipo:'40 pies High Cube', cliente:'TransCarga', estado:'disponible', ubicacion:'Cali — Zona Franca', fecha:'2025-04-12'},
+                {id:10, codigo:'MZLO-010', tipo:'40 HC Reefer', cliente:'MaritimaCo', estado:'en_transito', ubicacion:'Ruta Cartagena — Bogotá', fecha:'2025-04-18'}
+            ],
+            movimientos: [
+                {id:1, contenedor:'MZLO-002', origen:'Cartagena', destino:'Bucaramanga', transporte:'Camión', responsable:'Carlos Ruiz', fecha:'2025-04-20'},
+                {id:2, contenedor:'MZLO-010', origen:'Barranquilla', destino:'Bogotá', transporte:'Ferrocarril', responsable:'Ana Torres', fecha:'2025-04-19'},
+                {id:3, contenedor:'MZLO-004', origen:'Cartagena', destino:'Bogotá', transporte:'Camión', responsable:'Pedro Gómez', fecha:'2025-04-18'}
+            ],
+            arrendamientos: [
+                {contenedor:'MZLO-003', cliente:'LogiExpress', inicio:'2025-01-01', fin:'2025-04-25', dia_facturacion:5, estado:'activo'},
+                {contenedor:'MZLO-008', cliente:'LogiExpress', inicio:'2025-02-15', fin:'2025-04-28', dia_facturacion:15, estado:'activo'},
+                {contenedor:'MZLO-001', cliente:'Petrocol S.A.', inicio:'2025-01-10', fin:'2025-05-10', dia_facturacion:20, estado:'activo'}
+            ],
+            usuarios: [
+                {id:1, username:'admin', name:'Administrador', role:'admin', active:true, pass:'1234'},
+                {id:2, username:'supervisor', name:'Supervisor', role:'supervisor', active:true, pass:'1234'},
+                {id:3, username:'operador', name:'Operador', role:'operador', active:true, pass:'1234'},
+                {id:4, username:'auditor', name:'Auditor', role:'auditor', active:true, pass:'1234'}
+            ],
+            cambiosEstado: [
+                {contenedor:'MZLO-001', fecha:'2025-01-10', estado_anterior:'', estado_nuevo:'disponible', responsable:'Sistema'},
+                {contenedor:'MZLO-002', fecha:'2025-03-01', estado_anterior:'disponible', estado_nuevo:'en_transito', responsable:'Admin'}
+            ]
+        };
+        let DB = JSON.parse(JSON.stringify(DEFAULT_DB));
+        const STORAGE_KEY = 'mazolo_db';
+        function loadFromStorage() { try { const s=localStorage.getItem(STORAGE_KEY); if(s) Object.assign(DB, JSON.parse(s)); } catch(e){} }
+        function saveToStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
+        loadFromStorage();
+
+        /* ═══════════════════════ 3. API & MOCK SERVER (FIXED MATCHING) ═══════════════════════ */
+        const CONTROLLERS = { containers: null, movements: null };
+        const TokenManager = {
+            get() { try { return JSON.parse(sessionStorage.getItem(CONFIG.TOKEN_KEY)||'null'); } catch(e){return null} },
+            set(t,p={}) { sessionStorage.setItem(CONFIG.TOKEN_KEY, JSON.stringify({token:t,...p})); },
+            clear() { sessionStorage.removeItem(CONFIG.TOKEN_KEY); },
+            headers() { const t=this.get(); return t?.token ? {'Authorization':`Bearer ${t.token}`} : {}; },
+            isValid() { const t=this.get(); return t?.token && (!t.exp || t.exp>Date.now()); }
+        };
+
+        const ApiClient = {
+            async request(method, endpoint, body=null) {
+                const headers = {'Content-Type':'application/json', ...TokenManager.headers()};
+                if(CONTROLLERS.containers && endpoint.includes('contenedores')) { CONTROLLERS.containers.abort(); CONTROLLERS.containers=null; }
+                CONTROLLERS.containers = new AbortController();
+                const signal = CONTROLLERS.containers.signal;
+
+                if(CONFIG.DEV_MODE) {
+                    await new Promise(r=>setTimeout(r, 200+Math.random()*300));
+                    return this._mockResponse(method, endpoint, body);
+                }
+                try {
+                    const url=`${CONFIG.API_BASE}${endpoint}`;
+                    const res=await fetch(url, {method, headers, body:body?JSON.stringify(body):null, signal});
+                    if(!res.ok) { if(res.status===401){TokenManager.clear();window.location.href='/login';return;} throw new Error(`API ${res.status}`); }
+                    return await res.json();
+                } catch(err) { if(err.name==='AbortError') return {ok:true,data:[]}; console.error('API Error',err); throw err; }
+            },
+            _mockResponse(method, endpoint, body) {
+                const url=new URL(endpoint, 'http://localhost');
+                const path=url.pathname, params=Object.fromEntries(url.searchParams);
+                
+                // FIX: Exact match first, then prefix match for ID-based endpoints
+                const endpoints = {
+                    'GET:/contenedores/clientes': () => ({ok:true, data:[...new Set(DB.contenedores.map(c=>c.cliente))].sort()}),
+                    'GET:/contenedores/tipos': () => ({ok:true, data:[...new Set(DB.contenedores.map(c=>c.tipo))].sort()}),
+                    'GET:/contenedores': () => {
+                        let d=[...DB.contenedores];
+                        if(params.code) d=d.filter(c=>c.codigo.toLowerCase().includes(params.code.toLowerCase()));
+                        if(params.state) d=d.filter(c=>c.estado===params.state);
+                        if(params.client) d=d.filter(c=>c.cliente===params.client);
+                        if(params.type) d=d.filter(c=>c.tipo===params.type);
+                        const sortCol=params.sort||'codigo', sortDir=params.order==='desc'?-1:1;
+                        d.sort((a,b)=>(a[sortCol]>b[sortCol]?1:-1)*sortDir);
+                        const page=parseInt(params.page)||1, limit=parseInt(params.limit)||10;
+                        const total=d.length, totalPages=Math.ceil(total/limit);
+                        return {ok:true, data:d.slice((page-1)*limit, page*limit), meta:{total, page, limit, totalPages}};
+                    },
+                    'GET:/movimientos': () => {
+                        let d=[...DB.movimientos];
+                        if(params.container) d=d.filter(m=>m.contenedor===params.container);
+                        if(params.start) d=d.filter(m=>m.fecha>=params.start);
+                        if(params.end) d=d.filter(m=>m.fecha<=params.end);
+                        return {ok:true, data:d};
+                    },
+                    'GET:/zonas/distribucion': () => {
+                        const zones={};
+                        DB.contenedores.forEach(c=>{
+                            const z=getZone(c.ubicacion);
+                            if(!zones[z]) zones[z]={total:0,disponible:0,en_transito:0,en_patio:0,otros:0};
+                            zones[z].total++;
+                            if(c.estado==='disponible') zones[z].disponible++;
+                            else if(c.estado==='en_transito') zones[z].en_transito++;
+                            else if(c.estado==='en_patio') zones[z].en_patio++;
+                            else zones[z].otros++;
+                        });
+                        return {ok:true, data:zones};
+                    },
+                    'GET:/usuarios': () => ({ok:true, data:DB.usuarios}),
+                    'POST:/contenedores': () => { const n={id:Date.now(),...body}; DB.contenedores.push(n); saveToStorage(); return {ok:true,data:n}; },
+                    'PUT:/contenedores/': () => { const id=parseInt(path.split('/').pop()); const idx=DB.contenedores.findIndex(c=>c.id===id); if(idx>-1) DB.contenedores[idx]={...DB.contenedores[idx],...body}; saveToStorage(); return {ok:true}; },
+                    'DELETE:/contenedores/': () => { const id=parseInt(path.split('/').pop()); DB.contenedores=DB.contenedores.filter(c=>c.id!==id); saveToStorage(); return {ok:true}; },
+                    'POST:/usuarios': () => { const n={id:Date.now(), active:true, ...body}; DB.usuarios.push(n); saveToStorage(); return {ok:true,data:n}; },
+                    'PUT:/usuarios/': () => { const id=parseInt(path.split('/').pop()); const idx=DB.usuarios.findIndex(u=>u.id===id); if(idx>-1) DB.usuarios[idx]={...DB.usuarios[idx],...body}; saveToStorage(); return {ok:true}; },
+                    'DELETE:/usuarios/': () => { const id=parseInt(path.split('/').pop()); DB.usuarios=DB.usuarios.filter(u=>u.id!==id); saveToStorage(); return {ok:true}; }
+                };
+                
+                // FIX: Try exact match first
+                if(endpoints[`${method}:${path}`]) return endpoints[`${method}:${path}`]();
+                // Then try prefix match for PUT/DELETE with IDs
+                for(const key in endpoints) {
+                    if(key.endsWith('/') && `${method}:${path}`.startsWith(key)) return endpoints[key]();
+                }
+                return {ok:true, data:[]};
+            }
+        };
+
+        /* ═══════════════════════ 4. UI RENDERERS ═══════════════════════ */
+        const NAV_CONFIG = [
+            {id:'panel', title:'Panel General', icon:'bi-grid-1x2-fill', section:'principal', badge:'badgeCont'},
+            {id:'contenedores', title:'Contenedores', icon:'bi-box-seam-fill', section:'principal'},
+            {id:'zonas', title:'Por Zona', icon:'bi-geo-alt-fill', section:'principal'},
+            {id:'movimientos', title:'Movimientos', icon:'bi-arrow-left-right', section:'principal'},
+            {id:'arrendamientos', title:'Arrendamientos', icon:'bi-calendar2-week-fill', section:'gestion', badge:'badgeArr', badgeYellow:true},
+            {id:'historial', title:'Historial', icon:'bi-clock-history', section:'gestion'},
+            {id:'clientes', title:'Clientes', icon:'bi-people-fill', section:'sistema'},
+            {id:'facturacion', title:'Facturación', icon:'bi-receipt', section:'sistema'},
+            {id:'reportes', title:'Reportes', icon:'bi-bar-chart-fill', section:'sistema'},
+            {id:'usuarios', title:'Usuarios', icon:'bi-shield-lock-fill', section:'sistema'}
+        ];
+        let currentUserRole=null, currentPage=1, rowsPerPage=10, sortCol='codigo', sortDir='asc';
+
+        function buildSidebar() {
+            const nav=document.getElementById('sidebarNav');
+            const sections={principal:[], gestion:[], sistema:[]};
+            NAV_CONFIG.forEach(p=>{ if(canAccessPage(p.id)) sections[p.section].push(p); });
+            let html='';
+            for(const [sec, pages] of Object.entries(sections)) {
+                if(!pages.length) continue;
+                html+=`<div class="nav-section-label" data-section="${sec}">${sec==='principal'?'Principal':sec==='gestion'?'Gestión':'Sistema'}</div>`;
+                pages.forEach(p=>{
+                    const active=p.id==='panel'?'active':'';
+                    const badge=p.badge?`<span class="nav-badge${p.badgeYellow?' yellow':''}" id="${p.badge}">0</span>`:'';
+                    html+=`<div class="nav-item ${active}" data-page="${p.id}" onclick="navigateTo('${p.id}',this)"><i class="bi ${p.icon}"></i><span>${p.title}</span>${badge}</div>`;
+                });
+            }
+            nav.innerHTML=html;
+        }
+
+        function canAccessPage(id) { 
+            const perms={panel:['admin','supervisor','operador','auditor'],contenedores:['admin','supervisor','operador','auditor'],zonas:['admin','supervisor','operador','auditor'],movimientos:['admin','supervisor','operador','auditor'],arrendamientos:['admin','supervisor','auditor'],historial:['admin','supervisor','operador','auditor'],clientes:['admin','auditor'],facturacion:['admin','auditor'],reportes:['admin','supervisor','auditor'],usuarios:['admin']};
+            return currentUserRole && perms[id]?.includes(currentUserRole);
+        }
+        function canPerformAction(a) {
+            const perms={createContainer:['admin','supervisor'],editContainer:['admin','supervisor'],deleteContainer:['admin'],exportCSV:['admin','supervisor','auditor']};
+            return currentUserRole && perms[a]?.includes(currentUserRole);
+        }
+        function applyRoleBasedUI() {
+            buildSidebar();
+            document.getElementById('btnNewContainer').style.display=canPerformAction('createContainer')?'':'none';
+            document.getElementById('btnExportCont').style.display=canPerformAction('exportCSV')?'':'none';
+            document.getElementById('btnExportMov').style.display=canPerformAction('exportCSV')?'':'none';
+            document.getElementById('page-usuarios').style.display=currentUserRole==='admin'?'':'none';
+        }
+
+        function showLoader(id) { const l=document.getElementById(id); if(l) l.classList.add('active'); }
+        function hideLoader(id) { const l=document.getElementById(id); if(l) l.classList.remove('active'); }
+
+        function updateKPIs() {
+            document.getElementById('kpiTotal').textContent=DB.contenedores.length;
+            document.getElementById('kpiDisp').textContent=DB.contenedores.filter(c=>c.estado==='disponible').length;
+            document.getElementById('kpiTrans').textContent=DB.contenedores.filter(c=>c.estado==='en_transito').length;
+            const alerts=DB.arrendamientos.filter(a=>{const d=Math.ceil((new Date(a.fin)-new Date())/86400000);return d<=7&&d>=0;}).length;
+            document.getElementById('kpiAlert').textContent=alerts;
+            const bc=document.getElementById('badgeCont'), ba=document.getElementById('badgeArr');
+            if(bc) bc.textContent=DB.contenedores.length;
+            if(ba) ba.textContent=alerts||0;
+        }
+
+        function renderContainers(data, meta) {
+            const tbody=document.getElementById('contTableBody');
+            document.getElementById('contMetaInfo').textContent=`${meta.total} registros · Página ${meta.page} de ${meta.totalPages}`;
+            if(!data.length) { tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state">Sin resultados</div></td></tr>`; return; }
+            tbody.innerHTML=data.map(c=>`<tr>
+                <td><strong>${sanitizeHTML(c.codigo)}</strong></td><td>${sanitizeHTML(c.tipo)}</td><td>${sanitizeHTML(c.cliente)}</td>
+                <td><span class="badge-status ${c.estado}">${c.estado.replace('_',' ')}</span></td>
+                <td style="font-size:.72rem;color:var(--text-muted)">${sanitizeHTML(c.ubicacion)}</td>
+                <td style="font-size:.72rem;color:var(--text-muted)">${sanitizeHTML(c.fecha)}</td>
+                <td><div class="table-actions">
+                    ${canPerformAction('editContainer')?`<div class="btn-icon" onclick="openContainerModal(${c.id})" aria-label="Editar"><i class="bi bi-pencil-fill"></i></div>`:''}
+                    ${canPerformAction('deleteContainer')?`<div class="btn-icon danger" onclick="openConfirmModal(${c.id})" aria-label="Eliminar"><i class="bi bi-trash-fill"></i></div>`:''}
+                </div></td></tr>`).join('');
+            renderPagination(meta);
+        }
+
+        function renderPagination(meta) {
+            const bar=document.getElementById('contPagination');
+            if(meta.totalPages<=1) { bar.innerHTML=`<div class="rows-per-page">Filas: <select onchange="changeRows(this.value)"><option ${rowsPerPage==10?'selected':''}>10</option><option ${rowsPerPage==25?'selected':''}>25</option><option ${rowsPerPage==50?'selected':''}>50</option><option ${rowsPerPage==100?'selected':''}>100</option></select></div>`; return; }
+            let html=`<div class="rows-per-page">Filas: <select onchange="changeRows(this.value)"><option ${rowsPerPage==10?'selected':''}>10</option><option ${rowsPerPage==25?'selected':''}>25</option><option ${rowsPerPage==50?'selected':''}>50</option><option ${rowsPerPage==100?'selected':''}>100</option></select></div><div class="pagination-controls">`;
+            html+=`<button class="page-btn" onclick="changePage(${meta.page-1})" ${meta.page===1?'disabled':''}><i class="bi bi-chevron-left"></i></button>`;
+            for(let i=1;i<=meta.totalPages;i++) html+=`<button class="page-btn ${i===meta.page?'active':''}" onclick="changePage(${i})">${i}</button>`;
+            html+=`<button class="page-btn" onclick="changePage(${meta.page+1})" ${meta.page===meta.totalPages?'disabled':''}><i class="bi bi-chevron-right"></i></button></div>`;
+            bar.innerHTML=html;
+        }
+
+        function renderUsers(data) {
+            const tbody=document.getElementById('usersTable');
+            if(!data) return;
+            tbody.innerHTML=data.map(u=>`<tr>
+                <td>${sanitizeHTML(u.username)}</td><td>${sanitizeHTML(u.name)}</td>
+                <td><span class="badge-status ${u.role==='admin'?'disponible':u.role==='supervisor'?'en_transito':'en_patio'}">${u.role}</span></td>
+                <td><span class="badge-status ${u.active?'disponible':'fuera_de_servicio'}">${u.active?'Activo':'Inactivo'}</span></td>
+                <td><div class="table-actions">
+                    <div class="btn-icon" onclick="openUserModal(${u.id})" aria-label="Editar"><i class="bi bi-pencil-fill"></i></div>
+                    ${u.id!==1?`<div class="btn-icon danger" onclick="deleteUser(${u.id})" aria-label="Eliminar"><i class="bi bi-trash-fill"></i></div>`:''}
+                </div></td></tr>`).join('');
+        }
+
+        /* ═══════════════════════ 5. CHARTS & MAP (FIXED DATA PROPERTIES) ═══════════════════════ */
+        let charts={}, mapInstance=null, chartsInit=false, mapInit=false;
+        function applyTheme() {
+            const theme=document.documentElement.getAttribute('data-bs-theme');
+            Chart.defaults.color=theme==='dark'?'rgba(160,185,215,0.55)':'rgba(0,0,0,0.6)';
+            Chart.defaults.borderColor=theme==='dark'?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.08)';
+            Chart.defaults.font.family="'DM Sans',system-ui,sans-serif";
+            initCharts();
+        }
+        function initCharts() {
+            if(chartsInit && document.getElementById('page-panel').classList.contains('active')) return;
+            Object.values(charts).forEach(c=>c.destroy()); charts={};
+            const ctx=(id)=>document.getElementById(id)?.getContext('2d');
+            
+            // FIX: Added 'data:' property to all Chart.js configurations
+            if(ctx('chartMovements')) charts.mov=new Chart(ctx('chartMovements'),{type:'line',data:{labels:['Ene','Feb','Mar','Abr','May','Jun'],datasets:[{data:[18,25,32,28,41,37],borderColor:'#D32F2F',backgroundColor:'rgba(211,47,47,0.06)',fill:true,tension:.4}]},options:{responsive:true,maintainAspectRatio:false}});
+            if(ctx('chartTypes')) { const types=[...new Set(DB.contenedores.map(c=>c.tipo))]; charts.typ=new Chart(ctx('chartTypes'),{type:'doughnut',data:{labels:types,datasets:[{data:types.map(t=>DB.contenedores.filter(c=>c.tipo===t).length),backgroundColor:['#D32F2F','#42a5f5','#00c896','#ffca28','#ce93d8','#ffb74d','#1a2b4c']}]},options:{cutout:'68%',responsive:true,maintainAspectRatio:false}}); }
+            if(ctx('chartStates')) { const st=['disponible','asignado','en_transito','en_patio','en_mantenimiento','fuera_de_servicio']; charts.sta=new Chart(ctx('chartStates'),{type:'bar',data:{labels:['Disp','Asig','Tráns','Patio','Mant','Fuera'],datasets:[{data:st.map(s=>DB.contenedores.filter(c=>c.estado===s).length),backgroundColor:['#00c896','#42a5f5','#ffca28','#ce93d8','#ffb74d','#D32F2F']}]}}); }
+            if(ctx('chartClients')) { const cl=[...new Set(DB.contenedores.map(c=>c.cliente))]; charts.cli=new Chart(ctx('chartClients'),{type:'bar',data:{labels:cl,datasets:[{data:cl.map(c=>DB.contenedores.filter(x=>x.cliente===c).length),backgroundColor:'#42a5f5'}]},options:{indexAxis:'y',responsive:true}}); }
+            if(ctx('chartRentals')) charts.ren=new Chart(ctx('chartRentals'),{type:'doughnut',data:{labels:['Activos','Finalizados','Por vencer'],datasets:[{data:[3,7,2],backgroundColor:['#00c896','#888','#D32F2F']}]},options:{cutout:'65%'}});
+            chartsInit=true;
+        }
+        function initMap() {
+            if(mapInit) return;
+            const c=document.getElementById('leafletMap'); if(!c) return;
+            mapInstance=L.map(c).setView([4.6,-74.2],5.8);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap'}).addTo(mapInstance);
+            const cities=[{n:'Puerto Cartagena',lat:10.4,lon:-75.5},{n:'Barranquilla',lat:10.98,lon:-74.78},{n:'Bogotá',lat:4.61,lon:-74.08},{n:'Medellín',lat:6.25,lon:-75.56},{n:'Cali',lat:3.44,lon:-76.52},{n:'Bucaramanga',lat:7.12,lon:-73.12},{n:'Taller/Mant.',lat:4.8,lon:-74.2}];
+            cities.forEach(ci=>{
+                const cnt=DB.contenedores.filter(x=>getZone(x.ubicacion).includes(ci.n.split('/')[0].trim())).length;
+                const r=Math.max(cnt*2.2,6), col=cnt>=6?'#D32F2F':cnt>=3?'#ffca28':'#42a5f5';
+                L.circleMarker([ci.lat,ci.lon],{radius:r,color:col,fillColor:col,fillOpacity:0.7,weight:1.5}).addTo(mapInstance).bindPopup(`<strong>${ci.n}</strong><br>${cnt} contenedor${cnt!==1?'es':''}`);
+            });
+            mapInit=true;
+        }
+
+        /* ═══════════════════════ 6. LOGIC & EVENTS ═══════════════════════ */
+        function getZone(loc) {
+            if(!loc) return 'Sin zona'; const l=loc.toLowerCase();
+            if(l.includes('cartagena')) return 'Puerto Cartagena';
+            if(l.includes('barranquilla')) return 'Barranquilla';
+            if(l.includes('bogotá')||l.includes('bogota')) return 'Bogotá';
+            if(l.includes('medellín')||l.includes('medellin')) return 'Medellín';
+            if(l.includes('cali')) return 'Cali';
+            if(l.includes('bucaramanga')) return 'Bucaramanga';
+            if(l.includes('taller')||l.includes('mantenimiento')) return 'Taller/Mantenimiento';
+            return 'Otros';
+        }
+
+        async function loadContainers() {
+            showLoader('contLoader');
+            try {
+                const q=new URLSearchParams({page:currentPage, limit:rowsPerPage, sort:sortCol, order:sortDir});
+                ['filtCode','filtState','filtClient','filtType'].forEach(id=>{const v=document.getElementById(id).value; if(v) q.set(id.replace('filt','').toLowerCase(), v);});
+                const res=await ApiClient.request('GET', `/contenedores?${q}`);
+                if(res.ok) renderContainers(res.data, res.meta);
+            } catch(e){ if(e.name!=='AbortError') showToast('Error cargando','error'); }
+            hideLoader('contLoader');
+        }
+        function changePage(p) { currentPage=p; loadContainers(); }
+        function changeRows(v) { rowsPerPage=parseInt(v); currentPage=1; localStorage.setItem('rowsPref',rowsPerPage); loadContainers(); }
+        function sortContainers(col) { sortDir=(sortCol===col && sortDir==='asc')?'desc':'asc'; sortCol=col; loadContainers(); }
+        const debouncedFilterContainers=debounce(()=>{currentPage=1;loadContainers();},300);
+        function filterContainers() { currentPage=1; loadContainers(); }
+        function resetFilters() { ['filtCode','filtState','filtClient','filtType'].forEach(id=>document.getElementById(id).value=''); currentPage=1; loadContainers(); }
+        const handleGlobalSearch=debounce(v=>{if(!v){loadContainers();return;}document.getElementById('filtCode').value=v;currentPage=1;loadContainers();},300);
+
+        function populateFilters() {
+            ApiClient.request('GET','/contenedores/clientes').then(r=>{if(r.ok){const s=document.getElementById('filtClient');s.innerHTML='<option value="">Todos</option>'+r.data.map(c=>`<option value="${c}">${c}</option>`).join('');}});
+            ApiClient.request('GET','/contenedores/tipos').then(r=>{if(r.ok){const s=document.getElementById('filtType');s.innerHTML='<option value="">Todos</option>'+r.data.map(t=>`<option value="${t}">${t}</option>`).join('');}});
+        }
+
+        // CRUD Contenedores
+        let editId=null;
+        function openContainerModal(id=null) {
+            editId=id; document.getElementById('modalTitle').textContent=id?'Editar contenedor':'Nuevo contenedor';
+            if(id){const c=DB.contenedores.find(x=>x.id===id);if(c){document.getElementById('mCode').value=c.codigo;document.getElementById('mType').value=c.tipo;document.getElementById('mClient').value=c.cliente;document.getElementById('mState').value=c.estado;document.getElementById('mLocation').value=c.ubicacion;document.getElementById('mPhoto').value=c.foto||'';}}
+            else ['mCode','mLocation','mPhoto'].forEach(i=>document.getElementById(i).value='');
+            document.getElementById('modalContainer').classList.add('show');
+        }
+        function closeModal(id) { document.getElementById(id).classList.remove('show'); if(id==='modalContainer')editId=null; if(id==='modalUser')editUserId=null; }
+        async function saveContainer() {
+            const code=document.getElementById('mCode').value.trim();
+            if(!code){showToast('Código obligatorio','error');return;}
+            const btn=document.getElementById('saveContainerBtn'); btn.disabled=true; btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Guardando...';
+            try {
+                const payload={codigo:code,tipo:document.getElementById('mType').value,cliente:document.getElementById('mClient').value,estado:document.getElementById('mState').value,ubicacion:document.getElementById('mLocation').value.trim(),foto:document.getElementById('mPhoto').value.trim()};
+                if(editId) await ApiClient.request('PUT',`/contenedores/${editId}`,payload);
+                else await ApiClient.request('POST','/contenedores',payload);
+                closeModal('modalContainer'); loadContainers(); updateKPIs(); showToast('Guardado correctamente');
+            } catch(e){ showToast('Error al guardar','error'); }
+            btn.disabled=false; btn.innerHTML='<i class="bi bi-floppy-fill"></i> Guardar';
+        }
+        let deleteId=null;
+        function openConfirmModal(id) {
+            deleteId=id; const c=DB.contenedores.find(x=>x.id===id);
+            document.getElementById('confirmMsg').textContent=`¿Eliminar ${sanitizeHTML(c.codigo)}? Esta acción no se puede deshacer.`;
+            document.getElementById('confirmBtn').onclick=async()=>{
+                try{await ApiClient.request('DELETE',`/contenedores/${id}`);closeModal('modalConfirm');loadContainers();updateKPIs();showToast('Eliminado','info');}catch(e){showToast('Error','error');}
+            };
+            document.getElementById('modalConfirm').classList.add('show');
+        }
+
+        // CRUD Usuarios
+        let editUserId=null;
+        function openUserModal(id=null) {
+            editUserId=id; document.getElementById('userModalTitle').textContent=id?'Editar usuario':'Nuevo usuario';
+            if(id){const u=DB.usuarios.find(x=>x.id===id);if(u){document.getElementById('uName').value=u.name;document.getElementById('uUsername').value=u.username;document.getElementById('uPass').value='';document.getElementById('uRole').value=u.role;}}
+            else ['uName','uUsername','uPass'].forEach(i=>document.getElementById(i).value='');
+            document.getElementById('modalUser').classList.add('show');
+        }
+        async function saveUser() {
+            const name=document.getElementById('uName').value.trim(), user=document.getElementById('uUsername').value.trim(), pass=document.getElementById('uPass').value.trim(), role=document.getElementById('uRole').value;
+            if(!name||!user){showToast('Nombre y usuario obligatorios','error');return;}
+            const btn=document.getElementById('saveUserBtn'); btn.disabled=true;
+            try {
+                const payload={name,username:user,role};
+                if(pass) payload.pass=pass;
+                if(editUserId) await ApiClient.request('PUT',`/usuarios/${editUserId}`,payload);
+                else await ApiClient.request('POST','/usuarios',payload);
+                closeModal('modalUser'); loadUsers(); showToast('Usuario guardado');
+            } catch(e){ showToast('Error','error'); }
+            btn.disabled=false;
+        }
+        async function loadUsers() { if(currentUserRole!=='admin')return; const res=await ApiClient.request('GET','/usuarios'); if(res.ok) renderUsers(res.data); }
+        async function deleteUser(id) {
+            if(id===1){showToast('No puedes eliminar tu propio usuario','error');return;}
+            if(confirm('¿Eliminar usuario?')){await ApiClient.request('DELETE',`/usuarios/${id}`);loadUsers();showToast('Eliminado','info');}
+        }
+
+        // Zonas
+        function filterZones() { renderZoneData(); }
+        function resetZones() { document.getElementById('filtZone').value='';document.getElementById('filtZoneState').value='';renderZoneData(); }
+        function renderZoneData() {
+            ApiClient.request('GET','/zonas/distribucion').then(res=>{
+                if(!res.ok) return;
+                const zones=res.data, entries=Object.entries(zones);
+                document.getElementById('zoneCount').textContent=`${entries.length} zonas`;
+                const tbody=document.getElementById('zoneTable');
+                if(!entries.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty-state">Sin datos</div></td></tr>';return;}
+                let totals={total:0,disponible:0,en_transito:0,en_patio:0,otros:0}, html='';
+                entries.forEach(([z,d])=>{Object.keys(totals).forEach(k=>totals[k]+=d[k]); html+=`<tr onclick="document.getElementById('filtZone').value='${z.split('/')[0].trim()}';filterZones()" style="cursor:pointer"><td><strong>${z}</strong></td><td>${d.total}</td><td style="color:var(--success)">${d.disponible}</td><td style="color:var(--warning)">${d.en_transito}</td><td style="color:#ce93d8">${d.en_patio}</td><td>${d.otros}</td></tr>`;});
+                html+=`<tr style="border-top:2px solid var(--border-color);font-weight:700"><td>Total</td><td>${totals.total}</td><td style="color:var(--success)">${totals.disponible}</td><td style="color:var(--warning)">${totals.en_transito}</td><td style="color:#ce93d8">${totals.en_patio}</td><td>${totals.otros}</td></tr>`;
+                tbody.innerHTML=html;
+                const top=entries.sort((a,b)=>b[1].total-a[1].total)[0];
+                document.getElementById('zonesCards').innerHTML=`<div class="zone-card"><div class="num">${top?top[0]:'—'}</div><div class="lbl">Zona principal</div></div><div class="zone-card"><div class="num" style="color:var(--warning)">${DB.arrendamientos.filter(a=>{const d=Math.ceil((new Date(a.fin)-new Date())/86400000);return d<=7&&d>=0;}).length}</div><div class="lbl">Alertas</div></div><div class="zone-card"><div class="num" style="color:var(--text-muted)">${DB.contenedores.filter(c=>!c.ubicacion).length}</div><div class="lbl">Sin ubicación</div></div>`;
+                initMap();
+            });
+        }
+
+        // Movimientos, Arrendamientos, Historial
+        function renderMovements(data=[], tid='movTable', cid='movCount') {
+            document.getElementById(cid).textContent=`${data.length} registros`;
+            document.getElementById(tid).innerHTML=data.map(m=>`<tr><td style="color:var(--text-muted)">#${m.id}</td><td><strong>${sanitizeHTML(m.contenedor)}</strong></td><td>${sanitizeHTML(m.origen)}</td><td>${sanitizeHTML(m.destino)}</td><td>${sanitizeHTML(m.transporte)}</td><td>${sanitizeHTML(m.responsable)}</td><td style="font-size:.72rem;color:var(--text-muted)">${sanitizeHTML(m.fecha)}</td></tr>`).join('')||'<tr><td colspan="7"><div class="empty-state">Sin movimientos</div></td></tr>';
+        }
+        function filterMovements() {
+            const c=document.getElementById('movFilterContainer').value, s=document.getElementById('movFilterStart').value, e=document.getElementById('movFilterEnd').value;
+            let d=[...DB.movimientos];
+            if(c) d=d.filter(m=>m.contenedor===c); if(s) d=d.filter(m=>m.fecha>=s); if(e) d=d.filter(m=>m.fecha<=e);
+            renderMovements(d,'movPageTable','movPageCount');
+        }
+        function resetMovementFilters() { document.getElementById('movFilterContainer').value='';document.getElementById('movFilterStart').value='';document.getElementById('movFilterEnd').value='';filterMovements(); }
+        function populateMovFilter() { const s=document.getElementById('movFilterContainer'); s.innerHTML='<option value="">Todos</option>'+DB.contenedores.map(c=>`<option value="${c.codigo}">${c.codigo}</option>`).join(''); }
+        function filterRentals() {
+            const st=document.getElementById('arrFilterState').value; let d=DB.arrendamientos; if(st) d=d.filter(a=>a.estado===st);
+            document.getElementById('arrCount').textContent=`${d.length} contratos`;
+            document.getElementById('arrTable').innerHTML=d.map(a=>`<tr><td><strong>${sanitizeHTML(a.contenedor)}</strong></td><td>${sanitizeHTML(a.cliente)}</td><td>${sanitizeHTML(a.inicio)}</td><td>${sanitizeHTML(a.fin)}</td><td>Día ${sanitizeHTML(a.dia_facturacion)}</td><td><span class="badge-status ${a.estado==='activo'?'disponible':'fuera_de_servicio'}">${a.estado==='activo'?'Activo':'Finalizado'}</span></td></tr>`).join('')||'<tr><td colspan="6"><div class="empty-state">Sin contratos</div></td></tr>';
+        }
+        function resetRentalFilters() { document.getElementById('arrFilterState').value='';filterRentals(); }
+        function populateHistFilter() { const s=document.getElementById('histFilterContainer'); s.innerHTML='<option value="">Seleccionar</option>'+DB.contenedores.map(c=>`<option value="${c.codigo}">${c.codigo}</option>`).join(''); }
+        function showHistory() {
+            const code=document.getElementById('histFilterContainer').value, c=DB.contenedores.find(x=>x.codigo===code);
+            document.getElementById('historyEmpty').style.display=c?'none':'block'; document.getElementById('historyContent').style.display=c?'block':'none';
+            if(!c) return;
+            const movs=DB.movimientos.filter(m=>m.contenedor===code).sort((a,b)=>b.id-a.id);
+            const sts=DB.cambiosEstado.filter(e=>e.contenedor===code).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+            const ren=DB.arrendamientos.filter(a=>a.contenedor===code);
+            document.getElementById('historyContent').innerHTML=`
+                <h5><i class="bi bi-arrow-left-right"></i> Movimientos</h5>${movs.length?`<table class="data-table"><thead><tr><th>ID</th><th>Ruta</th><th>Transporte</th><th>Fecha</th></tr></thead><tbody>${movs.map(m=>`<tr><td>#${m.id}</td><td>${m.origen} → ${m.destino}</td><td>${m.transporte}</td><td>${m.fecha}</td></tr>`).join('')}</tbody></table>`:'<p style="color:var(--text-muted)">Sin movimientos.</p>'}
+                <h5 class="mt-3"><i class="bi bi-arrow-repeat"></i> Cambios de estado</h5>${sts.length?`<table class="data-table"><thead><tr><th>Fecha</th><th>Anterior</th><th>Nuevo</th><th>Resp.</th></tr></thead><tbody>${sts.map(e=>`<tr><td>${e.fecha}</td><td>${e.estado_anterior||'—'}</td><td>${getBadgeStatus(e.estado_nuevo)}</td><td>${e.responsable}</td></tr>`).join('')}</tbody></table>`:'<p style="color:var(--text-muted)">Sin cambios.</p>'}
+                <h5 class="mt-3"><i class="bi bi-calendar2-week"></i> Arrendamientos</h5>${ren.length?`<table class="data-table"><thead><tr><th>Cliente</th><th>Inicio</th><th>Fin</th><th>Día fact.</th></tr></thead><tbody>${ren.map(a=>`<tr><td>${a.cliente}</td><td>${a.inicio}</td><td>${a.fin}</td><td>${a.dia_facturacion}</td></tr>`).join('')}</tbody></table>`:'<p style="color:var(--text-muted)">Sin arrendamientos.</p>'}
+            `;
+        }
+
+        // Notificaciones & Export
+        function renderAlerts() {
+            const today=new Date(), up=DB.arrendamientos.filter(a=>{const d=Math.ceil((new Date(a.fin)-today)/86400000);return d<=7&&d>=0;});
+            document.getElementById('alertsList').innerHTML=up.length?up.map(a=>{const d=Math.ceil((new Date(a.fin)-today)/86400000);return`<div class="alert-row"><div class="alert-icon ${d<=2?'error':'warn'}"><i class="bi bi-${d<=2?'exclamation-triangle-fill':'clock-fill'}"></i></div><div><div class="alert-text"><strong>${sanitizeHTML(a.contenedor)}</strong> — ${sanitizeHTML(a.cliente)}</div><div class="alert-time">Vence: ${a.fin} · Día fact.: ${a.dia_facturacion} · <strong style="color:${d<=2?'#ff8a80':'var(--warning)'}">${d} día${d!==1?'s':''}</strong></div></div></div>`;}).join(''):'<div style="text-align:center;padding:1.5rem;color:var(--text-muted)">Sin alertas activas.</div>';
+            document.getElementById('notifDot').style.display=up.length?'block':'none';
+        }
+        function toggleNotifPanel() { document.getElementById('notifPanel').classList.toggle('open'); document.getElementById('notifOverlay').classList.toggle('show'); if(document.getElementById('notifPanel').classList.contains('open')) buildNotifPanel(); }
+        function closeNotifPanel() { document.getElementById('notifPanel').classList.remove('open'); document.getElementById('notifOverlay').classList.remove('show'); }
+        function markAllNotificationsRead() { document.getElementById('notifBadge').textContent='0'; document.getElementById('notifDot').style.display='none'; showToast('Leídas'); }
+        function buildNotifPanel() {
+            const today=new Date(), up=DB.arrendamientos.filter(a=>{const d=Math.ceil((new Date(a.fin)-today)/86400000);return d<=7&&d>=0;});
+            document.getElementById('notifBadge').textContent=up.length+DB.movimientos.length;
+            document.getElementById('notifBody').innerHTML=`<div class="notif-section"><div class="notif-section-label">Alertas</div>${up.map(a=>{const d=Math.ceil((new Date(a.fin)-today)/86400000);return`<div class="notif-item"><div class="notif-item-icon ${d<=2?'error':'warn'}"><i class="bi bi-${d<=2?'exclamation-triangle-fill':'clock-fill'}"></i></div><div><div class="notif-item-text"><strong>${sanitizeHTML(a.contenedor)}</strong> (${sanitizeHTML(a.cliente)})</div><div class="notif-item-time">Vence en ${d} días</div></div></div>`;}).join('')}</div><div class="notif-section"><div class="notif-section-label">Movimientos recientes</div>${DB.movimientos.slice(0,3).map(m=>`<div class="notif-item"><div class="notif-item-icon info"><i class="bi bi-arrow-left-right"></i></div><div><div class="notif-item-text">${sanitizeHTML(m.contenedor)}: ${sanitizeHTML(m.origen)} → ${sanitizeHTML(m.destino)}</div><div class="notif-item-time">${m.fecha}</div></div></div>`).join('')}</div>`;
+        }
+        function exportCSV(type) {
+            let csv=type==='contenedores'?'Código,Tipo,Cliente,Estado,Ubicación,Fecha\n':'ID,Contenedor,Origen,Destino,Transporte,Responsable,Fecha\n';
+            const data=type==='contenedores'?DB.contenedores:DB.movimientos;
+            data.forEach(i=>csv+=type==='contenedores'?`${i.codigo},${i.tipo},${i.cliente},${i.estado},${i.ubicacion},${i.fecha}\n`:`${i.id},${i.contenedor},${i.origen},${i.destino},${i.transporte},${i.responsable},${i.fecha}\n`);
+            const b=new Blob([csv],{type:'text/csv'}), u=URL.createObjectURL(b), a=document.createElement('a');
+            a.href=u; a.download=`${type}_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(u); showToast('CSV descargado');
+        }
+
+        // Navegación & Sidebar
+        function navigateTo(pageId, el) {
+            if(!canAccessPage(pageId)){showToast('Sin permisos','error');return;}
+            document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+            document.getElementById('page-'+pageId)?.classList.add('active');
+            if(el) el.classList.add('active');
+            document.getElementById('pageTitle').textContent=pageId.charAt(0).toUpperCase()+pageId.slice(1);
+            document.getElementById('breadcrumb').textContent=`Inicio › ${pageId.charAt(0).toUpperCase()+pageId.slice(1)}`;
+            if(window.innerWidth<=768) closeMobileSidebar();
+            
+            if(pageId==='panel'){updateKPIs();renderMovements();renderAlerts();applyTheme();}
+            else if(pageId==='contenedores'){loadContainers();populateFilters();}
+            else if(pageId==='zonas') renderZoneData();
+            else if(pageId==='movimientos'){populateMovFilter();filterMovements();}
+            else if(pageId==='arrendamientos') filterRentals();
+            else if(pageId==='historial') populateHistFilter();
+            else if(pageId==='usuarios') loadUsers();
+        }
+        function closeMobileSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('show'); }
+        function toggleSidebar() {
+            if(window.innerWidth<=768){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebarOverlay').classList.toggle('show');}
+            else {document.getElementById('sidebar').classList.toggle('collapsed');localStorage.setItem('sidebar_col',document.getElementById('sidebar').classList.contains('collapsed')?'1':'0');}
+            document.getElementById('sidebarToggle').querySelector('i').className=document.getElementById('sidebar').classList.contains('collapsed')?'bi bi-chevron-right':'bi bi-chevron-left';
+        }
+
+        // Theme
+        function setTheme(t) {
+            document.documentElement.setAttribute('data-bs-theme',t);
+            document.getElementById('themeToggle').querySelector('i').className=t==='light'?'bi bi-moon-fill':'bi bi-sun-fill';
+            localStorage.setItem('theme',t); applyTheme();
+        }
+
+        // Logout
+        function logout() { TokenManager.clear(); localStorage.removeItem(STORAGE_KEY); window.location.href='/login'; }
+
+        // INIT
+        document.addEventListener('DOMContentLoaded', async () => {
+            if(!TokenManager.isValid() && !CONFIG.DEV_MODE) { window.location.href='/login'; return; }
+            const role=sessionStorage.getItem('role');
+            if(!role) { window.location.href='/login'; return; }
+            if(CONFIG.DEV_MODE && role) TokenManager.set('mock_jwt_'+role, {role, exp:Date.now()+3600000});
+            
+            currentUserRole=role;
+            document.getElementById('sidebarUser').textContent=sessionStorage.getItem('username')||'Usuario';
+            document.getElementById('sidebarRole').textContent='Rol: '+role;
+            document.getElementById('userAvatar').textContent=(sessionStorage.getItem('username')||'AD').substring(0,2).toUpperCase();
+            applyRoleBasedUI();
+            
+            const savedTheme=localStorage.getItem('theme')||'dark';
+            setTheme(savedTheme);
+            document.getElementById('themeToggle').addEventListener('click',()=>setTheme(document.documentElement.getAttribute('data-bs-theme')==='dark'?'light':'dark'));
+            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+            
+            rowsPerPage=parseInt(localStorage.getItem('rowsPref'))||10;
+            
+            updateKPIs(); renderMovements(); renderAlerts();
+            loadContainers(); populateFilters();
+            if(currentUserRole==='admin') loadUsers();
+            
+            setInterval(()=>{const m=Math.floor((Date.now()-performance.timeOrigin)/60000);document.getElementById('updateLabel').textContent=`Última actualización: hace ${m} min`;document.getElementById('lastUpdate').textContent=`Actualizado hace ${m} min`;},60000);
+            
+            document.addEventListener('keydown',e=>{
+                if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();document.getElementById('globalSearch').focus();}
+                if(e.key==='Escape'){closeModal('modalContainer');closeModal('modalConfirm');closeModal('modalUser');closeNotifPanel();}
+            });
+            ['modalContainer','modalConfirm','modalUser'].forEach(id=>document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id);}));
+        });
+    </script>
+</body>
+</html>
