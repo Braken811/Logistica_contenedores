@@ -4,6 +4,8 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
+
+
 # Cargar variables de entorno desde .env
 load_dotenv()
 
@@ -18,9 +20,12 @@ DATABASE_URL = f"postgresql+psycopg://{DATABASE_USER}:{DATABASE_PASSWORD}@{DATAB
 
 engine = create_engine(DATABASE_URL)
 
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
+import models
 
 def get_db():
     db = SessionLocal()

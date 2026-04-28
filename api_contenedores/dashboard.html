@@ -505,7 +505,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         /* ═══════════════════════ 1. CONFIG & UTILS ═══════════════════════ */
-        const CONFIG = { DEV_MODE: true, API_BASE: 'http://localhost:8000/api', TOKEN_KEY: 'mz_auth', DEBUG: false };
+        // Nota: el backend sirve rutas en la raíz (ej. /auth/login) — sin prefijo /api
+        const CONFIG = { DEV_MODE: false, API_BASE: 'http://127.0.0.1:8000', TOKEN_KEY: 'mz_auth_token', DEBUG: false };
         const sanitizeHTML = (str) => typeof str === 'string' ? (DOMPurify?.sanitize(str) || str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))) : str;
         const debounce = (fn, delay=300) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a), delay); }; };
         function showToast(msg, type='success') {
@@ -515,6 +516,13 @@
             c.appendChild(t); setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300)},3500);
         }
         function togglePassword(id, btn) { const i=document.getElementById(id), ic=btn.querySelector('i'); i.type=i.type==='password'?'text':'password'; ic.className=i.type==='password'?'bi bi-eye':'bi bi-eye-slash'; }
+        
+        /* ═══════════════════════ TOKEN & AUTH MANAGER ═══════════════════════ */
+        function getAuthToken() { try { return localStorage.getItem(CONFIG.TOKEN_KEY); } catch(e) { return null; } }
+        function getAuthRole() { try { return localStorage.getItem('mz_auth_role'); } catch(e) { return null; } }
+        function getAuthUser() { try { return localStorage.getItem('mz_auth_user'); } catch(e) { return null; } }
+        function clearAuthData() { try { localStorage.removeItem(CONFIG.TOKEN_KEY); localStorage.removeItem('mz_auth_role'); localStorage.removeItem('mz_auth_user'); } catch(e) {} }
+        function logout() { clearAuthData(); window.location.href='/login'; }
 
         /* ═══════════════════════ 2. STATE & DB ═══════════════════════ */
         const DEFAULT_DB = {
@@ -560,11 +568,11 @@
         /* ═══════════════════════ 3. API & MOCK SERVER (FIXED MATCHING) ═══════════════════════ */
         const CONTROLLERS = { containers: null, movements: null };
         const TokenManager = {
-            get() { try { return JSON.parse(sessionStorage.getItem(CONFIG.TOKEN_KEY)||'null'); } catch(e){return null} },
-            set(t,p={}) { sessionStorage.setItem(CONFIG.TOKEN_KEY, JSON.stringify({token:t,...p})); },
-            clear() { sessionStorage.removeItem(CONFIG.TOKEN_KEY); },
-            headers() { const t=this.get(); return t?.token ? {'Authorization':`Bearer ${t.token}`} : {}; },
-            isValid() { const t=this.get(); return t?.token && (!t.exp || t.exp>Date.now()); }
+            get() { try { const token = getAuthToken(); return token ? {token: token} : null; } catch(e){return null} },
+            set(t,p={}) { if(t) localStorage.setItem(CONFIG.TOKEN_KEY, t); },
+            clear() { clearAuthData(); },
+            headers() { const t = getAuthToken(); return t ? {'Authorization':`Bearer ${t}`} : {}; },
+            isValid() { return getAuthToken() !== null; }
         };
 
         const ApiClient = {
@@ -989,27 +997,40 @@
 
         // INIT
         document.addEventListener('DOMContentLoaded', async () => {
-            if(!TokenManager.isValid() && !CONFIG.DEV_MODE) { window.location.href='/login'; return; }
-            const role=sessionStorage.getItem('role');
-            if(!role) { window.location.href='/login'; return; }
-            if(CONFIG.DEV_MODE && role) TokenManager.set('mock_jwt_'+role, {role, exp:Date.now()+3600000});
+            // Verificar autenticación
+            const token = getAuthToken();
+            if(!token && !CONFIG.DEV_MODE) { window.location.href='/login'; return; }
             
-            currentUserRole=role;
-            document.getElementById('sidebarUser').textContent=sessionStorage.getItem('username')||'Usuario';
-            document.getElementById('sidebarRole').textContent='Rol: '+role;
-            document.getElementById('userAvatar').textContent=(sessionStorage.getItem('username')||'AD').substring(0,2).toUpperCase();
+            const role = getAuthRole();
+            const username = getAuthUser();
+            if(!role) { window.location.href='/login'; return; }
+            
+            currentUserRole = role;
+            document.getElementById('sidebarUser').textContent = username || 'Usuario';
+            document.getElementById('sidebarRole').textContent = 'Rol: ' + role;
+            document.getElementById('userAvatar').textContent = (username || 'AD').substring(0,2).toUpperCase();
             applyRoleBasedUI();
             
-            const savedTheme=localStorage.getItem('theme')||'dark';
+            const savedTheme = localStorage.getItem('theme') || 'dark';
             setTheme(savedTheme);
-            document.getElementById('themeToggle').addEventListener('click',()=>setTheme(document.documentElement.getAttribute('data-bs-theme')==='dark'?'light':'dark'));
+            document.getElementById('themeToggle').addEventListener('click', ()=>setTheme(document.documentElement.getAttribute('data-bs-theme')==='dark'?'light':'dark'));
             document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
             
-            rowsPerPage=parseInt(localStorage.getItem('rowsPref'))||10;
+            // Agregar botón de logout
+            const userCard = document.querySelector('.user-card');
+            if(userCard) {
+                userCard.addEventListener('click', () => {
+                    const modal = document.createElement('div');
+                    modal.innerHTML = `<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a2b4c;border:1px solid #333;border-radius:12px;padding:2rem;z-index:10000;text-align:center;min-width:300px;"><div style="font-size:1.2rem;color:#fff;margin-bottom:1rem;">¿Cerrar sesión?</div><button onclick="logout()" style="background:#d32f2f;color:#fff;border:none;padding:.7rem 1.5rem;border-radius:8px;cursor:pointer;margin-right:.5rem;">Salir</button><button onclick="this.closest('div').remove()" style="background:#444;color:#fff;border:none;padding:.7rem 1.5rem;border-radius:8px;cursor:pointer;">Cancelar</button></div>`;
+                    document.body.appendChild(modal.firstElementChild);
+                });
+            }
+            
+            rowsPerPage = parseInt(localStorage.getItem('rowsPref')) || 10;
             
             updateKPIs(); renderMovements(); renderAlerts();
             loadContainers(); populateFilters();
-            if(currentUserRole==='admin') loadUsers();
+            if(currentUserRole === 'admin') loadUsers();
             
             setInterval(()=>{const m=Math.floor((Date.now()-performance.timeOrigin)/60000);document.getElementById('updateLabel').textContent=`Última actualización: hace ${m} min`;document.getElementById('lastUpdate').textContent=`Actualizado hace ${m} min`;},60000);
             

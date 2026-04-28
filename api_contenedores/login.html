@@ -742,46 +742,6 @@
                 </div>
             </div>
 
-            <!-- ── VISTA: CLAVE DE ACCESO ────────────────────── -->
-            <div class="view" id="viewAccessKey">
-                <div class="view-title">Verificación de acceso</div>
-                <div class="view-sub">Ingresa la clave de acceso del administrador para continuar.</div>
-
-                <div class="alert-global" id="accessAlert">
-                    <i class="bi bi-exclamation-triangle-fill"></i>
-                    <span id="accessAlertMsg"></span>
-                </div>
-
-                <div class="field">
-                    <label>Clave de acceso</label>
-                    <div class="input-wrap">
-                        <input type="password" id="accessKey" placeholder="Clave de acceso" autocomplete="off">
-                        <i class="bi bi-key icon-left"></i>
-                        <button type="button" class="btn-eye" onclick="togglePassword('accessKey', this)">
-                            <i class="bi bi-eye"></i>
-                        </button>
-                    </div>
-                    <div class="field-error" id="err-accessKey">
-                        <i class="bi bi-exclamation-circle-fill"></i> Clave incorrecta.
-                    </div>
-                </div>
-
-                <div class="attempts-counter" id="attemptsCounter"></div>
-
-                <button class="btn-main" id="btnAccess" onclick="verifyAccessKey()">
-                    <span class="btn-label"><i class="bi bi-lock-fill"></i> Confirmar acceso</span>
-                    <span class="spinner-ring"></span>
-                </button>
-
-                <p style="text-align:center;margin-top:1.2rem;font-size:.72rem;color:rgba(160,185,215,0.4)">
-                    Esta clave es proporcionada por el administrador del sistema.
-                </p>
-
-                <div class="switch-link">
-                    <button onclick="goTo('viewLogin', 'back')">Volver al inicio de sesión</button>
-                </div>
-            </div>
-
         </div><!-- /views-container -->
     </div><!-- /auth-panel -->
 
@@ -807,21 +767,16 @@
 
     <script>
         // ═══════════════════════════════════════════════════════════════
+        // CONFIGURACIÓN API
+        // ═══════════════════════════════════════════════════════════════
+        // Nota: el backend expone rutas en la raíz (ej. /auth/login), sin el prefijo /api
+        const API_BASE = 'http://127.0.0.1:8000';
+
+        // ═══════════════════════════════════════════════════════════════
         // ESTADO GLOBAL
         // ═══════════════════════════════════════════════════════════════
         let accessAttempts = 0;
-        const MAX_ATTEMPTS  = 3;
-        const ACCESS_KEY    = 'utb'; // TODO: reemplazar con POST /auth/verify-key
-
-        // ═══════════════════════════════════════════════════════════════
-        // USUARIOS DEMO (al conectar backend, esta lógica se reemplaza por JWT)
-        // ═══════════════════════════════════════════════════════════════
-        const DEMO_USERS = {
-            'admin':      { password: '1234', role: 'admin' },
-            'supervisor': { password: '1234', role: 'supervisor' },
-            'operador':   { password: '1234', role: 'operador' },
-            'auditor':    { password: '1234', role: 'auditor' }
-        };
+        const MAX_ATTEMPTS = 3;
 
         // ═══════════════════════════════════════════════════════════════
         // NAVEGACIÓN ENTRE VISTAS
@@ -844,9 +799,9 @@
         // ═══════════════════════════════════════════════════════════════
         function togglePassword(inputId, button) {
             const input = document.getElementById(inputId);
-            const icon  = button.querySelector('i');
-            const show  = input.type === 'password';
-            input.type  = show ? 'text' : 'password';
+            const icon = button.querySelector('i');
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
             icon.className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
         }
 
@@ -875,7 +830,7 @@
 
         function showAlert(alertId, msgId, message, type) {
             const alert = document.getElementById(alertId);
-            const span  = document.getElementById(msgId);
+            const span = document.getElementById(msgId);
             alert.classList.remove('error', 'success');
             void alert.offsetWidth;
             span.textContent = message;
@@ -903,7 +858,36 @@
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // LOGIN CON ASIGNACIÓN DE ROL
+        // UTILS - ALMACENAMIENTO DE TOKEN
+        // ═══════════════════════════════════════════════════════════════
+        function saveAuthToken(token, role, username) {
+            try {
+                localStorage.setItem('mz_auth_token', token);
+                localStorage.setItem('mz_auth_role', role);
+                localStorage.setItem('mz_auth_user', username);
+            } catch (e) {
+                console.error('Error guardando token:', e);
+            }
+        }
+
+        function getAuthToken() {
+            try {
+                return localStorage.getItem('mz_auth_token');
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function clearAuthToken() {
+            try {
+                localStorage.removeItem('mz_auth_token');
+                localStorage.removeItem('mz_auth_role');
+                localStorage.removeItem('mz_auth_user');
+            } catch (e) {}
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // LOGIN - LLAMADA A API REAL
         // ═══════════════════════════════════════════════════════════════
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -913,105 +897,61 @@
             const pass = document.getElementById('loginPass').value;
             let valid = true;
 
-            if (!user) { setFieldError('loginUser', 'err-loginUser'); valid = false; }
-            if (!pass) { setFieldError('loginPass', 'err-loginPass'); valid = false; }
+            if (!user) {
+                setFieldError('loginUser', 'err-loginUser');
+                valid = false;
+            }
+            if (!pass) {
+                setFieldError('loginPass', 'err-loginPass');
+                valid = false;
+            }
             if (!valid) return;
 
             setLoading('btnLogin', true);
-            await delay(1400); // Simular llamada a POST /auth/login
-            setLoading('btnLogin', false);
 
-            // Verificar credenciales demo
-            const userRecord = DEMO_USERS[user];
-            if (userRecord && userRecord.password === pass) {
-                // Éxito: guardar sesión y rol
-                setFieldError('loginUser', 'err-loginUser', false);
-                setFieldError('loginPass', 'err-loginPass', false);
-                accessAttempts = 0;
-                updateAttemptsUI();
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user: user,
+                        password: pass
+                    })
+                });
 
-                // Almacenar datos de sesión
-                try {
-                    sessionStorage.setItem('authenticated', 'true');
-                    sessionStorage.setItem('username', user);
-                    sessionStorage.setItem('role', userRecord.role);
-                } catch (e) {}
+                const data = await response.json();
 
-                goTo('viewAccessKey', 'forward');
-                document.getElementById('accessKey').value = '';
-                setTimeout(() => document.getElementById('accessKey').focus(), 350);
-            } else {
-                showAlert('loginAlert', 'loginAlertMsg', 'Usuario o contraseña incorrectos.', 'error');
-                document.getElementById('loginUser').classList.add('is-error');
-                document.getElementById('loginPass').classList.add('is-error');
+                if (response.ok && data.access_token) {
+                    // Login exitoso
+                    setFieldError('loginUser', 'err-loginUser', false);
+                    setFieldError('loginPass', 'err-loginPass', false);
+                    accessAttempts = 0;
+
+                    // Guardar token y datos de usuario
+                    saveAuthToken(data.access_token, data.role, user);
+
+                    showToast('¡Autenticación exitosa! Redirigiendo...', 'success');
+                    await delay(1200);
+
+                    // Redirigir al dashboard
+                    window.location.href = '/dashboard';
+                } else {
+                    // Error de credenciales
+                    setLoading('btnLogin', false);
+                    showAlert('loginAlert', 'loginAlertMsg', data.detail || 'Usuario o contraseña incorrectos.', 'error');
+                    document.getElementById('loginUser').classList.add('is-error');
+                    document.getElementById('loginPass').classList.add('is-error');
+                    document.getElementById('loginPass').value = '';
+                }
+            } catch (error) {
+                setLoading('btnLogin', false);
+                console.error('Error en login:', error);
+                showAlert('loginAlert', 'loginAlertMsg', 'Error de conexión. Verifica que el servidor API esté activo.', 'error');
                 document.getElementById('loginPass').value = '';
             }
         });
-
-        // ═══════════════════════════════════════════════════════════════
-        // CLAVE DE ACCESO
-        // ═══════════════════════════════════════════════════════════════
-        function updateAttemptsUI() {
-            const counter = document.getElementById('attemptsCounter');
-            if (accessAttempts === 0) { counter.classList.remove('show'); return; }
-            counter.className = `attempts-counter show try${accessAttempts}`;
-            const remaining = MAX_ATTEMPTS - accessAttempts;
-            counter.textContent = `Intento ${accessAttempts} de ${MAX_ATTEMPTS} — ${remaining} restante${remaining !== 1 ? 's' : ''}`;
-        }
-
-        async function verifyAccessKey() {
-            clearAllAlerts();
-            const input = document.getElementById('accessKey');
-            const value = input.value.trim();
-            if (!value) { setFieldError('accessKey', 'err-accessKey'); return; }
-            setLoading('btnAccess', true);
-            await delay(900);
-            setLoading('btnAccess', false);
-            if (value === ACCESS_KEY) {
-                input.classList.add('is-success');
-                showToast('Acceso concedido. Redirigiendo al panel...');
-                await delay(1000);
-                window.location.href = '/dashboard';
-            } else {
-                accessAttempts++;
-                input.value = '';
-                input.classList.add('is-error');
-                updateAttemptsUI();
-                if (accessAttempts >= MAX_ATTEMPTS) {
-                    showDenied();
-                } else {
-                    const remaining = MAX_ATTEMPTS - accessAttempts;
-                    showAlert('accessAlert', 'accessAlertMsg', `Clave incorrecta. ${remaining} intento${remaining !== 1 ? 's' : ''} restante${remaining !== 1 ? 's' : ''}.`, 'error');
-                    document.getElementById('btnAccess').disabled = true;
-                    setTimeout(() => {
-                        document.getElementById('btnAccess').disabled = false;
-                        input.classList.remove('is-error');
-                        input.focus();
-                    }, 3000);
-                }
-            }
-        }
-
-        function showDenied() {
-            const overlay = document.getElementById('deniedOverlay');
-            const countdown = document.getElementById('deniedCountdown');
-            overlay.classList.add('show');
-            let seconds = 3;
-            countdown.textContent = `Redirigiendo en ${seconds} segundos...`;
-            const timer = setInterval(() => {
-                seconds--;
-                countdown.textContent = seconds > 0 ? `Redirigiendo en ${seconds} segundo${seconds !== 1 ? 's' : ''}...` : 'Redirigiendo...';
-                if (seconds <= 0) {
-                    clearInterval(timer);
-                    accessAttempts = 0;
-                    overlay.classList.remove('show');
-                    document.getElementById('accessKey').value = '';
-                    updateAttemptsUI();
-                    clearAllAlerts();
-                    goTo('viewLogin', 'back');
-                }
-            }, 1000);
-        }
 
         // ═══════════════════════════════════════════════════════════════
         // LIMPIAR ERRORES AL ESCRIBIR
@@ -1025,10 +965,28 @@
             document.querySelectorAll('.alert-global').forEach(a => a.classList.remove('error', 'success'));
         });
 
+        // ═══════════════════════════════════════════════════════════════
+        // INICIALIZACIÓN
+        // ═══════════════════════════════════════════════════════════════
         document.addEventListener('DOMContentLoaded', () => {
+            // Si ya está autenticado, ir al dashboard
+            if (getAuthToken()) {
+                window.location.href = '/dashboard';
+                return;
+            }
+
             document.getElementById('loginUser').focus();
             document.getElementById('loginUser').addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') { e.preventDefault(); document.getElementById('loginPass').focus(); }
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('loginPass').focus();
+                }
+            });
+            document.getElementById('loginPass').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+                }
             });
         });
     </script>
