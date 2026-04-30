@@ -564,6 +564,20 @@
         function loadFromStorage() { try { const s=localStorage.getItem(STORAGE_KEY); if(s) Object.assign(DB, JSON.parse(s)); } catch(e){} }
         function saveToStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
         loadFromStorage();
+        let DB_TIPOS=[], DB_CLIENTES=[], DB_CONTENEDORES_API=[], DB_USUARIOS_API=[];
+        async function loadReferenceData() {
+            try {
+                const [tr,cr]=await Promise.all([ApiClient.request('GET','/tipos-contenedores'),ApiClient.request('GET','/clientes')]);
+                if(tr&&tr.ok) DB_TIPOS=tr.data;
+                if(cr&&cr.ok) DB_CLIENTES=cr.data;
+                populateModalSelects();
+            } catch(e) {}
+        }
+        function populateModalSelects() {
+            const mt=document.getElementById('mType'), mc=document.getElementById('mClient');
+            if(DB_TIPOS.length) mt.innerHTML=DB_TIPOS.map(t=>`<option value="${t.id_tipo}">${t.nombre}</option>`).join('');
+            if(DB_CLIENTES.length) mc.innerHTML=DB_CLIENTES.map(c=>`<option value="${c.id_cliente}">${c.nombre}</option>`).join('');
+        }
 
         /* ═══════════════════════ 3. API & MOCK SERVER (FIXED MATCHING) ═══════════════════════ */
         const CONTROLLERS = { containers: null, movements: null };
@@ -590,7 +604,10 @@
                     const url=`${CONFIG.API_BASE}${endpoint}`;
                     const res=await fetch(url, {method, headers, body:body?JSON.stringify(body):null, signal});
                     if(!res.ok) { if(res.status===401){TokenManager.clear();window.location.href='/login';return;} throw new Error(`API ${res.status}`); }
-                    return await res.json();
+                    if(res.status===204) return {ok:true,data:null};
+                    const json=await res.json();
+                    if(Array.isArray(json)) return {ok:true,data:json,meta:{total:json.length,page:1,totalPages:1}};
+                    return {ok:true,data:json};
                 } catch(err) { if(err.name==='AbortError') return {ok:true,data:[]}; console.error('API Error',err); throw err; }
             },
             _mockResponse(method, endpoint, body) {
@@ -805,10 +822,17 @@
         async function loadContainers() {
             showLoader('contLoader');
             try {
-                const q=new URLSearchParams({page:currentPage, limit:rowsPerPage, sort:sortCol, order:sortDir});
-                ['filtCode','filtState','filtClient','filtType'].forEach(id=>{const v=document.getElementById(id).value; if(v) q.set(id.replace('filt','').toLowerCase(), v);});
-                const res=await ApiClient.request('GET', `/contenedores?${q}`);
-                if(res.ok) renderContainers(res.data, res.meta);
+                const params=new URLSearchParams({skip:(currentPage-1)*rowsPerPage, limit:rowsPerPage});
+                const codeV=document.getElementById('filtCode').value; if(codeV) params.set('codigo',codeV);
+                const stateV=document.getElementById('filtState').value; if(stateV) params.set('estado',stateV);
+                const clientV=document.getElementById('filtClient').value; if(clientV) params.set('id_cliente',clientV);
+                const typeV=document.getElementById('filtType').value; if(typeV) params.set('id_tipo',typeV);
+                const res=await ApiClient.request('GET', `/contenedores?${params}`);
+                if(res.ok) {
+                    DB_CONTENEDORES_API=res.data;
+                    const norm=res.data.map(c=>({id:c.id_contenedor,codigo:c.id_codigo,tipo:DB_TIPOS.find(t=>t.id_tipo===c.id_tipo)?.nombre||`Tipo ${c.id_tipo}`,cliente:DB_CLIENTES.find(cl=>cl.id_cliente===c.id_cliente)?.nombre||`Cliente ${c.id_cliente}`,estado:c.estado,ubicacion:c.ubicacion_actual,fecha:c.created_at}));
+                    renderContainers(norm, res.meta);
+                }
             } catch(e){ if(e.name!=='AbortError') showToast('Error cargando','error'); }
             hideLoader('contLoader');
         }
@@ -821,15 +845,16 @@
         const handleGlobalSearch=debounce(v=>{if(!v){loadContainers();return;}document.getElementById('filtCode').value=v;currentPage=1;loadContainers();},300);
 
         function populateFilters() {
-            ApiClient.request('GET','/contenedores/clientes').then(r=>{if(r.ok){const s=document.getElementById('filtClient');s.innerHTML='<option value="">Todos</option>'+r.data.map(c=>`<option value="${c}">${c}</option>`).join('');}});
-            ApiClient.request('GET','/contenedores/tipos').then(r=>{if(r.ok){const s=document.getElementById('filtType');s.innerHTML='<option value="">Todos</option>'+r.data.map(t=>`<option value="${t}">${t}</option>`).join('');}});
+            if(DB_CLIENTES.length){const s=document.getElementById('filtClient');s.innerHTML='<option value="">Todos</option>'+DB_CLIENTES.map(c=>`<option value="${c.id_cliente}">${c.nombre}</option>`).join('');}
+            if(DB_TIPOS.length){const s=document.getElementById('filtType');s.innerHTML='<option value="">Todos</option>'+DB_TIPOS.map(t=>`<option value="${t.id_tipo}">${t.nombre}</option>`).join('');}
         }
 
         // CRUD Contenedores
         let editId=null;
         function openContainerModal(id=null) {
             editId=id; document.getElementById('modalTitle').textContent=id?'Editar contenedor':'Nuevo contenedor';
-            if(id){const c=DB.contenedores.find(x=>x.id===id);if(c){document.getElementById('mCode').value=c.codigo;document.getElementById('mType').value=c.tipo;document.getElementById('mClient').value=c.cliente;document.getElementById('mState').value=c.estado;document.getElementById('mLocation').value=c.ubicacion;document.getElementById('mPhoto').value=c.foto||'';}}
+            populateModalSelects();
+            if(id){const c=DB_CONTENEDORES_API.find(x=>x.id_contenedor===id);if(c){document.getElementById('mCode').value=c.id_codigo;document.getElementById('mType').value=c.id_tipo;document.getElementById('mClient').value=c.id_cliente;document.getElementById('mState').value=c.estado;document.getElementById('mLocation').value=c.ubicacion_actual||'';document.getElementById('mPhoto').value='';}}
             else ['mCode','mLocation','mPhoto'].forEach(i=>document.getElementById(i).value='');
             document.getElementById('modalContainer').classList.add('show');
         }
@@ -839,7 +864,7 @@
             if(!code){showToast('Código obligatorio','error');return;}
             const btn=document.getElementById('saveContainerBtn'); btn.disabled=true; btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Guardando...';
             try {
-                const payload={codigo:code,tipo:document.getElementById('mType').value,cliente:document.getElementById('mClient').value,estado:document.getElementById('mState').value,ubicacion:document.getElementById('mLocation').value.trim(),foto:document.getElementById('mPhoto').value.trim()};
+                const payload={id_codigo:code,id_tipo:parseInt(document.getElementById('mType').value),id_cliente:parseInt(document.getElementById('mClient').value),estado:document.getElementById('mState').value,ubicacion_actual:document.getElementById('mLocation').value.trim()};
                 if(editId) await ApiClient.request('PUT',`/contenedores/${editId}`,payload);
                 else await ApiClient.request('POST','/contenedores',payload);
                 closeModal('modalContainer'); loadContainers(); updateKPIs(); showToast('Guardado correctamente');
@@ -848,8 +873,8 @@
         }
         let deleteId=null;
         function openConfirmModal(id) {
-            deleteId=id; const c=DB.contenedores.find(x=>x.id===id);
-            document.getElementById('confirmMsg').textContent=`¿Eliminar ${sanitizeHTML(c.codigo)}? Esta acción no se puede deshacer.`;
+            deleteId=id; const c=DB_CONTENEDORES_API.find(x=>x.id_contenedor===id)||{id_codigo:'#'+id};
+            document.getElementById('confirmMsg').textContent=`¿Eliminar ${sanitizeHTML(c.id_codigo)}? Esta acción no se puede deshacer.`;
             document.getElementById('confirmBtn').onclick=async()=>{
                 try{await ApiClient.request('DELETE',`/contenedores/${id}`);closeModal('modalConfirm');loadContainers();updateKPIs();showToast('Eliminado','info');}catch(e){showToast('Error','error');}
             };
@@ -860,24 +885,26 @@
         let editUserId=null;
         function openUserModal(id=null) {
             editUserId=id; document.getElementById('userModalTitle').textContent=id?'Editar usuario':'Nuevo usuario';
-            if(id){const u=DB.usuarios.find(x=>x.id===id);if(u){document.getElementById('uName').value=u.name;document.getElementById('uUsername').value=u.username;document.getElementById('uPass').value='';document.getElementById('uRole').value=u.role;}}
+            if(id){const u=DB_USUARIOS_API.find(x=>x.id_usuario===id);if(u){document.getElementById('uName').value=u.nombres;document.getElementById('uUsername').value=u.user;document.getElementById('uPass').value='';document.getElementById('uRole').value=u.rol;}}
             else ['uName','uUsername','uPass'].forEach(i=>document.getElementById(i).value='');
             document.getElementById('modalUser').classList.add('show');
         }
         async function saveUser() {
             const name=document.getElementById('uName').value.trim(), user=document.getElementById('uUsername').value.trim(), pass=document.getElementById('uPass').value.trim(), role=document.getElementById('uRole').value;
             if(!name||!user){showToast('Nombre y usuario obligatorios','error');return;}
+            if(!editUserId&&!pass){showToast('La contraseña es obligatoria','error');return;}
             const btn=document.getElementById('saveUserBtn'); btn.disabled=true;
             try {
-                const payload={name,username:user,role};
-                if(pass) payload.pass=pass;
+                let payload;
+                if(editUserId) payload={nombres:name,rol:role};
+                else payload={nombres:name,user,password:pass,rol:role};
                 if(editUserId) await ApiClient.request('PUT',`/usuarios/${editUserId}`,payload);
                 else await ApiClient.request('POST','/usuarios',payload);
                 closeModal('modalUser'); loadUsers(); showToast('Usuario guardado');
-            } catch(e){ showToast('Error','error'); }
+            } catch(e){ showToast('Error guardando usuario','error'); }
             btn.disabled=false;
         }
-        async function loadUsers() { if(currentUserRole!=='admin')return; const res=await ApiClient.request('GET','/usuarios'); if(res.ok) renderUsers(res.data); }
+        async function loadUsers() { if(currentUserRole!=='admin')return; const res=await ApiClient.request('GET','/usuarios'); if(res.ok) { DB_USUARIOS_API=res.data; const norm=res.data.map(u=>({id:u.id_usuario,username:u.user,name:u.nombres+(u.apellidos?' '+u.apellidos:''),role:u.rol,active:true})); renderUsers(norm); } }
         async function deleteUser(id) {
             if(id===1){showToast('No puedes eliminar tu propio usuario','error');return;}
             if(confirm('¿Eliminar usuario?')){await ApiClient.request('DELETE',`/usuarios/${id}`);loadUsers();showToast('Eliminado','info');}
@@ -971,7 +998,7 @@
             if(window.innerWidth<=768) closeMobileSidebar();
             
             if(pageId==='panel'){updateKPIs();renderMovements();renderAlerts();applyTheme();}
-            else if(pageId==='contenedores'){loadContainers();populateFilters();}
+            else if(pageId==='contenedores'){if(DB_TIPOS.length){loadContainers();populateFilters();}else{loadReferenceData().then(()=>{loadContainers();populateFilters();});}}
             else if(pageId==='zonas') renderZoneData();
             else if(pageId==='movimientos'){populateMovFilter();filterMovements();}
             else if(pageId==='arrendamientos') filterRentals();
@@ -1029,7 +1056,7 @@
             rowsPerPage = parseInt(localStorage.getItem('rowsPref')) || 10;
             
             updateKPIs(); renderMovements(); renderAlerts();
-            loadContainers(); populateFilters();
+            loadReferenceData().then(()=>{ loadContainers(); populateFilters(); });
             if(currentUserRole === 'admin') loadUsers();
             
             setInterval(()=>{const m=Math.floor((Date.now()-performance.timeOrigin)/60000);document.getElementById('updateLabel').textContent=`Última actualización: hace ${m} min`;document.getElementById('lastUpdate').textContent=`Actualizado hace ${m} min`;},60000);

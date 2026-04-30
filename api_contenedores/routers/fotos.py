@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from schemas import FotoOut
 from database import get_db
 from models import Foto, Contenedor
-from auth.dependencies import get_current_user
+from auth.dependencies import get_current_user, only_admin
 
 router = APIRouter(prefix="/fotos", tags=["Fotos de Contenedor"])
 
@@ -27,7 +27,7 @@ def get_fotos(contenedor_id: int, current=Depends(get_current_user), db: Session
 
 @router.post("/contenedor/{contenedor_id}", response_model=FotoOut,
              status_code=status.HTTP_201_CREATED, summary="Subir foto")
-def upload_foto(contenedor_id: int, current=Depends(get_current_user), file: UploadFile = File(...), db: Session = Depends(get_db)):
+def upload_foto(contenedor_id: int, admin=Depends(only_admin), file: UploadFile = File(...), db: Session = Depends(get_db)):
     if not db.query(Contenedor).filter(Contenedor.id_contenedor == contenedor_id).first():
         raise HTTPException(status_code=404, detail="Contenedor no encontrado")
 
@@ -47,7 +47,7 @@ def upload_foto(contenedor_id: int, current=Depends(get_current_user), file: Upl
 
 @router.delete("/{foto_id}", status_code=status.HTTP_204_NO_CONTENT,
                summary="Eliminar foto")
-def delete_foto(foto_id: int, current=Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_foto(foto_id: int, admin=Depends(only_admin), db: Session = Depends(get_db)):
     foto = db.query(Foto).filter(Foto.id_foto == foto_id).first()
     if not foto:
         raise HTTPException(status_code=404, detail="Foto no encontrada")

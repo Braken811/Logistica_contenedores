@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from schemas import MovimientoCreate, MovimientoOut
 from database import get_db
 from models import Movimiento, Contenedor
-from auth.dependencies import get_current_user
+from auth.dependencies import get_current_user, only_admin
 
 router = APIRouter(prefix="/movimientos", tags=["Movimientos"])
 
@@ -40,7 +40,7 @@ def create_movimiento(data: MovimientoCreate, current=Depends(get_current_user),
 
 
 @router.delete("/{movimiento_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_movimiento(movimiento_id: int, current=Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_movimiento(movimiento_id: int, admin=Depends(only_admin), db: Session = Depends(get_db)):
     m = db.query(Movimiento).filter(Movimiento.id_movimiento == movimiento_id).first()
     if not m:
         raise HTTPException(status_code=404, detail="Movimiento no encontrado")

@@ -2,17 +2,51 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles 
+from contextlib import asynccontextmanager
+import logging
 
 from routers import usuarios, clientes, tipos_contenedores, contenedores
 from routers import movimientos, historial_estado, fotos, facturacion
 from routers import arrendamiento, ventas, dashboard
 from routers import auth
+from database import engine, Base
+from sqlalchemy import text
+
+logger = logging.getLogger(__name__)
+
+# Lifespan para inicialización
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("\n" + "="*70)
+    logger.info("🚀 INICIANDO API - Sistema de Logística de Contenedores")
+    logger.info("="*70)
+    
+    try:
+        # Verificar conexión a BD
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT version()"))
+            version = result.fetchone()[0]
+            logger.info(f"✅ PostgreSQL conectado: {version.split(',')[0]}")
+            
+            # Crear todas las tablas
+            Base.metadata.create_all(bind=engine)
+            logger.info("✅ Tablas de BD inicializadas")
+    except Exception as e:
+        logger.error(f"❌ Error en startup: {e}")
+        raise
+    
+    yield
+    
+    # Shutdown
+    logger.info("\n🛑 Deteniendo API")
 
 app = FastAPI(
     title="API - Sistema de Logística y Monitoreo de Multiples Contenedores",
     description="API REST para gestión, control y monitoreo de contenedores logísticos. Proyecto Talento Tech 2026/01.",
     version="1.0.0",
     contact={"name": "Talento Tech 2026"},
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -48,8 +82,10 @@ def root():
         "version": "1.0.0",
         "docs": "/docs",
         "estado": "activo",
+        "autenticacion": "JWT Bearer Token requerido para la mayoría de endpoints",
     }
-@app.get("/login", response_class=FileResponse)
+
+@app.get("/login", response_class=FileResponse, tags=["Autenticación"])
 async def login():
     response = FileResponse("login.html")
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -57,10 +93,11 @@ async def login():
     response.headers["Expires"] = "0"
     return response
 
-@app.get("/dashboard", response_class=FileResponse)
+@app.get("/dashboard", response_class=FileResponse, tags=["Dashboard"])
 async def dashboard_page():
     response = FileResponse("dashboard.html")
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
