@@ -73,6 +73,7 @@ app.include_router(auth.router)
 
 # ── Servir archivos estáticos ────────────────────────────────────────────────
 app.mount("/static", StaticFiles(directory="static", html=False), name="static")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 @app.get("/", tags=["Root"])

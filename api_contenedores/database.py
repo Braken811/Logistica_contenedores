@@ -62,7 +62,7 @@ def init_db():
     try:
         Base.metadata.create_all(bind=engine)
         logger.info("✅ Base de datos inicializada correctamente")
-        
+
         # Verificar que podemos conectar
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
@@ -70,6 +70,3 @@ def init_db():
     except Exception as e:
         logger.error(f"❌ Error inicializando BD: {e}")
         raise
-
-# Llamar al inicializar el módulo
-init_db()

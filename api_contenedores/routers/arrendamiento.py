@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from datetime import date, timedelta
 from fastapi import APIRouter, HTTPException, Query, status, Depends
 from sqlalchemy.orm import Session
@@ -6,35 +6,46 @@ from sqlalchemy.orm import Session
 from schemas import ArrendamientoCreate, ArrendamientoUpdate, ArrendamientoOut
 from database import get_db
 from models import Arrendamiento, Contenedor, Cliente
-from auth.dependencies import only_admin
+from auth.dependencies import get_current_user, only_admin
 
 router = APIRouter(prefix="/arrendamientos", tags=["Arrendamientos"])
 
 
 @router.get("/", response_model=List[ArrendamientoOut], summary="Listar arrendamientos")
-def get_arrendamientos(admin=Depends(only_admin), db: Session = Depends(get_db)):
-    return db.query(Arrendamiento).all()
+def get_arrendamientos(
+    estado: Optional[str] = Query(None, description="activo | finalizado"),
+    current=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    q = db.query(Arrendamiento)
+    if estado:
+        q = q.filter(Arrendamiento.estado_arrendamiento == estado)
+    return q.order_by(Arrendamiento.fecha_inicio.desc()).all()
 
 
-# RF09: Alertas de próximo vencimiento
 @router.get("/proximos-vencer", response_model=List[ArrendamientoOut],
             summary="Arrendamientos próximos a vencer")
-def get_proximos_vencer(dias: int = Query(7, ge=1, le=90, description="Días de anticipación para la alerta"), admin=Depends(only_admin), db: Session = Depends(get_db)):
-    """
-    Devuelve los arrendamientos activos cuya fecha_fin
-    está dentro de los próximos `dias` días.
-    """
-    hoy = date.today()
+def get_proximos_vencer(
+    dias: int = Query(7, ge=1, le=90),
+    current=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    hoy   = date.today()
     limit = hoy + timedelta(days=dias)
-    return db.query(Arrendamiento).filter(
-        Arrendamiento.estado_arrendamiento == "activo",
-        Arrendamiento.fecha_fin >= hoy,
-        Arrendamiento.fecha_fin <= limit
-    ).all()
+    return (db.query(Arrendamiento)
+            .filter(
+                Arrendamiento.estado_arrendamiento == "activo",
+                Arrendamiento.fecha_fin >= hoy,
+                Arrendamiento.fecha_fin <= limit
+            ).all())
 
 
 @router.get("/{arrendamiento_id}", response_model=ArrendamientoOut)
-def get_arrendamiento(arrendamiento_id: int, admin=Depends(only_admin), db: Session = Depends(get_db)):
+def get_arrendamiento(
+    arrendamiento_id: int,
+    current=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     a = db.query(Arrendamiento).filter(Arrendamiento.id_arrendamiento == arrendamiento_id).first()
     if not a:
         raise HTTPException(status_code=404, detail="Arrendamiento no encontrado")
@@ -43,10 +54,13 @@ def get_arrendamiento(arrendamiento_id: int, admin=Depends(only_admin), db: Sess
 
 @router.post("/", response_model=ArrendamientoOut, status_code=status.HTTP_201_CREATED,
              summary="Registrar arrendamiento")
-def create_arrendamiento(data: ArrendamientoCreate, admin=Depends(only_admin), db: Session = Depends(get_db)):
+def create_arrendamiento(
+    data: ArrendamientoCreate,
+    admin=Depends(only_admin),
+    db: Session = Depends(get_db)
+):
     if not db.query(Contenedor).filter(Contenedor.id_contenedor == data.id_contenedor).first():
         raise HTTPException(status_code=404, detail="Contenedor no encontrado")
-
     if not db.query(Cliente).filter(Cliente.id_cliente == data.id_cliente).first():
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
 
@@ -59,13 +73,16 @@ def create_arrendamiento(data: ArrendamientoCreate, admin=Depends(only_admin), d
 
 @router.put("/{arrendamiento_id}", response_model=ArrendamientoOut,
             summary="Actualizar arrendamiento")
-def update_arrendamiento(arrendamiento_id: int, data: ArrendamientoUpdate, admin=Depends(only_admin), db: Session = Depends(get_db)):
+def update_arrendamiento(
+    arrendamiento_id: int,
+    data: ArrendamientoUpdate,
+    admin=Depends(only_admin),
+    db: Session = Depends(get_db)
+):
     a = db.query(Arrendamiento).filter(Arrendamiento.id_arrendamiento == arrendamiento_id).first()
     if not a:
         raise HTTPException(status_code=404, detail="Arrendamiento no encontrado")
-
-    update_data = data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
+    for field, value in data.model_dump(exclude_unset=True).items():
         setattr(a, field, value)
     db.commit()
     db.refresh(a)
@@ -73,7 +90,11 @@ def update_arrendamiento(arrendamiento_id: int, data: ArrendamientoUpdate, admin
 
 
 @router.delete("/{arrendamiento_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_arrendamiento(arrendamiento_id: int, admin=Depends(only_admin), db: Session = Depends(get_db)):
+def delete_arrendamiento(
+    arrendamiento_id: int,
+    admin=Depends(only_admin),
+    db: Session = Depends(get_db)
+):
     a = db.query(Arrendamiento).filter(Arrendamiento.id_arrendamiento == arrendamiento_id).first()
     if not a:
         raise HTTPException(status_code=404, detail="Arrendamiento no encontrado")

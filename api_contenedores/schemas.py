@@ -1,49 +1,57 @@
 """
-Schemas Pydantic — validación de entrada/salida para cada entidad.
+Schemas Pydantic — validación de entrada/salida.
 Proyecto: Talento Tech 2026
 """
 from datetime import date, datetime
 from typing import Optional, List
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel
 from enum import Enum
 
 
 # ── Enums ─────────────────────────────────────────────────────────────────────
 class EstadoContenedor(str, Enum):
-    disponible       = "disponible"
-    asignado         = "asignado"
-    en_transito      = "en_transito"
-    en_patio         = "en_patio"
-    en_mantenimiento = "en_mantenimiento"
+    disponible        = "disponible"
+    asignado          = "asignado"
+    en_transito       = "en_transito"
+    en_patio          = "en_patio"
+    en_mantenimiento  = "en_mantenimiento"
     fuera_de_servicio = "fuera_de_servicio"
 
 class RolUsuario(str, Enum):
-    admin    = "admin"
-    operador = "operador"
+    admin      = "admin"
+    supervisor = "supervisor"
+    operador   = "operador"
+    auditor    = "auditor"
 
 
 # ── Usuarios ──────────────────────────────────────────────────────────────────
 class UsuarioCreate(BaseModel):
-    nombres  : str
-    apellidos: Optional[str] = None
-    email    : Optional[str] = None
-    user     : str
-    password : str
-    rol      : RolUsuario
+    nombres         : str
+    apellidos       : Optional[str] = None
+    email           : Optional[str] = None
+    user            : str
+    password        : str
+    rol             : RolUsuario
 
 class UsuarioUpdate(BaseModel):
-    nombres  : Optional[str] = None
-    apellidos: Optional[str] = None
-    email    : Optional[str] = None
-    rol      : Optional[RolUsuario] = None
+    nombres         : Optional[str]      = None
+    apellidos       : Optional[str]      = None
+    email           : Optional[str]      = None
+    rol             : Optional[RolUsuario] = None
+    password        : Optional[str]      = None
+    email_verificado: Optional[bool]     = None
 
 class UsuarioOut(BaseModel):
-    id_usuario: int
-    nombres   : str
-    apellidos : Optional[str]
-    email     : Optional[str]
-    user      : str
-    rol       : str
+    id_usuario      : int
+    nombres         : str
+    apellidos       : Optional[str]
+    email           : Optional[str]
+    user            : str
+    rol             : str
+    email_verificado: bool = False
+
+    class Config:
+        from_attributes = True
 
 
 # ── Clientes ──────────────────────────────────────────────────────────────────
@@ -68,6 +76,9 @@ class ClienteOut(BaseModel):
     email     : Optional[str]
     direccion : Optional[str]
 
+    class Config:
+        from_attributes = True
+
 
 # ── Tipos de Contenedores ─────────────────────────────────────────────────────
 class TipoContenedorCreate(BaseModel):
@@ -79,30 +90,39 @@ class TipoContenedorOut(BaseModel):
     nombre     : str
     descripcion: Optional[str]
 
+    class Config:
+        from_attributes = True
+
 
 # ── Contenedores ──────────────────────────────────────────────────────────────
 class ContenedorCreate(BaseModel):
     id_codigo       : str
     id_tipo         : int
-    id_cliente      : int
-    estado          : EstadoContenedor = EstadoContenedor.disponible
-    ubicacion_actual: Optional[str] = None
+    id_cliente      : Optional[int]           = None
+    estado          : EstadoContenedor        = EstadoContenedor.disponible
+    ubicacion_actual: Optional[str]           = None
+    ruta_imagen     : Optional[str]           = None
 
 class ContenedorUpdate(BaseModel):
     id_tipo         : Optional[int]              = None
     id_cliente      : Optional[int]              = None
     estado          : Optional[EstadoContenedor] = None
     ubicacion_actual: Optional[str]              = None
+    ruta_imagen     : Optional[str]              = None
 
 class ContenedorOut(BaseModel):
     id_contenedor   : int
     id_codigo       : str
     id_tipo         : int
-    id_cliente      : int
+    id_cliente      : Optional[int]
     estado          : str
     ubicacion_actual: Optional[str]
+    ruta_imagen     : Optional[str]
     created_at      : Optional[date]
     updated_at      : Optional[date]
+
+    class Config:
+        from_attributes = True
 
 
 # ── Movimientos ───────────────────────────────────────────────────────────────
@@ -142,6 +162,9 @@ class HistorialEstadoOut(BaseModel):
     fecha_inicio : date
     fecha_fin    : Optional[date]
 
+    class Config:
+        from_attributes = True
+
 
 # ── Fotos ─────────────────────────────────────────────────────────────────────
 class FotoCreate(BaseModel):
@@ -165,10 +188,10 @@ class ArrendamientoCreate(BaseModel):
     fecha_inicio        : date
     fecha_fin           : Optional[date] = None
     valor_alquiler      : float
-    estado_arrendamiento: str
+    estado_arrendamiento: str = "activo"
 
 class ArrendamientoUpdate(BaseModel):
-    fecha_fin           : Optional[date] = None
+    fecha_fin           : Optional[date]  = None
     valor_alquiler      : Optional[float] = None
     estado_arrendamiento: Optional[str]   = None
 
@@ -181,12 +204,24 @@ class ArrendamientoOut(BaseModel):
     valor_alquiler      : float
     estado_arrendamiento: str
 
+    class Config:
+        from_attributes = True
+
+
 # ── Facturación ───────────────────────────────────────────────────────────────
 class FacturacionCreate(BaseModel):
-    id_contenedor    : int
-    monto            : float
-    observaciones    : Optional[str] = None
-    fecha_facturacion: Optional[date] = None
+    id_contenedor     : int
+    monto             : float
+    observaciones     : Optional[str]  = None
+    codigo_factura    : Optional[str]  = None
+    fecha_vencimiento : Optional[date] = None
+    estado_pago       : str            = "pendiente"
+
+class FacturacionUpdate(BaseModel):
+    monto             : Optional[float] = None
+    observaciones     : Optional[str]   = None
+    estado_pago       : Optional[str]   = None
+    fecha_vencimiento : Optional[date]  = None
 
 class FacturacionOut(BaseModel):
     id_factura        : int
@@ -194,23 +229,9 @@ class FacturacionOut(BaseModel):
     fecha_facturacion : Optional[date]
     monto             : float
     observaciones     : Optional[str]
-
-    class Config:
-        from_attributes = True
-
-
-# ── Ventas ───────────────────────────────────────────────────────────────
-class VentaCreate(BaseModel):
-    id_contenedor: int
-    id_cliente   : int
-    precio       : float
-
-class VentaOut(BaseModel):
-    id_venta     : int
-    id_contenedor: int
-    id_cliente   : int
-    fecha_venta  : Optional[date]
-    precio       : float
+    codigo_factura    : Optional[str]
+    fecha_vencimiento : Optional[date]
+    estado_pago       : str
 
     class Config:
         from_attributes = True
@@ -221,7 +242,6 @@ class VentaCreate(BaseModel):
     id_contenedor: int
     id_cliente   : int
     precio       : float
-    fecha_venta  : Optional[date] = None
 
 class VentaOut(BaseModel):
     id_venta     : int
@@ -241,18 +261,26 @@ class DashboardStats(BaseModel):
     por_tipo               : dict
     por_cliente            : dict
     arrendamientos_activos : int
-    proximos_vencer        : int   # arrendamientos que vencen en ≤7 días
+    proximos_vencer        : int
     total_movimientos      : int
+
+class NotificacionItem(BaseModel):
+    tipo   : str
+    titulo : str
+    mensaje: str
+    fecha  : str
+    leido  : bool = False
+
 
 # ── Autenticación ─────────────────────────────────────────────────────────────
 class LoginRequest(BaseModel):
-    user: str
+    user    : str
     password: str
 
 class Token(BaseModel):
     access_token: str
-    token_type: str = "bearer"
-    role: str          # 'admin' | 'operador'
+    token_type  : str = "bearer"
+    role        : str
 
 class TokenData(BaseModel):
     user: Optional[str] = None
@@ -260,6 +288,6 @@ class TokenData(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
-    token_type: str = "bearer"
-    rol: str
-    nombres: str
+    token_type  : str = "bearer"
+    rol         : str
+    nombres     : str

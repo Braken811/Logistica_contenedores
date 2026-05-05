@@ -58,14 +58,15 @@
         }
 
         /* ═══════════════════════ SIDEBAR ═══════════════════════ */
-        .sidebar { width: var(--sidebar-width); height: 100vh; background: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; z-index: 100; transition: width .3s ease, transform .3s ease; overflow: hidden; }
+        .sidebar { width: var(--sidebar-width); height: 100vh; background: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; z-index: 100; transition: width .3s ease, transform .3s ease; overflow: visible; }
         .sidebar.collapsed { width: var(--sidebar-collapsed-width); }
         .sidebar.collapsed .brand-name, .sidebar.collapsed .brand-sub, .sidebar.collapsed .nav-section-label,
         .sidebar.collapsed .nav-item span:not(.nav-badge), .sidebar.collapsed .user-name, .sidebar.collapsed .user-role { display: none; }
         .sidebar.collapsed .nav-item { justify-content: center; padding: .6rem; }
         .sidebar.collapsed .nav-badge { position: absolute; top: 4px; right: 4px; font-size: .55rem; }
-        .sidebar-toggle-btn { position: absolute; top: 12px; right: -14px; width: 28px; height: 28px; background: var(--red); border: none; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 110; font-size: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: background .2s, transform .2s; }
+        .sidebar-toggle-btn { position: absolute; top: 50%; right: -16px; transform: translateY(-50%); width: 32px; height: 32px; background: var(--red); border: none; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 110; font-size: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,0.4); transition: background .2s, transform .2s; }
         .sidebar-toggle-btn:hover { background: var(--red-dark); }
+        .sidebar.collapsed .sidebar-toggle-btn { transform: translateY(-50%) rotate(180deg); }
         .sidebar-brand { height: var(--topbar-height); display: flex; align-items: center; gap: .7rem; padding: 0 1.25rem; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
         .brand-logo { width: 32px; height: 32px; background: var(--red); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: 'Archivo Black', sans-serif; font-size: .7rem; color: #fff; flex-shrink: 0; box-shadow: 0 4px 12px var(--red-glow); }
         .brand-name { font-family: 'Archivo Black', sans-serif; font-size: .88rem; color: var(--text-primary); line-height: 1.1; }
@@ -316,10 +317,14 @@
         </div>
         <nav class="sidebar-nav" id="sidebarNav"></nav>
         <div class="sidebar-footer">
-            <div class="user-card" onclick="logout()">
+            <div class="user-card" onclick="openProfilePanel()" title="Ver perfil">
                 <div class="user-avatar" id="userAvatar">AD</div>
                 <div><div class="user-name" id="sidebarUser">Administrador</div><div class="user-role" id="sidebarRole">Rol: admin</div></div>
-                <i class="bi bi-box-arrow-right" style="margin-left:auto;color:var(--text-muted);font-size:.85rem" aria-hidden="true"></i>
+                <i class="bi bi-person-gear" style="margin-left:auto;color:var(--text-muted);font-size:.85rem" aria-hidden="true"></i>
+            </div>
+            <div class="user-card" onclick="logout()" title="Cerrar sesión" style="margin-top:.25rem">
+                <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-box-arrow-right" style="color:var(--text-muted);font-size:1rem"></i></div>
+                <div><div style="font-size:.78rem;color:var(--text-muted)">Cerrar sesión</div></div>
             </div>
         </div>
     </aside>
@@ -342,8 +347,8 @@
                 <input type="text" placeholder="Buscar contenedor..." id="globalSearch" oninput="handleGlobalSearch(this.value)" aria-label="Buscar contenedor">
             </div>
             <button class="theme-toggle" id="themeToggle" title="Cambiar tema" aria-label="Cambiar tema"><i class="bi bi-sun-fill"></i></button>
-            <div class="topbar-btn" id="notifBtn" onclick="toggleNotifPanel()" aria-label="Notificaciones"><i class="bi bi-bell-fill"></i><span class="notif-dot" id="notifDot" style="display:none"></span></div>
-            <div class="topbar-btn" onclick="logout()" aria-label="Cerrar sesión"><i class="bi bi-power"></i></div>
+            <div class="topbar-btn" id="notifBtn" onclick="toggleNotifPanel()" aria-label="Notificaciones" style="position:relative"><i class="bi bi-bell-fill"></i><span class="notif-dot" id="notifDot" style="display:none"></span><span id="notifCount" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;font-size:.55rem;font-weight:700;padding:.1rem .32rem;border-radius:20px;min-width:16px;text-align:center;line-height:1.5;border:1.5px solid var(--topbar-bg)"></span></div>
+            <div class="topbar-btn" onclick="openProfilePanel()" title="Mi perfil" aria-label="Perfil"><i class="bi bi-person-circle"></i></div>
         </div>
     </header>
 
@@ -356,8 +361,8 @@
         </div>
         <div class="notif-panel-body" id="notifBody"></div>
         <div class="notif-panel-footer">
-            <button class="btn-notif" onclick="markAllNotificationsRead()"><i class="bi bi-check2-all"></i> Marcar todas leídas</button>
-            <div style="font-size:.65rem;color:var(--text-muted);text-align:center;margin-top:.5rem">Conectar con /dashboard/notificaciones</div>
+            <button class="btn-notif" onclick="markAllRead()"><i class="bi bi-check2-all"></i> Marcar todas leídas</button>
+            <button class="btn-notif" onclick="loadNotifications().then(()=>buildNotifPanel());showToast('Actualizado','info')"><i class="bi bi-arrow-clockwise"></i> Actualizar</button>
         </div>
     </div>
 
@@ -367,20 +372,20 @@
             <!-- PANEL -->
             <div class="page active" id="page-panel">
                 <div class="kpi-grid" id="kpiGrid">
-                    <div class="kpi-card red"><div class="kpi-icon red"><i class="bi bi-box-seam-fill"></i></div><div class="kpi-value" id="kpiTotal">0</div><div class="kpi-label">Total contenedores</div><div class="kpi-trend up"><i class="bi bi-arrow-up"></i> +4.2%</div></div>
-                    <div class="kpi-card green"><div class="kpi-icon green"><i class="bi bi-check-circle-fill"></i></div><div class="kpi-value" id="kpiDisp">0</div><div class="kpi-label">Disponibles</div><div class="kpi-trend up"><i class="bi bi-arrow-up"></i> +2</div></div>
-                    <div class="kpi-card blue"><div class="kpi-icon blue"><i class="bi bi-truck"></i></div><div class="kpi-value" id="kpiTrans">0</div><div class="kpi-label">En tránsito</div><div class="kpi-trend down"><i class="bi bi-arrow-down"></i> -1</div></div>
+                    <div class="kpi-card red"><div class="kpi-icon red"><i class="bi bi-box-seam-fill"></i></div><div class="kpi-value" id="kpiTotal">0</div><div class="kpi-label">Total contenedores</div><div class="kpi-trend" id="trendTotal">— Sin cambio</div></div>
+                    <div class="kpi-card green"><div class="kpi-icon green"><i class="bi bi-check-circle-fill"></i></div><div class="kpi-value" id="kpiDisp">0</div><div class="kpi-label">Disponibles</div><div class="kpi-trend" id="trendDisp">— Sin cambio</div></div>
+                    <div class="kpi-card blue"><div class="kpi-icon blue"><i class="bi bi-truck"></i></div><div class="kpi-value" id="kpiTrans">0</div><div class="kpi-label">En tránsito</div><div class="kpi-trend" id="trendTrans">— Sin cambio</div></div>
                     <div class="kpi-card yellow"><div class="kpi-icon yellow"><i class="bi bi-exclamation-triangle-fill"></i></div><div class="kpi-value" id="kpiAlert">0</div><div class="kpi-label">Alertas activas</div><div class="kpi-trend stable"><i class="bi bi-dash"></i> Sin cambio</div></div>
                 </div>
                 <div style="display:flex;justify-content:flex-end;margin-bottom:1rem"><span id="updateLabel">Última actualización: hace 0 min</span></div>
                 <div class="charts-row">
-                    <div class="card"><div class="chart-header"><div><div class="chart-title">Movimientos por mes</div><div class="chart-subtitle">Historial 2024-2025</div></div><span class="chart-badge">Línea</span></div><div class="chart-wrap"><canvas id="chartMovements"></canvas></div></div>
-                    <div class="card"><div class="chart-header"><div><div class="chart-title">Por tipo de contenedor</div><div class="chart-subtitle">Distribución actual</div></div><span class="chart-badge">Dona</span></div><div class="chart-wrap"><canvas id="chartTypes"></canvas></div></div>
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Movimientos por mes</div><div class="chart-subtitle">Últimos 6 meses</div></div><span class="chart-badge">Línea</span></div><div class="chart-wrap"><canvas id="chartMovimientos"></canvas></div></div>
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Por tipo de contenedor</div><div class="chart-subtitle">Distribución actual</div></div><span class="chart-badge">Dona</span></div><div class="chart-wrap"><canvas id="chartTipo"></canvas></div></div>
                 </div>
                 <div class="charts-row-3">
-                    <div class="card"><div class="chart-header"><div><div class="chart-title">Por estado operativo</div></div></div><div class="chart-wrap"><canvas id="chartStates"></canvas></div></div>
-                    <div class="card"><div class="chart-header"><div><div class="chart-title">Contenedores por cliente</div></div></div><div class="chart-wrap"><canvas id="chartClients"></canvas></div></div>
-                    <div class="card"><div class="chart-header"><div><div class="chart-title">Arrendamientos</div></div></div><div class="chart-wrap"><canvas id="chartRentals"></canvas></div></div>
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Por estado operativo</div></div></div><div class="chart-wrap"><canvas id="chartEstado"></canvas></div></div>
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Contenedores por cliente</div></div></div><div class="chart-wrap"><canvas id="chartCliente"></canvas></div></div>
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Arrendamientos</div></div></div><div class="chart-wrap"><canvas id="chartArr"></canvas></div></div>
                 </div>
                 <div class="card" style="margin-bottom:1.1rem"><div class="chart-header"><div><div class="chart-title">Alertas de arrendamiento</div><div class="chart-subtitle">Contratos próximos a vencer</div></div></div><div class="alerts-list" id="alertsList"></div></div>
                 <div class="card"><div class="chart-header"><div><div class="chart-title">Últimos movimientos</div><div class="chart-subtitle" id="movCount">0 registros</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>ID</th><th>Contenedor</th><th>Origen</th><th>Destino</th><th>Transporte</th><th>Responsable</th><th>Fecha</th></tr></thead><tbody id="movTable"></tbody></table></div></div>
@@ -444,10 +449,11 @@
             <!-- ARRENDAMIENTOS -->
             <div class="page" id="page-arrendamientos">
                 <div class="filters-bar">
-                    <select class="filter-select" id="arrFilterState" onchange="filterRentals()"><option value="">Todos los estados</option><option value="activo">Activos</option><option value="finalizado">Finalizados</option></select>
-                    <button class="btn-reset" onclick="resetRentalFilters()"><i class="bi bi-x-circle"></i> Limpiar</button>
+                    <select class="filter-select" id="arrFilterState" onchange="loadArrendamientosAPI()"><option value="">Todos los estados</option><option value="activo">Activos</option><option value="finalizado">Finalizados</option></select>
+                    <button class="btn-reset" onclick="document.getElementById('arrFilterState').value='';loadArrendamientosAPI()"><i class="bi bi-x-circle"></i> Limpiar</button>
+                    <button class="btn-primary-sm" onclick="openRentalModal()" id="btnNewRental"><i class="bi bi-plus-lg"></i> Nuevo contrato</button>
                 </div>
-                <div class="card"><div class="chart-header"><div><div class="chart-title">Contratos de Arrendamiento</div><div class="chart-subtitle" id="arrCount">0 contratos</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Contenedor</th><th>Cliente</th><th>Inicio</th><th>Fin</th><th>Día fact.</th><th>Estado</th></tr></thead><tbody id="arrTable"></tbody></table></div></div>
+                <div class="card"><div class="chart-header"><div><div class="chart-title">Contratos de Arrendamiento</div><div class="chart-subtitle" id="arrCount">0 contratos</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Contenedor</th><th>Cliente</th><th>Inicio</th><th>Fin</th><th>Valor/mes</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="arrTable"></tbody></table></div></div>
             </div>
 
             <!-- HISTORIAL -->
@@ -466,22 +472,65 @@
                 <div class="table-wrapper"><table class="data-table"><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="usersTable"></tbody></table></div></div>
             </div>
 
-            <!-- PLACEHOLDERS -->
-            <div class="page" id="page-clientes"><div class="card"><div class="chart-header"><div><div class="chart-title">Clientes</div></div></div><table class="data-table"><thead><tr><th>Nombre</th><th>Contacto</th><th>Teléfono</th><th>Email</th></tr></thead><tbody id="clientsTable"></tbody></table></div></div>
-            <div class="page" id="page-facturacion"><div class="card"><div class="chart-header"><div><div class="chart-title">Facturación</div></div></div><table class="data-table"><thead><tr><th>Factura</th><th>Cliente</th><th>Monto</th><th>Vencimiento</th><th>Estado</th></tr></thead><tbody><tr><td>FAC-001</td><td>Petrocol S.A.</td><td>$2,500,000</td><td>2025-05-15</td><td><span class="badge-status disponible">Pagada</span></td></tr></tbody></table></div></div>
-            <div class="page" id="page-reportes"><div class="card" style="padding:3rem;text-align:center"><i class="bi bi-bar-chart-fill" style="font-size:2.5rem;opacity:.3;color:var(--text-muted)"></i><div class="chart-title" style="margin-top:1rem">Reportes</div><p style="color:var(--text-muted);margin-top:.5rem">Disponible al conectar backend.</p></div></div>
+            <!-- CLIENTES -->
+            <div class="page" id="page-clientes">
+                <div class="filters-bar">
+                    <input class="filter-input" id="filtClientSearch" type="text" placeholder="Buscar por nombre o NIT..." oninput="filterClientesLocal()" aria-label="Buscar cliente">
+                    <button class="btn-reset" onclick="document.getElementById('filtClientSearch').value='';filterClientesLocal()"><i class="bi bi-x-circle"></i> Limpiar</button>
+                    <button class="btn-primary-sm" onclick="openClientModal()" id="btnNewClient"><i class="bi bi-plus-lg"></i> Nuevo cliente</button>
+                </div>
+                <div class="card">
+                    <div class="chart-header"><div><div class="chart-title">Gestión de Clientes</div><div class="chart-subtitle" id="clientCount">0 clientes</div></div></div>
+                    <div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Nombre</th><th>NIT</th><th>Teléfono</th><th>Email</th><th>Dirección</th><th>Acciones</th></tr></thead><tbody id="clientsTable"></tbody></table></div>
+                </div>
+            </div>
+
+            <!-- FACTURACIÓN -->
+            <div class="page" id="page-facturacion">
+                <div class="filters-bar">
+                    <select class="filter-select" id="filtFactEstado" onchange="loadFacturacionAPI()"><option value="">Todos los estados</option><option value="pendiente">Pendiente</option><option value="pagado">Pagado</option><option value="mora">En mora</option></select>
+                    <button class="btn-reset" onclick="document.getElementById('filtFactEstado').value='';loadFacturacionAPI()"><i class="bi bi-x-circle"></i> Limpiar</button>
+                    <button class="btn-primary-sm" onclick="exportCSV('facturacion')" id="btnExportFact"><i class="bi bi-download"></i> Exportar CSV</button>
+                    <button class="btn-primary-sm" onclick="openFactModal()" id="btnNewFact"><i class="bi bi-plus-lg"></i> Nueva factura</button>
+                </div>
+                <div class="card">
+                    <div class="chart-header"><div><div class="chart-title">Facturación</div><div class="chart-subtitle" id="factCount">0 facturas</div></div></div>
+                    <div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Código</th><th>Contenedor</th><th>Monto</th><th>Emisión</th><th>Vencimiento</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="factTable"></tbody></table></div>
+                </div>
+            </div>
+
+            <!-- REPORTES -->
+            <div class="page" id="page-reportes">
+                <div class="kpi-grid" id="reportKpiGrid" style="margin-bottom:1.35rem"></div>
+                <div class="charts-row">
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Contenedores por estado</div></div></div><div class="chart-wrap"><canvas id="chartReportStates"></canvas></div></div>
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Distribución por tipo</div></div></div><div class="chart-wrap"><canvas id="chartReportTypes"></canvas></div></div>
+                </div>
+                <div class="card"><div class="chart-header"><div><div class="chart-title">Contenedores por cliente</div></div></div><div class="chart-wrap" style="height:250px"><canvas id="chartReportClients"></canvas></div></div>
+            </div>
         </div>
     </div>
 
     <!-- MODALS -->
     <div class="modal-overlay" id="modalContainer">
-        <div class="modal-box"><div class="modal-title" id="modalTitle">Nuevo contenedor</div><div class="modal-sub">El código debe ser único.</div>
-            <div class="modal-grid"><div class="modal-field"><label class="modal-label">Código</label><input class="modal-input" id="mCode" placeholder="MZLO-011"></div>
-            <div class="modal-field"><label class="modal-label">Tipo</label><select class="modal-select" id="mType"><option>20 pies DV</option><option>40 pies High Cube</option><option>40 HC Reefer</option><option>Open Top</option><option>45 pies</option><option>40 ST</option><option>10 pies</option></select></div>
-            <div class="modal-field"><label class="modal-label">Cliente</label><select class="modal-select" id="mClient"><option>Petrocol S.A.</option><option>Ecopetrol</option><option>LogiExpress</option><option>TransCarga</option><option>MaritimaCo</option></select></div>
-            <div class="modal-field"><label class="modal-label">Estado</label><select class="modal-select" id="mState"><option value="disponible">Disponible</option><option value="asignado">Asignado</option><option value="en_transito">En tránsito</option><option value="en_patio">En patio</option><option value="en_mantenimiento">En mantenimiento</option><option value="fuera_de_servicio">Fuera de servicio</option></select></div></div>
-            <div class="modal-field"><label class="modal-label">Ubicación</label><input class="modal-input" id="mLocation" placeholder="Puerto Cartagena — Zona A"></div>
-            <div class="modal-field"><label class="modal-label">Fotografía (URL)</label><input class="modal-input" id="mPhoto" placeholder="https://... (opcional)"></div>
+        <div class="modal-box" style="width:540px"><div class="modal-title" id="modalTitle">Nuevo contenedor</div><div class="modal-sub">El código debe ser único en el sistema.</div>
+            <div class="modal-grid">
+                <div class="modal-field"><label class="modal-label">Código</label><input class="modal-input" id="mCode" placeholder="MZLO-011"></div>
+                <div class="modal-field"><label class="modal-label">Tipo</label><select class="modal-select" id="mType"></select></div>
+                <div class="modal-field"><label class="modal-label">Cliente (opcional)</label><select class="modal-select" id="mClient"><option value="">— Sin cliente —</option></select></div>
+                <div class="modal-field"><label class="modal-label">Estado</label><select class="modal-select" id="mState" onchange="toggleTransitFields()"><option value="disponible">Disponible</option><option value="asignado">Asignado</option><option value="en_transito">En tránsito</option><option value="en_patio">En patio</option><option value="en_mantenimiento">En mantenimiento</option><option value="fuera_de_servicio">Fuera de servicio</option></select></div>
+            </div>
+            <div class="modal-field"><label class="modal-label">Ubicación actual</label><input class="modal-input" id="mLocation" placeholder="Puerto Cartagena — Zona A"></div>
+            <div class="modal-field"><label class="modal-label">URL de fotografía (opcional)</label><input class="modal-input" id="mPhoto" placeholder="https://..."></div>
+            <div id="transitFields" style="display:none;border-top:1px solid var(--modal-border);padding-top:.9rem;margin-top:.5rem">
+                <div style="font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-bottom:.7rem"><i class="bi bi-truck"></i> Datos de tránsito</div>
+                <div class="modal-grid">
+                    <div class="modal-field"><label class="modal-label">Origen</label><input class="modal-input" id="mOrigen" placeholder="Puerto Cartagena"></div>
+                    <div class="modal-field"><label class="modal-label">Destino</label><input class="modal-input" id="mDestino" placeholder="Bogotá"></div>
+                    <div class="modal-field"><label class="modal-label">Medio de transporte</label><input class="modal-input" id="mTransporte" placeholder="Camión, Barco, Tren..."></div>
+                    <div class="modal-field"><label class="modal-label">Responsable</label><input class="modal-input" id="mResponsable" placeholder="Nombre del responsable"></div>
+                </div>
+            </div>
             <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modalContainer')">Cancelar</button><button class="btn-save" id="saveContainerBtn" onclick="saveContainer()"><i class="bi bi-floppy-fill"></i> Guardar</button></div>
         </div>
     </div>
@@ -490,13 +539,162 @@
         <div class="modal-box"><div class="modal-title"><i class="bi bi-trash-fill" style="margin-right:.4rem"></i>Confirmar eliminación</div><div class="modal-sub" id="confirmMsg"></div><div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modalConfirm')">Cancelar</button><button class="btn-save" id="confirmBtn" style="background:var(--red)"><i class="bi bi-trash-fill"></i> Eliminar</button></div></div>
     </div>
 
+    <!-- MODAL USUARIO -->
     <div class="modal-overlay" id="modalUser">
-        <div class="modal-box"><div class="modal-title" id="userModalTitle">Nuevo usuario</div><div class="modal-sub">Los usuarios creados podrán acceder según su rol.</div>
-            <div class="modal-grid"><div class="modal-field"><label class="modal-label">Nombre completo</label><input class="modal-input" id="uName" placeholder="Juan Pérez"></div>
-            <div class="modal-field"><label class="modal-label">Nombre de usuario</label><input class="modal-input" id="uUsername" placeholder="jperez"></div>
-            <div class="modal-field"><label class="modal-label">Contraseña temporal</label><input class="modal-input" id="uPass" type="password" placeholder="••••••••"></div>
-            <div class="modal-field"><label class="modal-label">Rol</label><select class="modal-select" id="uRole"><option value="admin">Administrador</option><option value="supervisor">Supervisor</option><option value="operador">Operador</option><option value="auditor">Auditor</option></select></div></div>
+        <div class="modal-box" style="width:520px"><div class="modal-title" id="userModalTitle">Nuevo usuario</div><div class="modal-sub">Los usuarios creados podrán acceder según su rol.</div>
+            <div class="modal-grid">
+                <div class="modal-field"><label class="modal-label">Nombres</label><input class="modal-input" id="uName" placeholder="Juan"></div>
+                <div class="modal-field"><label class="modal-label">Apellidos</label><input class="modal-input" id="uApellidos" placeholder="Pérez García"></div>
+                <div class="modal-field"><label class="modal-label">Correo electrónico</label><input class="modal-input" id="uEmail" type="email" placeholder="jperez@empresa.com"></div>
+                <div class="modal-field"><label class="modal-label">Nombre de usuario</label><input class="modal-input" id="uUsername" placeholder="jperez"></div>
+                <div class="modal-field"><label class="modal-label">Contraseña</label><input class="modal-input" id="uPass" type="password" placeholder="••••••••"></div>
+                <div class="modal-field"><label class="modal-label">Rol</label><select class="modal-select" id="uRole"><option value="admin">Administrador</option><option value="supervisor">Supervisor</option><option value="operador">Operador</option><option value="auditor">Auditor</option></select></div>
+            </div>
             <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modalUser')">Cancelar</button><button class="btn-save" id="saveUserBtn" onclick="saveUser()"><i class="bi bi-floppy-fill"></i> Guardar</button></div>
+        </div>
+    </div>
+
+    <!-- MODAL CLIENTE -->
+    <div class="modal-overlay" id="modalClient">
+        <div class="modal-box"><div class="modal-title" id="clientModalTitle">Nuevo cliente</div><div class="modal-sub">Complete la información del cliente.</div>
+            <div class="modal-grid">
+                <div class="modal-field"><label class="modal-label">Nombre / Razón social</label><input class="modal-input" id="cNombre" placeholder="Empresa S.A.S."></div>
+                <div class="modal-field"><label class="modal-label">NIT</label><input class="modal-input" id="cNit" placeholder="900123456-7"></div>
+                <div class="modal-field"><label class="modal-label">Teléfono</label><input class="modal-input" id="cTelefono" placeholder="+57 300 000 0000"></div>
+                <div class="modal-field"><label class="modal-label">Email</label><input class="modal-input" id="cEmail" type="email" placeholder="contacto@empresa.com"></div>
+            </div>
+            <div class="modal-field"><label class="modal-label">Dirección</label><input class="modal-input" id="cDireccion" placeholder="Cra 5 # 10-20, Cartagena"></div>
+            <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modalClient')">Cancelar</button><button class="btn-save" id="saveClientBtn" onclick="saveCliente()"><i class="bi bi-floppy-fill"></i> Guardar</button></div>
+        </div>
+    </div>
+
+    <!-- MODAL FACTURA -->
+    <div class="modal-overlay" id="modalFact">
+        <div class="modal-box"><div class="modal-title" id="factModalTitle">Nueva factura</div><div class="modal-sub">Complete los datos de la factura.</div>
+            <div class="modal-grid">
+                <div class="modal-field"><label class="modal-label">Contenedor</label><select class="modal-select" id="fContenedor"></select></div>
+                <div class="modal-field"><label class="modal-label">Monto ($)</label><input class="modal-input" id="fMonto" type="number" min="0" step="0.01" placeholder="1500000"></div>
+                <div class="modal-field"><label class="modal-label">Código factura</label><input class="modal-input" id="fCodigo" placeholder="FAC-0001 (auto si vacío)"></div>
+                <div class="modal-field"><label class="modal-label">Fecha vencimiento</label><input class="modal-input" id="fVencimiento" type="date"></div>
+                <div class="modal-field"><label class="modal-label">Estado</label><select class="modal-select" id="fEstado"><option value="pendiente">Pendiente</option><option value="pagado">Pagado</option><option value="mora">En mora</option></select></div>
+            </div>
+            <div class="modal-field"><label class="modal-label">Observaciones</label><input class="modal-input" id="fObs" placeholder="Arrendamiento mes de mayo..."></div>
+            <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modalFact')">Cancelar</button><button class="btn-save" id="saveFactBtn" onclick="saveFactura()"><i class="bi bi-floppy-fill"></i> Guardar</button></div>
+        </div>
+    </div>
+
+    <!-- MODAL ARRENDAMIENTO -->
+    <div class="modal-overlay" id="modalRental">
+        <div class="modal-box"><div class="modal-title" id="rentalModalTitle">Nuevo contrato de arrendamiento</div><div class="modal-sub">Complete los datos del contrato.</div>
+            <div class="modal-grid">
+                <div class="modal-field"><label class="modal-label">Contenedor</label><select class="modal-select" id="rContenedor"></select></div>
+                <div class="modal-field"><label class="modal-label">Cliente</label><select class="modal-select" id="rCliente"></select></div>
+                <div class="modal-field"><label class="modal-label">Fecha inicio</label><input class="modal-input" id="rInicio" type="date"></div>
+                <div class="modal-field"><label class="modal-label">Fecha fin</label><input class="modal-input" id="rFin" type="date"></div>
+                <div class="modal-field"><label class="modal-label">Valor mensual ($)</label><input class="modal-input" id="rValor" type="number" min="0" step="0.01" placeholder="1500000"></div>
+                <div class="modal-field"><label class="modal-label">Estado</label><select class="modal-select" id="rEstado"><option value="activo">Activo</option><option value="finalizado">Finalizado</option></select></div>
+            </div>
+            <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modalRental')">Cancelar</button><button class="btn-save" id="saveRentalBtn" onclick="saveRental()"><i class="bi bi-floppy-fill"></i> Guardar</button></div>
+        </div>
+    </div>
+
+    <!-- PANEL DE CONFIGURACIÓN / PERFIL -->
+    <div class="notif-overlay" id="profileOverlay" onclick="closeProfilePanel()"></div>
+    <div class="notif-panel" id="profilePanel" style="width:360px">
+        <div class="notif-panel-header">
+            <div>
+                <div class="notif-panel-title">Mi Cuenta</div>
+                <div style="font-size:.65rem;color:var(--text-muted)">Perfil y configuración</div>
+            </div>
+            <button class="notif-close" onclick="closeProfilePanel()"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display:flex;border-bottom:1px solid var(--border-color);padding:0 1rem">
+            <button id="tabBtnPerfil" onclick="switchProfileTab('perfil')" style="flex:1;background:none;border:none;color:var(--red);font-size:.78rem;font-weight:600;padding:.6rem 0;border-bottom:2px solid var(--red);cursor:pointer">👤 Perfil</button>
+            <button id="tabBtnConfig" onclick="switchProfileTab('config')" style="flex:1;background:none;border:none;color:var(--text-muted);font-size:.78rem;padding:.6rem 0;border-bottom:2px solid transparent;cursor:pointer">⚙️ Config</button>
+            <button id="tabBtnSoporte" onclick="switchProfileTab('soporte')" style="flex:1;background:none;border:none;color:var(--text-muted);font-size:.78rem;padding:.6rem 0;border-bottom:2px solid transparent;cursor:pointer">🎧 Soporte</button>
+        </div>
+
+        <div class="notif-panel-body" style="padding:1rem">
+
+            <!-- TAB: PERFIL -->
+            <div id="tabPerfil">
+                <div style="text-align:center;margin-bottom:1rem">
+                    <div id="profileAvatarImg" style="width:72px;height:72px;border-radius:50%;margin:0 auto .6rem;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(135deg,var(--red),#ff6b6b)">
+                        <span id="profileAvatarText" style="font-family:'Archivo Black',sans-serif;font-size:1.4rem;color:#fff">AD</span>
+                        <img id="profileAvatarImgEl" src="" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%">
+                    </div>
+                    <label style="font-size:.72rem;color:var(--info);cursor:pointer;display:block">
+                        <i class="bi bi-camera-fill"></i> Cambiar foto
+                        <input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="onAvatarChange(this)">
+                    </label>
+                    <div id="profileName" style="font-weight:600;font-size:.95rem;margin-top:.4rem">Cargando...</div>
+                    <div id="profileRole" style="font-size:.72rem;color:var(--text-muted)">—</div>
+                </div>
+                <div class="modal-field"><label class="modal-label">Nombres</label><input class="modal-input" id="pNombres" placeholder="Juan"></div>
+                <div class="modal-field"><label class="modal-label">Apellidos</label><input class="modal-input" id="pApellidos" placeholder="Pérez"></div>
+                <div class="modal-field"><label class="modal-label">Email</label>
+                    <div style="display:flex;gap:.4rem">
+                        <input class="modal-input" id="pEmail" type="email" placeholder="correo@empresa.com" style="flex:1">
+                        <button id="btnVerifEmail" onclick="solicitarVerificacion()" style="white-space:nowrap;padding:.4rem .7rem;background:var(--info);color:#fff;border:none;border-radius:7px;font-size:.72rem;cursor:pointer">Verificar</button>
+                    </div>
+                    <div id="emailVerifStatus" style="font-size:.68rem;margin-top:.2rem"></div>
+                </div>
+                <div class="modal-field">
+                    <label class="modal-label">Nueva contraseña <span style="font-weight:400;color:var(--text-muted)">(vacío = no cambiar)</span></label>
+                    <input class="modal-input" id="pPass" type="password" placeholder="••••••••">
+                </div>
+                <div id="verifTokenBox" style="display:none;margin-bottom:.75rem">
+                    <div class="modal-field">
+                        <label class="modal-label">Código de verificación <span style="color:var(--warning)">(ver logs del servidor)</span></label>
+                        <div style="display:flex;gap:.4rem">
+                            <input class="modal-input" id="verifToken" placeholder="123456" maxlength="6" style="flex:1;letter-spacing:.2em;text-align:center;font-weight:700">
+                            <button onclick="confirmarVerificacion()" style="padding:.4rem .7rem;background:var(--success);color:#fff;border:none;border-radius:7px;font-size:.72rem;cursor:pointer">OK</button>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-save" style="width:100%;margin-top:.25rem" onclick="saveProfile()"><i class="bi bi-floppy-fill"></i> Guardar cambios</button>
+            </div>
+
+            <!-- TAB: CONFIGURACIÓN -->
+            <div id="tabConfig" style="display:none">
+                <div style="font-size:.62rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:.8rem">Apariencia</div>
+                <div class="modal-field" style="flex-direction:row;align-items:center;justify-content:space-between;display:flex">
+                    <label class="modal-label" style="margin-bottom:0">Tema oscuro/claro</label>
+                    <button onclick="toggleTheme()" style="background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-muted);padding:.35rem .75rem;cursor:pointer;font-size:.8rem"><i class="bi bi-sun-fill"></i> Cambiar</button>
+                </div>
+                <div id="configAdminSection" style="display:none">
+                    <div style="font-size:.62rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin:.9rem 0 .8rem">Sistema</div>
+                    <div class="modal-field">
+                        <label class="modal-label">Intervalo actualización panel</label>
+                        <select class="modal-input" id="cfgRefreshInterval" onchange="saveConfigOption('refresh_interval',this.value)">
+                            <option value="30000">30 segundos</option>
+                            <option value="60000">1 minuto</option>
+                            <option value="300000">5 minutos</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: SOPORTE -->
+            <div id="tabSoporte" style="display:none">
+                <div style="text-align:center;padding:1rem 0">
+                    <i class="bi bi-headset" style="font-size:2.5rem;color:var(--info);opacity:.8"></i>
+                    <div style="font-size:.95rem;font-weight:600;margin:.75rem 0 .3rem">Contactar Soporte</div>
+                    <div style="font-size:.75rem;color:var(--text-muted);line-height:1.8">
+                        <i class="bi bi-envelope-fill"></i> soporte@mazolo.co<br>
+                        <i class="bi bi-whatsapp"></i> +57 300 000 0000<br>
+                        <i class="bi bi-info-circle"></i> Versión 1.0.0
+                    </div>
+                    <a href="mailto:soporte@mazolo.co" style="display:inline-block;margin-top:1rem;padding:.6rem 1.2rem;background:var(--info);color:#fff;border-radius:8px;font-size:.78rem;text-decoration:none"><i class="bi bi-envelope"></i> Enviar mensaje</a>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="notif-panel-footer">
+            <button class="btn-notif" onclick="logout()" style="color:#ff8a80;border-color:rgba(211,47,47,0.3)"><i class="bi bi-box-arrow-right"></i> Cerrar sesión</button>
         </div>
     </div>
 
@@ -603,7 +801,12 @@
                 try {
                     const url=`${CONFIG.API_BASE}${endpoint}`;
                     const res=await fetch(url, {method, headers, body:body?JSON.stringify(body):null, signal});
-                    if(!res.ok) { if(res.status===401){TokenManager.clear();window.location.href='/login';return;} throw new Error(`API ${res.status}`); }
+                    if(!res.ok) {
+                        if(res.status===401){TokenManager.clear();window.location.href='/login';return;}
+                        let errMsg=`Error ${res.status}`;
+                        try { const errBody=await res.json(); errMsg=errBody.detail||errMsg; } catch(e){}
+                        throw new Error(errMsg);
+                    }
                     if(res.status===204) return {ok:true,data:null};
                     const json=await res.json();
                     if(Array.isArray(json)) return {ok:true,data:json,meta:{total:json.length,page:1,totalPages:1}};
@@ -720,15 +923,44 @@
         function showLoader(id) { const l=document.getElementById(id); if(l) l.classList.add('active'); }
         function hideLoader(id) { const l=document.getElementById(id); if(l) l.classList.remove('active'); }
 
-        function updateKPIs() {
-            document.getElementById('kpiTotal').textContent=DB.contenedores.length;
-            document.getElementById('kpiDisp').textContent=DB.contenedores.filter(c=>c.estado==='disponible').length;
-            document.getElementById('kpiTrans').textContent=DB.contenedores.filter(c=>c.estado==='en_transito').length;
-            const alerts=DB.arrendamientos.filter(a=>{const d=Math.ceil((new Date(a.fin)-new Date())/86400000);return d<=7&&d>=0;}).length;
-            document.getElementById('kpiAlert').textContent=alerts;
-            const bc=document.getElementById('badgeCont'), ba=document.getElementById('badgeArr');
-            if(bc) bc.textContent=DB.contenedores.length;
-            if(ba) ba.textContent=alerts||0;
+        async function updateKPIs() {
+            try {
+                const res = await ApiClient.request('GET', '/dashboard/stats');
+                if (!res.ok) return;
+                const s = res.data;
+
+                document.getElementById('kpiTotal').textContent = s.total_contenedores ?? 0;
+                document.getElementById('kpiDisp').textContent  = s.por_estado?.disponible ?? 0;
+                document.getElementById('kpiTrans').textContent = s.por_estado?.en_transito ?? 0;
+                document.getElementById('kpiAlert').textContent = s.proximos_vencer ?? 0;
+
+                const bc = document.getElementById('badgeCont');
+                const ba = document.getElementById('badgeArr');
+                if (bc) bc.textContent = s.total_contenedores ?? 0;
+                if (ba) ba.textContent = s.proximos_vencer ?? 0;
+
+                // Trends dinámicos
+                const lastStats = JSON.parse(localStorage.getItem('mz_last_stats') || '{}');
+                const setTrend = (id, current, prev) => {
+                    const el = document.getElementById(id);
+                    if (!el || prev === undefined) return;
+                    const diff = current - prev;
+                    if (diff > 0)      el.innerHTML = `<i class="bi bi-arrow-up"></i> +${diff}`;
+                    else if (diff < 0) el.innerHTML = `<i class="bi bi-arrow-down"></i> ${diff}`;
+                    else               el.innerHTML = `— Sin cambio`;
+                    el.className = 'kpi-trend ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '');
+                };
+                setTrend('trendTotal', s.total_contenedores,     lastStats.total_contenedores);
+                setTrend('trendDisp',  s.por_estado?.disponible, lastStats.disponible);
+                setTrend('trendTrans', s.por_estado?.en_transito, lastStats.en_transito);
+                localStorage.setItem('mz_last_stats', JSON.stringify({
+                    total_contenedores: s.total_contenedores,
+                    disponible:         s.por_estado?.disponible,
+                    en_transito:        s.por_estado?.en_transito
+                }));
+
+                updatePanelCharts(s);
+            } catch(e) { console.error('Error updateKPIs:', e); }
         }
 
         function renderContainers(data, meta) {
@@ -770,36 +1002,104 @@
                 </div></td></tr>`).join('');
         }
 
-        /* ═══════════════════════ 5. CHARTS & MAP (FIXED DATA PROPERTIES) ═══════════════════════ */
-        let charts={}, mapInstance=null, chartsInit=false, mapInit=false;
+        /* ═══════════════════════ 5. CHARTS & MAP ═══════════════════════ */
+        let chartMovimientos=null, chartTipo=null, chartEstado=null, chartCliente=null, chartArr=null;
+        let mapInstance=null, mapInit=false;
+
         function applyTheme() {
-            const theme=document.documentElement.getAttribute('data-bs-theme');
-            Chart.defaults.color=theme==='dark'?'rgba(160,185,215,0.55)':'rgba(0,0,0,0.6)';
-            Chart.defaults.borderColor=theme==='dark'?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.08)';
-            Chart.defaults.font.family="'DM Sans',system-ui,sans-serif";
+            const theme = document.documentElement.getAttribute('data-bs-theme');
+            Chart.defaults.color       = theme==='dark' ? 'rgba(160,185,215,0.55)' : 'rgba(0,0,0,0.6)';
+            Chart.defaults.borderColor = theme==='dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.08)';
+            Chart.defaults.font.family = "'DM Sans',system-ui,sans-serif";
             initCharts();
         }
+
         function initCharts() {
-            if(chartsInit && document.getElementById('page-panel').classList.contains('active')) return;
-            Object.values(charts).forEach(c=>c.destroy()); charts={};
-            const ctx=(id)=>document.getElementById(id)?.getContext('2d');
-            
-            // FIX: Added 'data:' property to all Chart.js configurations
-            if(ctx('chartMovements')) charts.mov=new Chart(ctx('chartMovements'),{type:'line',data:{labels:['Ene','Feb','Mar','Abr','May','Jun'],datasets:[{data:[18,25,32,28,41,37],borderColor:'#D32F2F',backgroundColor:'rgba(211,47,47,0.06)',fill:true,tension:.4}]},options:{responsive:true,maintainAspectRatio:false}});
-            if(ctx('chartTypes')) { const types=[...new Set(DB.contenedores.map(c=>c.tipo))]; charts.typ=new Chart(ctx('chartTypes'),{type:'doughnut',data:{labels:types,datasets:[{data:types.map(t=>DB.contenedores.filter(c=>c.tipo===t).length),backgroundColor:['#D32F2F','#42a5f5','#00c896','#ffca28','#ce93d8','#ffb74d','#1a2b4c']}]},options:{cutout:'68%',responsive:true,maintainAspectRatio:false}}); }
-            if(ctx('chartStates')) { const st=['disponible','asignado','en_transito','en_patio','en_mantenimiento','fuera_de_servicio']; charts.sta=new Chart(ctx('chartStates'),{type:'bar',data:{labels:['Disp','Asig','Tráns','Patio','Mant','Fuera'],datasets:[{data:st.map(s=>DB.contenedores.filter(c=>c.estado===s).length),backgroundColor:['#00c896','#42a5f5','#ffca28','#ce93d8','#ffb74d','#D32F2F']}]}}); }
-            if(ctx('chartClients')) { const cl=[...new Set(DB.contenedores.map(c=>c.cliente))]; charts.cli=new Chart(ctx('chartClients'),{type:'bar',data:{labels:cl,datasets:[{data:cl.map(c=>DB.contenedores.filter(x=>x.cliente===c).length),backgroundColor:'#42a5f5'}]},options:{indexAxis:'y',responsive:true}}); }
-            if(ctx('chartRentals')) charts.ren=new Chart(ctx('chartRentals'),{type:'doughnut',data:{labels:['Activos','Finalizados','Por vencer'],datasets:[{data:[3,7,2],backgroundColor:['#00c896','#888','#D32F2F']}]},options:{cutout:'65%'}});
-            chartsInit=true;
+            [chartMovimientos, chartTipo, chartEstado, chartCliente, chartArr].forEach(c => { if(c) c.destroy(); });
+            const co = getComputedStyle(document.documentElement);
+            const chartOpts = { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color: co.getPropertyValue('--text-primary') || '#e8f0fc', font:{size:11} } } } };
+            const axesOpts  = { ticks:{ color:'rgba(160,185,215,0.7)', font:{size:10} }, grid:{ color:'rgba(255,255,255,0.05)' } };
+            const ctx = id => document.getElementById(id)?.getContext('2d');
+
+            if(ctx('chartMovimientos')) chartMovimientos = new Chart(ctx('chartMovimientos'), { type:'line', data:{ labels:[], datasets:[{ label:'Movimientos', data:[], borderColor:'#D32F2F', backgroundColor:'rgba(211,47,47,0.08)', tension:.4, fill:true }] }, options:{ ...chartOpts, scales:{ x:axesOpts, y:{...axesOpts, beginAtZero:true} } } });
+            if(ctx('chartTipo'))        chartTipo        = new Chart(ctx('chartTipo'),        { type:'doughnut', data:{ labels:[], datasets:[{ data:[], backgroundColor:['#D32F2F','#42a5f5','#00c896','#ffca28','#ce93d8','#ffb74d'] }] }, options:{ ...chartOpts, cutout:'65%' } });
+            if(ctx('chartEstado'))      chartEstado      = new Chart(ctx('chartEstado'),      { type:'bar',     data:{ labels:[], datasets:[{ label:'Contenedores', data:[], backgroundColor:['#00c896','#42a5f5','#ffca28','#ce93d8','#ffb74d','#ff8a80'] }] }, options:{ ...chartOpts, indexAxis:'y', scales:{ x:axesOpts, y:axesOpts } } });
+            if(ctx('chartCliente'))     chartCliente     = new Chart(ctx('chartCliente'),     { type:'bar',     data:{ labels:[], datasets:[{ label:'Contenedores', data:[], backgroundColor:'#42a5f5' }] }, options:{ ...chartOpts, scales:{ x:axesOpts, y:{...axesOpts, beginAtZero:true} } } });
+            if(ctx('chartArr'))         chartArr         = new Chart(ctx('chartArr'),         { type:'bar',     data:{ labels:['Activos','Finalizados'], datasets:[{ data:[0,0], backgroundColor:['#00c896','#ff8a80'] }] }, options:{ ...chartOpts, scales:{ x:axesOpts, y:{...axesOpts, beginAtZero:true} } } });
         }
-        function initMap() {
+
+        const ESTADO_LABELS = { disponible:'Disponible', asignado:'Asignado', en_transito:'En Tránsito', en_patio:'En Patio', en_mantenimiento:'Mantenimiento', fuera_de_servicio:'Fuera Servicio' };
+        const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+        async function updatePanelCharts(stats) {
+            if (chartTipo && stats.por_tipo) {
+                const entries = Object.entries(stats.por_tipo);
+                chartTipo.data.labels = entries.map(([k])=>k);
+                chartTipo.data.datasets[0].data = entries.map(([,v])=>v);
+                chartTipo.update();
+            }
+            if (chartEstado && stats.por_estado) {
+                const entries = Object.entries(stats.por_estado);
+                chartEstado.data.labels = entries.map(([k])=>ESTADO_LABELS[k]||k);
+                chartEstado.data.datasets[0].data = entries.map(([,v])=>v);
+                chartEstado.update();
+            }
+            if (chartCliente && stats.por_cliente) {
+                const entries = Object.entries(stats.por_cliente).sort((a,b)=>b[1]-a[1]).slice(0,8);
+                chartCliente.data.labels = entries.map(([k])=>k);
+                chartCliente.data.datasets[0].data = entries.map(([,v])=>v);
+                chartCliente.update();
+            }
+            if (chartMovimientos) {
+                try {
+                    const res = await ApiClient.request('GET', '/movimientos?limit=500');
+                    if (res.ok && res.data) {
+                        const hoy = new Date();
+                        const ultimos6 = Array.from({length:6}, (_,i) => {
+                            const d = new Date(hoy.getFullYear(), hoy.getMonth()-5+i, 1);
+                            return { key:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`, label:MESES_ES[d.getMonth()] };
+                        });
+                        const conteo = {};
+                        ultimos6.forEach(m => conteo[m.key] = 0);
+                        res.data.forEach(m => {
+                            if (!m.fecha_hora) return;
+                            const k = m.fecha_hora.substring(0,7);
+                            if (conteo[k] !== undefined) conteo[k]++;
+                        });
+                        chartMovimientos.data.labels = ultimos6.map(m=>m.label);
+                        chartMovimientos.data.datasets[0].data = ultimos6.map(m=>conteo[m.key]);
+                        chartMovimientos.update();
+                    }
+                } catch(e) { console.error('Error gráfica movimientos:', e); }
+            }
+            if (chartArr) {
+                try {
+                    const res = await ApiClient.request('GET', '/arrendamientos');
+                    if (res.ok && res.data) {
+                        const activos    = res.data.filter(a=>a.estado_arrendamiento==='activo').length;
+                        const finalizados= res.data.filter(a=>a.estado_arrendamiento!=='activo').length;
+                        chartArr.data.datasets[0].data = [activos, finalizados];
+                        chartArr.update();
+                    }
+                } catch(e) {}
+            }
+        }
+        function initMap(zones={}) {
             if(mapInit) return;
             const c=document.getElementById('leafletMap'); if(!c) return;
             mapInstance=L.map(c).setView([4.6,-74.2],5.8);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap'}).addTo(mapInstance);
-            const cities=[{n:'Puerto Cartagena',lat:10.4,lon:-75.5},{n:'Barranquilla',lat:10.98,lon:-74.78},{n:'Bogotá',lat:4.61,lon:-74.08},{n:'Medellín',lat:6.25,lon:-75.56},{n:'Cali',lat:3.44,lon:-76.52},{n:'Bucaramanga',lat:7.12,lon:-73.12},{n:'Taller/Mant.',lat:4.8,lon:-74.2}];
+            const cities=[
+                {n:'Puerto Cartagena',lat:10.4,lon:-75.5,key:'Puerto Cartagena'},
+                {n:'Barranquilla',lat:10.98,lon:-74.78,key:'Barranquilla'},
+                {n:'Bogotá',lat:4.61,lon:-74.08,key:'Bogotá'},
+                {n:'Medellín',lat:6.25,lon:-75.56,key:'Medellín'},
+                {n:'Cali',lat:3.44,lon:-76.52,key:'Cali'},
+                {n:'Bucaramanga',lat:7.12,lon:-73.12,key:'Bucaramanga'},
+                {n:'Taller/Mant.',lat:4.8,lon:-74.2,key:'Taller/Mantenimiento'}
+            ];
             cities.forEach(ci=>{
-                const cnt=DB.contenedores.filter(x=>getZone(x.ubicacion).includes(ci.n.split('/')[0].trim())).length;
+                const cnt=zones[ci.key]?.total||0;
                 const r=Math.max(cnt*2.2,6), col=cnt>=6?'#D32F2F':cnt>=3?'#ffca28':'#42a5f5';
                 L.circleMarker([ci.lat,ci.lon],{radius:r,color:col,fillColor:col,fillOpacity:0.7,weight:1.5}).addTo(mapInstance).bindPopup(`<strong>${ci.n}</strong><br>${cnt} contenedor${cnt!==1?'es':''}`);
             });
@@ -885,23 +1185,23 @@
         let editUserId=null;
         function openUserModal(id=null) {
             editUserId=id; document.getElementById('userModalTitle').textContent=id?'Editar usuario':'Nuevo usuario';
-            if(id){const u=DB_USUARIOS_API.find(x=>x.id_usuario===id);if(u){document.getElementById('uName').value=u.nombres;document.getElementById('uUsername').value=u.user;document.getElementById('uPass').value='';document.getElementById('uRole').value=u.rol;}}
-            else ['uName','uUsername','uPass'].forEach(i=>document.getElementById(i).value='');
+            if(id){const u=DB_USUARIOS_API.find(x=>x.id_usuario===id);if(u){document.getElementById('uName').value=u.nombres||'';document.getElementById('uApellidos').value=u.apellidos||'';document.getElementById('uEmail').value=u.email||'';document.getElementById('uUsername').value=u.user;document.getElementById('uPass').value='';document.getElementById('uRole').value=u.rol;}}
+            else ['uName','uApellidos','uEmail','uUsername','uPass'].forEach(i=>document.getElementById(i).value='');
             document.getElementById('modalUser').classList.add('show');
         }
         async function saveUser() {
-            const name=document.getElementById('uName').value.trim(), user=document.getElementById('uUsername').value.trim(), pass=document.getElementById('uPass').value.trim(), role=document.getElementById('uRole').value;
+            const name=document.getElementById('uName').value.trim(), user=document.getElementById('uUsername').value.trim(), pass=document.getElementById('uPass').value.trim(), role=document.getElementById('uRole').value, apellidos=document.getElementById('uApellidos').value.trim(), email=document.getElementById('uEmail').value.trim();
             if(!name||!user){showToast('Nombre y usuario obligatorios','error');return;}
             if(!editUserId&&!pass){showToast('La contraseña es obligatoria','error');return;}
             const btn=document.getElementById('saveUserBtn'); btn.disabled=true;
             try {
                 let payload;
-                if(editUserId) payload={nombres:name,rol:role};
-                else payload={nombres:name,user,password:pass,rol:role};
+                if(editUserId) payload={nombres:name,apellidos:apellidos||null,email:email||null,rol:role};
+                else payload={nombres:name,apellidos:apellidos||null,email:email||null,user,password:pass,rol:role};
                 if(editUserId) await ApiClient.request('PUT',`/usuarios/${editUserId}`,payload);
                 else await ApiClient.request('POST','/usuarios',payload);
                 closeModal('modalUser'); loadUsers(); showToast('Usuario guardado');
-            } catch(e){ showToast('Error guardando usuario','error'); }
+            } catch(e){ showToast(e.message||'Error guardando usuario','error'); }
             btn.disabled=false;
         }
         async function loadUsers() { if(currentUserRole!=='admin')return; const res=await ApiClient.request('GET','/usuarios'); if(res.ok) { DB_USUARIOS_API=res.data; const norm=res.data.map(u=>({id:u.id_usuario,username:u.user,name:u.nombres+(u.apellidos?' '+u.apellidos:''),role:u.rol,active:true})); renderUsers(norm); } }
@@ -914,7 +1214,7 @@
         function filterZones() { renderZoneData(); }
         function resetZones() { document.getElementById('filtZone').value='';document.getElementById('filtZoneState').value='';renderZoneData(); }
         function renderZoneData() {
-            ApiClient.request('GET','/zonas/distribucion').then(res=>{
+            ApiClient.request('GET','/dashboard/zonas/distribucion').then(res=>{
                 if(!res.ok) return;
                 const zones=res.data, entries=Object.entries(zones);
                 document.getElementById('zoneCount').textContent=`${entries.length} zonas`;
@@ -925,65 +1225,284 @@
                 html+=`<tr style="border-top:2px solid var(--border-color);font-weight:700"><td>Total</td><td>${totals.total}</td><td style="color:var(--success)">${totals.disponible}</td><td style="color:var(--warning)">${totals.en_transito}</td><td style="color:#ce93d8">${totals.en_patio}</td><td>${totals.otros}</td></tr>`;
                 tbody.innerHTML=html;
                 const top=entries.sort((a,b)=>b[1].total-a[1].total)[0];
-                document.getElementById('zonesCards').innerHTML=`<div class="zone-card"><div class="num">${top?top[0]:'—'}</div><div class="lbl">Zona principal</div></div><div class="zone-card"><div class="num" style="color:var(--warning)">${DB.arrendamientos.filter(a=>{const d=Math.ceil((new Date(a.fin)-new Date())/86400000);return d<=7&&d>=0;}).length}</div><div class="lbl">Alertas</div></div><div class="zone-card"><div class="num" style="color:var(--text-muted)">${DB.contenedores.filter(c=>!c.ubicacion).length}</div><div class="lbl">Sin ubicación</div></div>`;
-                initMap();
+                const sinZona=(zones['Sin zona']?.total||0)+(zones['Otros']?.total||0);
+                const alertas=_notifData.filter(n=>n.tipo==='error'||n.tipo==='warn').length;
+                document.getElementById('zonesCards').innerHTML=`<div class="zone-card"><div class="num">${top?top[0]:'—'}</div><div class="lbl">Zona principal</div></div><div class="zone-card"><div class="num" style="color:var(--warning)">${alertas}</div><div class="lbl">Alertas activas</div></div><div class="zone-card"><div class="num" style="color:var(--text-muted)">${sinZona}</div><div class="lbl">Sin ubicación</div></div>`;
+                initMap(zones);
             });
         }
 
-        // Movimientos, Arrendamientos, Historial
-        function renderMovements(data=[], tid='movTable', cid='movCount') {
-            document.getElementById(cid).textContent=`${data.length} registros`;
-            document.getElementById(tid).innerHTML=data.map(m=>`<tr><td style="color:var(--text-muted)">#${m.id}</td><td><strong>${sanitizeHTML(m.contenedor)}</strong></td><td>${sanitizeHTML(m.origen)}</td><td>${sanitizeHTML(m.destino)}</td><td>${sanitizeHTML(m.transporte)}</td><td>${sanitizeHTML(m.responsable)}</td><td style="font-size:.72rem;color:var(--text-muted)">${sanitizeHTML(m.fecha)}</td></tr>`).join('')||'<tr><td colspan="7"><div class="empty-state">Sin movimientos</div></td></tr>';
-        }
-        function filterMovements() {
-            const c=document.getElementById('movFilterContainer').value, s=document.getElementById('movFilterStart').value, e=document.getElementById('movFilterEnd').value;
-            let d=[...DB.movimientos];
-            if(c) d=d.filter(m=>m.contenedor===c); if(s) d=d.filter(m=>m.fecha>=s); if(e) d=d.filter(m=>m.fecha<=e);
-            renderMovements(d,'movPageTable','movPageCount');
-        }
-        function resetMovementFilters() { document.getElementById('movFilterContainer').value='';document.getElementById('movFilterStart').value='';document.getElementById('movFilterEnd').value='';filterMovements(); }
-        function populateMovFilter() { const s=document.getElementById('movFilterContainer'); s.innerHTML='<option value="">Todos</option>'+DB.contenedores.map(c=>`<option value="${c.codigo}">${c.codigo}</option>`).join(''); }
-        function filterRentals() {
-            const st=document.getElementById('arrFilterState').value; let d=DB.arrendamientos; if(st) d=d.filter(a=>a.estado===st);
-            document.getElementById('arrCount').textContent=`${d.length} contratos`;
-            document.getElementById('arrTable').innerHTML=d.map(a=>`<tr><td><strong>${sanitizeHTML(a.contenedor)}</strong></td><td>${sanitizeHTML(a.cliente)}</td><td>${sanitizeHTML(a.inicio)}</td><td>${sanitizeHTML(a.fin)}</td><td>Día ${sanitizeHTML(a.dia_facturacion)}</td><td><span class="badge-status ${a.estado==='activo'?'disponible':'fuera_de_servicio'}">${a.estado==='activo'?'Activo':'Finalizado'}</span></td></tr>`).join('')||'<tr><td colspan="6"><div class="empty-state">Sin contratos</div></td></tr>';
-        }
-        function resetRentalFilters() { document.getElementById('arrFilterState').value='';filterRentals(); }
-        function populateHistFilter() { const s=document.getElementById('histFilterContainer'); s.innerHTML='<option value="">Seleccionar</option>'+DB.contenedores.map(c=>`<option value="${c.codigo}">${c.codigo}</option>`).join(''); }
-        function showHistory() {
-            const code=document.getElementById('histFilterContainer').value, c=DB.contenedores.find(x=>x.codigo===code);
-            document.getElementById('historyEmpty').style.display=c?'none':'block'; document.getElementById('historyContent').style.display=c?'block':'none';
-            if(!c) return;
-            const movs=DB.movimientos.filter(m=>m.contenedor===code).sort((a,b)=>b.id-a.id);
-            const sts=DB.cambiosEstado.filter(e=>e.contenedor===code).sort((a,b)=>b.fecha.localeCompare(a.fecha));
-            const ren=DB.arrendamientos.filter(a=>a.contenedor===code);
-            document.getElementById('historyContent').innerHTML=`
-                <h5><i class="bi bi-arrow-left-right"></i> Movimientos</h5>${movs.length?`<table class="data-table"><thead><tr><th>ID</th><th>Ruta</th><th>Transporte</th><th>Fecha</th></tr></thead><tbody>${movs.map(m=>`<tr><td>#${m.id}</td><td>${m.origen} → ${m.destino}</td><td>${m.transporte}</td><td>${m.fecha}</td></tr>`).join('')}</tbody></table>`:'<p style="color:var(--text-muted)">Sin movimientos.</p>'}
-                <h5 class="mt-3"><i class="bi bi-arrow-repeat"></i> Cambios de estado</h5>${sts.length?`<table class="data-table"><thead><tr><th>Fecha</th><th>Anterior</th><th>Nuevo</th><th>Resp.</th></tr></thead><tbody>${sts.map(e=>`<tr><td>${e.fecha}</td><td>${e.estado_anterior||'—'}</td><td>${getBadgeStatus(e.estado_nuevo)}</td><td>${e.responsable}</td></tr>`).join('')}</tbody></table>`:'<p style="color:var(--text-muted)">Sin cambios.</p>'}
-                <h5 class="mt-3"><i class="bi bi-calendar2-week"></i> Arrendamientos</h5>${ren.length?`<table class="data-table"><thead><tr><th>Cliente</th><th>Inicio</th><th>Fin</th><th>Día fact.</th></tr></thead><tbody>${ren.map(a=>`<tr><td>${a.cliente}</td><td>${a.inicio}</td><td>${a.fin}</td><td>${a.dia_facturacion}</td></tr>`).join('')}</tbody></table>`:'<p style="color:var(--text-muted)">Sin arrendamientos.</p>'}
-            `;
+        // Movimientos, Arrendamientos, Historial — API real
+        let _movimientosAPI = [];
+        async function loadMovimientos() {
+            try {
+                const res = await ApiClient.request('GET', '/movimientos?limit=500');
+                if (!res.ok) return;
+                _movimientosAPI = res.data;
+                renderMovimientosAPI(_movimientosAPI);
+                // Poblar select de filtro
+                const resC = await ApiClient.request('GET', '/contenedores?limit=500');
+                if (resC.ok) {
+                    const sel = document.getElementById('movFilterContainer');
+                    if (sel) sel.innerHTML = '<option value="">Todos los contenedores</option>' + resC.data.map(c=>`<option value="${c.id_contenedor}">${c.id_codigo}</option>`).join('');
+                }
+            } catch(e) { console.error('Error cargando movimientos:', e); }
         }
 
-        // Notificaciones & Export
-        function renderAlerts() {
-            const today=new Date(), up=DB.arrendamientos.filter(a=>{const d=Math.ceil((new Date(a.fin)-today)/86400000);return d<=7&&d>=0;});
-            document.getElementById('alertsList').innerHTML=up.length?up.map(a=>{const d=Math.ceil((new Date(a.fin)-today)/86400000);return`<div class="alert-row"><div class="alert-icon ${d<=2?'error':'warn'}"><i class="bi bi-${d<=2?'exclamation-triangle-fill':'clock-fill'}"></i></div><div><div class="alert-text"><strong>${sanitizeHTML(a.contenedor)}</strong> — ${sanitizeHTML(a.cliente)}</div><div class="alert-time">Vence: ${a.fin} · Día fact.: ${a.dia_facturacion} · <strong style="color:${d<=2?'#ff8a80':'var(--warning)'}">${d} día${d!==1?'s':''}</strong></div></div></div>`;}).join(''):'<div style="text-align:center;padding:1.5rem;color:var(--text-muted)">Sin alertas activas.</div>';
-            document.getElementById('notifDot').style.display=up.length?'block':'none';
+        function renderMovimientosAPI(data) {
+            const isPanel = document.getElementById('page-panel').classList.contains('active');
+            const tbody = document.getElementById(isPanel ? 'movTable' : 'movPageTable') || document.getElementById('movTable');
+            const count  = document.getElementById(isPanel ? 'movCount' : 'movPageCount') || document.getElementById('movCount');
+            if (count) count.textContent = `${data.length} registros`;
+            if (!tbody) return;
+            if (!data.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Sin movimientos registrados</div></td></tr>'; return; }
+            tbody.innerHTML = data.map(m => `
+                <tr>
+                    <td style="color:var(--text-muted)">#${m.id_movimiento}</td>
+                    <td><strong>${sanitizeHTML(m.id_contenedor)}</strong></td>
+                    <td>${sanitizeHTML(m.ubicacion_origen||'—')}</td>
+                    <td>${sanitizeHTML(m.ubicacion_destino||'—')}</td>
+                    <td>${sanitizeHTML(m.medio_transporte||'—')}</td>
+                    <td>${sanitizeHTML(m.responsable||'—')}</td>
+                    <td style="font-size:.72rem;color:var(--text-muted)">${m.fecha_hora ? m.fecha_hora.substring(0,10) : '—'}</td>
+                </tr>`).join('');
         }
-        function toggleNotifPanel() { document.getElementById('notifPanel').classList.toggle('open'); document.getElementById('notifOverlay').classList.toggle('show'); if(document.getElementById('notifPanel').classList.contains('open')) buildNotifPanel(); }
-        function closeNotifPanel() { document.getElementById('notifPanel').classList.remove('open'); document.getElementById('notifOverlay').classList.remove('show'); }
-        function markAllNotificationsRead() { document.getElementById('notifBadge').textContent='0'; document.getElementById('notifDot').style.display='none'; showToast('Leídas'); }
+
+        function filterMovements() {
+            const idC = document.getElementById('movFilterContainer')?.value;
+            const s   = document.getElementById('movFilterStart')?.value;
+            const e   = document.getElementById('movFilterEnd')?.value;
+            let data  = [..._movimientosAPI];
+            if (idC) data = data.filter(m => String(m.id_contenedor) === idC);
+            if (s)   data = data.filter(m => m.fecha_hora && m.fecha_hora.substring(0,10) >= s);
+            if (e)   data = data.filter(m => m.fecha_hora && m.fecha_hora.substring(0,10) <= e);
+            renderMovimientosAPI(data);
+        }
+        function resetMovementFilters() {
+            ['movFilterContainer','movFilterStart','movFilterEnd'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+            renderMovimientosAPI(_movimientosAPI);
+        }
+
+        // Arrendamientos — API real
+        let _arrendamientosAPI = [];
+        async function loadArrendamientosAPI() {
+            try {
+                const estado = document.getElementById('arrFilterState')?.value;
+                const url = '/arrendamientos' + (estado ? `?estado=${estado}` : '');
+                const res = await ApiClient.request('GET', url);
+                if (!res.ok) return;
+                _arrendamientosAPI = res.data;
+
+                const [rC, rCont] = await Promise.all([
+                    ApiClient.request('GET', '/clientes'),
+                    ApiClient.request('GET', '/contenedores?limit=500')
+                ]);
+                const clienteMap = {};
+                if (rC.ok) rC.data.forEach(c => clienteMap[c.id_cliente] = c.nombre);
+                const contMap = {};
+                if (rCont.ok) rCont.data.forEach(c => contMap[c.id_contenedor] = c.id_codigo);
+                window._clienteMap = clienteMap;
+                window._contMap    = contMap;
+
+                renderArrendamientosAPI(_arrendamientosAPI, clienteMap, contMap);
+            } catch(e) { console.error('Error cargando arrendamientos:', e); }
+        }
+
+        function renderArrendamientosAPI(data, clienteMap=window._clienteMap||{}, contMap=window._contMap||{}) {
+            const tbody = document.getElementById('arrTable');
+            const count = document.getElementById('arrCount');
+            if (count) count.textContent = `${data.length} contratos`;
+            if (!tbody) return;
+            if (!data.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Sin arrendamientos</div></td></tr>'; return; }
+            tbody.innerHTML = data.map(a => `
+                <tr>
+                    <td><strong>${sanitizeHTML(contMap[a.id_contenedor] || '#'+a.id_contenedor)}</strong></td>
+                    <td>${sanitizeHTML(clienteMap[a.id_cliente] || '#'+a.id_cliente)}</td>
+                    <td>${a.fecha_inicio || '—'}</td>
+                    <td>${a.fecha_fin || '—'}</td>
+                    <td>$${Number(a.valor_alquiler).toLocaleString('es-CO')}</td>
+                    <td><span class="badge-status ${a.estado_arrendamiento==='activo'?'disponible':'fuera_de_servicio'}">${a.estado_arrendamiento==='activo'?'Activo':'Finalizado'}</span></td>
+                    <td><button class="btn-icon" title="Ver facturas" onclick="navigateTo('facturacion');showToast('Filtra por contenedor en Facturación','info')"><i class="bi bi-receipt"></i></button></td>
+                </tr>`).join('');
+        }
+
+        function filterRentals() { loadArrendamientosAPI(); }
+
+        // Historial — API real
+        async function populateHistFilter() {
+            const s = document.getElementById('histFilterContainer');
+            if (!s) return;
+            const res = await ApiClient.request('GET', '/contenedores?limit=500');
+            if (res.ok) s.innerHTML = '<option value="">Seleccionar contenedor</option>' + res.data.map(c=>`<option value="${c.id_contenedor}">${c.id_codigo}</option>`).join('');
+        }
+
+        async function showHistory() {
+            const id = document.getElementById('histFilterContainer').value;
+            const empty = document.getElementById('historyEmpty');
+            const content = document.getElementById('historyContent');
+            if (!id) { empty.style.display='block'; content.style.display='none'; return; }
+            empty.style.display = 'none'; content.style.display = 'block';
+            content.innerHTML = '<div class="empty-state"><div class="loader-spinner" style="margin:0 auto"></div></div>';
+            try {
+                const res = await ApiClient.request('GET', `/contenedores/${id}/historial`);
+                if (!res.ok) { content.innerHTML='<div class="empty-state">Error cargando historial</div>'; return; }
+                const h = res.data;
+                const movs = h.movimientos || [];
+                const sts  = h.historial_estado || [];
+                const ren  = h.arrendamientos || [];
+                content.innerHTML = `
+                    <h5 style="margin-bottom:.75rem"><i class="bi bi-arrow-left-right"></i> Movimientos (${movs.length})</h5>
+                    ${movs.length ? `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>ID</th><th>Origen</th><th>Destino</th><th>Transporte</th><th>Fecha</th></tr></thead><tbody>${movs.map(m=>`<tr><td>#${m.id_movimiento}</td><td>${m.ubicacion_origen||'—'}</td><td>${m.ubicacion_destino||'—'}</td><td>${m.medio_transporte||'—'}</td><td>${m.fecha_hora?m.fecha_hora.substring(0,10):'—'}</td></tr>`).join('')}</tbody></table></div>` : '<p style="color:var(--text-muted);margin-bottom:1rem">Sin movimientos.</p>'}
+                    <h5 style="margin:1rem 0 .75rem"><i class="bi bi-arrow-repeat"></i> Cambios de estado (${sts.length})</h5>
+                    ${sts.length ? `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Estado</th><th>Inicio</th><th>Fin</th></tr></thead><tbody>${sts.map(e=>`<tr><td><span class="badge-status ${e.estado}">${e.estado}</span></td><td>${e.fecha_inicio||'—'}</td><td>${e.fecha_fin||'Activo'}</td></tr>`).join('')}</tbody></table></div>` : '<p style="color:var(--text-muted);margin-bottom:1rem">Sin cambios.</p>'}
+                    <h5 style="margin:1rem 0 .75rem"><i class="bi bi-calendar2-week"></i> Arrendamientos (${ren.length})</h5>
+                    ${ren.length ? `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Cliente</th><th>Inicio</th><th>Fin</th><th>Valor</th></tr></thead><tbody>${ren.map(a=>`<tr><td>#${a.id_cliente}</td><td>${a.fecha_inicio}</td><td>${a.fecha_fin||'—'}</td><td>$${Number(a.valor_alquiler).toLocaleString('es-CO')}</td></tr>`).join('')}</tbody></table></div>` : '<p style="color:var(--text-muted)">Sin arrendamientos.</p>'}
+                `;
+            } catch(e) { content.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`; }
+        }
+
+        // Facturación — API real (stub)
+        async function loadFacturacionAPI() {
+            try {
+                const estado = document.getElementById('filtFactEstado')?.value;
+                const url = '/facturacion' + (estado ? `?estado_pago=${estado}` : '');
+                const res = await ApiClient.request('GET', url);
+                if (!res.ok) return;
+                const data = res.data;
+                const count = document.getElementById('factCount');
+                if (count) count.textContent = `${data.length} facturas`;
+                const tbody = document.getElementById('factTable');
+                if (!tbody) return;
+                if (!data.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Sin facturas</div></td></tr>'; return; }
+                const contRes = await ApiClient.request('GET', '/contenedores?limit=500');
+                const contMap = {};
+                if (contRes.ok) contRes.data.forEach(c => contMap[c.id_contenedor] = c.id_codigo);
+                tbody.innerHTML = data.map(f => `
+                    <tr>
+                        <td><strong>${sanitizeHTML(f.codigo_factura||'—')}</strong></td>
+                        <td>${sanitizeHTML(contMap[f.id_contenedor]||'#'+f.id_contenedor)}</td>
+                        <td>$${Number(f.monto).toLocaleString('es-CO')}</td>
+                        <td>${f.fecha_facturacion||'—'}</td>
+                        <td>${f.fecha_vencimiento||'—'}</td>
+                        <td><span class="badge-status ${f.estado_pago==='pagado'?'disponible':f.estado_pago==='mora'?'fuera_de_servicio':'asignado'}">${f.estado_pago||'pendiente'}</span></td>
+                        <td><div class="table-actions"><div class="btn-icon" title="Editar" onclick="openFactModal(${f.id_factura})"><i class="bi bi-pencil-fill"></i></div></div></td>
+                    </tr>`).join('');
+            } catch(e) { console.error('Error cargando facturación:', e); }
+        }
+
+        // ── NOTIFICACIONES ──────────────────────────────────────────────────────
+        let _notifData = [];
+        const NOTIF_READ_KEY = 'mz_notif_read';
+
+        function getReadIds() { try { return JSON.parse(localStorage.getItem(NOTIF_READ_KEY)||'[]'); } catch(e) { return []; } }
+        function markNotifRead(id) { const ids=getReadIds(); if(!ids.includes(id)){ids.push(id);localStorage.setItem(NOTIF_READ_KEY,JSON.stringify(ids));} }
+        function markAllRead() { localStorage.setItem(NOTIF_READ_KEY, JSON.stringify(_notifData.map((_,i)=>i))); updateNotifBadge(); buildNotifPanel(); showToast('Todas marcadas como leídas','info'); }
+
+        function updateNotifBadge() {
+            const readIds = getReadIds();
+            const unread  = _notifData.filter((_,i)=>!readIds.includes(i)).length;
+            const badge   = document.getElementById('notifCount');
+            const dot     = document.getElementById('notifDot');
+            if (badge) { badge.textContent=unread; badge.style.display=unread>0?'inline-block':'none'; }
+            if (dot)   dot.style.display = 'none';
+        }
+
+        async function loadNotifications() {
+            try {
+                const res = await ApiClient.request('GET', '/dashboard/notificaciones');
+                if (res.ok && Array.isArray(res.data)) { _notifData = res.data; updateNotifBadge(); }
+            } catch(e) { /* silencioso */ }
+        }
+
+        function renderAlerts() {
+            const alertsList = document.getElementById('alertsList');
+            if (!alertsList) return;
+            const errores = _notifData.filter(n=>n.tipo==='error'||n.tipo==='warn');
+            alertsList.innerHTML = errores.length
+                ? errores.map(n=>`<div class="alert-row"><div class="alert-icon ${n.tipo}"><i class="bi bi-${n.tipo==='error'?'exclamation-triangle-fill':'clock-fill'}"></i></div><div><div class="alert-text"><strong>${sanitizeHTML(n.titulo)}</strong></div><div class="alert-time">${sanitizeHTML(n.mensaje)} · ${n.fecha}</div></div></div>`).join('')
+                : '<div style="text-align:center;padding:1.5rem;color:var(--text-muted)">Sin alertas activas.</div>';
+            const dot = document.getElementById('notifDot');
+            if (dot) dot.style.display = errores.length ? 'block' : 'none';
+        }
+
         function buildNotifPanel() {
-            const today=new Date(), up=DB.arrendamientos.filter(a=>{const d=Math.ceil((new Date(a.fin)-today)/86400000);return d<=7&&d>=0;});
-            document.getElementById('notifBadge').textContent=up.length+DB.movimientos.length;
-            document.getElementById('notifBody').innerHTML=`<div class="notif-section"><div class="notif-section-label">Alertas</div>${up.map(a=>{const d=Math.ceil((new Date(a.fin)-today)/86400000);return`<div class="notif-item"><div class="notif-item-icon ${d<=2?'error':'warn'}"><i class="bi bi-${d<=2?'exclamation-triangle-fill':'clock-fill'}"></i></div><div><div class="notif-item-text"><strong>${sanitizeHTML(a.contenedor)}</strong> (${sanitizeHTML(a.cliente)})</div><div class="notif-item-time">Vence en ${d} días</div></div></div>`;}).join('')}</div><div class="notif-section"><div class="notif-section-label">Movimientos recientes</div>${DB.movimientos.slice(0,3).map(m=>`<div class="notif-item"><div class="notif-item-icon info"><i class="bi bi-arrow-left-right"></i></div><div><div class="notif-item-text">${sanitizeHTML(m.contenedor)}: ${sanitizeHTML(m.origen)} → ${sanitizeHTML(m.destino)}</div><div class="notif-item-time">${m.fecha}</div></div></div>`).join('')}</div>`;
+            const body    = document.getElementById('notifBody');
+            const badge   = document.getElementById('notifBadge');
+            const readIds = getReadIds();
+            const unread  = _notifData.filter((_,i)=>!readIds.includes(i)).length;
+            if (badge) badge.textContent = unread;
+            if (!body) return;
+            if (!_notifData.length) { body.innerHTML='<div class="empty-state" style="padding:2rem 0"><i class="bi bi-bell-slash" style="font-size:2rem;opacity:.4"></i><p style="margin-top:.5rem;font-size:.8rem">Sin notificaciones</p></div>'; return; }
+
+            const byTipo = { error:[], warn:[], info:[] };
+            _notifData.forEach((n,i) => { (byTipo[n.tipo]||byTipo.info).push({...n, _idx:i}); });
+
+            const secciones = [
+                { tipo:'error', label:'🔴 ALERTAS CRÍTICAS',       items:byTipo.error },
+                { tipo:'warn',  label:'⚠️ PRÓXIMOS A VENCER',      items:byTipo.warn  },
+                { tipo:'info',  label:'📦 MOVIMIENTOS RECIENTES',  items:byTipo.info  },
+            ];
+
+            body.innerHTML = secciones.filter(s=>s.items.length).map(sec => `
+                <div class="notif-section">
+                    <div class="notif-section-label">${sec.label}</div>
+                    ${sec.items.map(n => {
+                        const isRead = readIds.includes(n._idx);
+                        return `<div class="notif-item" id="notif-item-${n._idx}" style="${isRead?'opacity:.5;':''}cursor:pointer" onclick="onNotifClick(${n._idx})">
+                            <div class="notif-item-icon ${sec.tipo}"><i class="bi bi-${sec.tipo==='error'?'exclamation-triangle-fill':sec.tipo==='warn'?'clock-history':'arrow-left-right'}"></i></div>
+                            <div style="flex:1">
+                                <div class="notif-item-text"><strong>${sanitizeHTML(n.titulo)}</strong></div>
+                                <div class="notif-item-time">${n.fecha}</div>
+                                <div id="notif-detail-${n._idx}" style="display:none;margin-top:.4rem;padding:.5rem;background:var(--input-bg);border-radius:6px;font-size:.74rem;color:var(--text-secondary);line-height:1.5">${sanitizeHTML(n.mensaje)}</div>
+                            </div>
+                            ${!isRead ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:4px"></div>` : ''}
+                        </div>`;
+                    }).join('')}
+                </div>`).join('');
+        }
+
+        function onNotifClick(idx) {
+            const detail = document.getElementById(`notif-detail-${idx}`);
+            if (detail) detail.style.display = detail.style.display==='none' ? 'block' : 'none';
+            markNotifRead(idx);
+            const item = document.getElementById(`notif-item-${idx}`);
+            if (item) { item.style.opacity='.5'; const dot=item.querySelector('div[style*="background:var(--red)"]'); if(dot) dot.remove(); }
+            updateNotifBadge();
+        }
+
+        function toggleNotifPanel() {
+            const panel   = document.getElementById('notifPanel');
+            const overlay = document.getElementById('notifOverlay');
+            const isOpen  = panel.classList.contains('open');
+            if (!isOpen) { panel.classList.add('open'); overlay.classList.add('show'); buildNotifPanel(); }
+            else         { panel.classList.remove('open'); overlay.classList.remove('show'); }
+        }
+        function closeNotifPanel()        { document.getElementById('notifPanel').classList.remove('open'); document.getElementById('notifOverlay').classList.remove('show'); }
+        function markAllNotificationsRead() { markAllRead(); }
+
+        // Polling de notificaciones cada 30s
+        setInterval(loadNotifications, 30000);
+        function _downloadCSV(csv, name) {
+            const b=new Blob([csv],{type:'text/csv'}), u=URL.createObjectURL(b), a=document.createElement('a');
+            a.href=u; a.download=`${name}_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(u); showToast('CSV descargado');
         }
         function exportCSV(type) {
-            let csv=type==='contenedores'?'Código,Tipo,Cliente,Estado,Ubicación,Fecha\n':'ID,Contenedor,Origen,Destino,Transporte,Responsable,Fecha\n';
-            const data=type==='contenedores'?DB.contenedores:DB.movimientos;
-            data.forEach(i=>csv+=type==='contenedores'?`${i.codigo},${i.tipo},${i.cliente},${i.estado},${i.ubicacion},${i.fecha}\n`:`${i.id},${i.contenedor},${i.origen},${i.destino},${i.transporte},${i.responsable},${i.fecha}\n`);
-            const b=new Blob([csv],{type:'text/csv'}), u=URL.createObjectURL(b), a=document.createElement('a');
-            a.href=u; a.download=`${type}_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(u); showToast('CSV descargado');
+            if(type==='contenedores'){
+                let csv='ID,Código,Tipo,Cliente,Estado,Ubicación,Creado\n';
+                DB_CONTENEDORES_API.forEach(c=>csv+=`${c.id_contenedor},"${c.id_codigo}","${DB_TIPOS.find(t=>t.id_tipo===c.id_tipo)?.nombre||c.id_tipo}","${DB_CLIENTES.find(cl=>cl.id_cliente===c.id_cliente)?.nombre||''}","${c.estado}","${c.ubicacion_actual||''}","${c.created_at||''}"\n`);
+                _downloadCSV(csv,'contenedores');
+            } else if(type==='movimientos'){
+                let csv='ID,Contenedor,Origen,Destino,Transporte,Responsable,Fecha\n';
+                _movimientosAPI.forEach(m=>csv+=`${m.id_movimiento},${m.id_contenedor},"${m.ubicacion_origen||''}","${m.ubicacion_destino||''}","${m.medio_transporte||''}","${m.responsable||''}","${m.fecha_hora?.substring(0,10)||''}"\n`);
+                _downloadCSV(csv,'movimientos');
+            } else if(type==='facturacion'){
+                ApiClient.request('GET','/facturacion').then(res=>{
+                    if(!res.ok) return;
+                    let csv='Código,Contenedor,Monto,Emisión,Vencimiento,Estado\n';
+                    res.data.forEach(f=>csv+=`"${f.codigo_factura||''}",${f.id_contenedor},${f.monto},"${f.fecha_facturacion||''}","${f.fecha_vencimiento||''}","${f.estado_pago}"\n`);
+                    _downloadCSV(csv,'facturacion');
+                });
+            }
         }
 
         // Navegación & Sidebar
@@ -997,13 +1516,16 @@
             document.getElementById('breadcrumb').textContent=`Inicio › ${pageId.charAt(0).toUpperCase()+pageId.slice(1)}`;
             if(window.innerWidth<=768) closeMobileSidebar();
             
-            if(pageId==='panel'){updateKPIs();renderMovements();renderAlerts();applyTheme();}
+            if(pageId==='panel'){updateKPIs();renderAlerts();applyTheme();}
             else if(pageId==='contenedores'){if(DB_TIPOS.length){loadContainers();populateFilters();}else{loadReferenceData().then(()=>{loadContainers();populateFilters();});}}
             else if(pageId==='zonas') renderZoneData();
-            else if(pageId==='movimientos'){populateMovFilter();filterMovements();}
-            else if(pageId==='arrendamientos') filterRentals();
+            else if(pageId==='movimientos') loadMovimientos();
+            else if(pageId==='arrendamientos') loadArrendamientosAPI();
             else if(pageId==='historial') populateHistFilter();
             else if(pageId==='usuarios') loadUsers();
+            else if(pageId==='facturacion') loadFacturacionAPI();
+            else if(pageId==='clientes') loadClientes();
+            else if(pageId==='reportes') loadReportes();
         }
         function closeMobileSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('show'); }
         function toggleSidebar() {
@@ -1043,19 +1565,10 @@
             document.getElementById('themeToggle').addEventListener('click', ()=>setTheme(document.documentElement.getAttribute('data-bs-theme')==='dark'?'light':'dark'));
             document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
             
-            // Agregar botón de logout
-            const userCard = document.querySelector('.user-card');
-            if(userCard) {
-                userCard.addEventListener('click', () => {
-                    const modal = document.createElement('div');
-                    modal.innerHTML = `<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a2b4c;border:1px solid #333;border-radius:12px;padding:2rem;z-index:10000;text-align:center;min-width:300px;"><div style="font-size:1.2rem;color:#fff;margin-bottom:1rem;">¿Cerrar sesión?</div><button onclick="logout()" style="background:#d32f2f;color:#fff;border:none;padding:.7rem 1.5rem;border-radius:8px;cursor:pointer;margin-right:.5rem;">Salir</button><button onclick="this.closest('div').remove()" style="background:#444;color:#fff;border:none;padding:.7rem 1.5rem;border-radius:8px;cursor:pointer;">Cancelar</button></div>`;
-                    document.body.appendChild(modal.firstElementChild);
-                });
-            }
-            
             rowsPerPage = parseInt(localStorage.getItem('rowsPref')) || 10;
-            
-            updateKPIs(); renderMovements(); renderAlerts();
+
+            loadNotifications();
+            updateKPIs(); renderAlerts();
             loadReferenceData().then(()=>{ loadContainers(); populateFilters(); });
             if(currentUserRole === 'admin') loadUsers();
             
@@ -1063,10 +1576,244 @@
             
             document.addEventListener('keydown',e=>{
                 if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();document.getElementById('globalSearch').focus();}
-                if(e.key==='Escape'){closeModal('modalContainer');closeModal('modalConfirm');closeModal('modalUser');closeNotifPanel();}
+                if(e.key==='Escape'){['modalContainer','modalConfirm','modalUser','modalFact','modalRental','modalClient'].forEach(id=>closeModal(id));closeNotifPanel();}
             });
-            ['modalContainer','modalConfirm','modalUser'].forEach(id=>document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id);}));
+            ['modalContainer','modalConfirm','modalUser','modalFact','modalRental','modalClient'].forEach(id=>document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id);}));
         });
+
+        /* ═══════════════════════ PANEL DE PERFIL ═══════════════════════ */
+        function toggleTheme() { setTheme(document.documentElement.getAttribute('data-bs-theme')==='dark'?'light':'dark'); }
+
+        async function openProfilePanel() {
+            let userData = JSON.parse(localStorage.getItem('mz_auth_user_data') || '{}');
+            if (!userData.id_usuario) {
+                const username = getAuthUser();
+                try {
+                    const res = await ApiClient.request('GET', '/usuarios');
+                    if (res.ok) {
+                        const found = res.data.find(u => u.user === username);
+                        if (found) { userData = found; localStorage.setItem('mz_auth_user_data', JSON.stringify(found)); }
+                    }
+                } catch(e) {}
+            }
+            document.getElementById('pNombres').value   = userData.nombres   || '';
+            document.getElementById('pApellidos').value = userData.apellidos || '';
+            document.getElementById('pEmail').value     = userData.email     || '';
+            document.getElementById('profileName').textContent = ((userData.nombres||'')+' '+(userData.apellidos||'')).trim() || getAuthUser() || 'Usuario';
+            document.getElementById('profileRole').textContent = userData.rol || getAuthRole() || '—';
+
+            const initials = ((userData.nombres||'')[0]||'') + ((userData.apellidos||'')[0]||'');
+            document.getElementById('profileAvatarText').textContent = initials.toUpperCase() || (getAuthUser()||'U').substring(0,2).toUpperCase();
+            const savedAvatar = localStorage.getItem('mz_user_avatar');
+            if (savedAvatar) {
+                document.getElementById('profileAvatarImgEl').src = savedAvatar;
+                document.getElementById('profileAvatarImgEl').style.display = 'block';
+                document.getElementById('profileAvatarText').style.display  = 'none';
+            } else {
+                document.getElementById('profileAvatarImgEl').style.display = 'none';
+                document.getElementById('profileAvatarText').style.display  = 'flex';
+            }
+            const adminSec = document.getElementById('configAdminSection');
+            if (adminSec) adminSec.style.display = ['admin','supervisor'].includes(getAuthRole()) ? 'block' : 'none';
+            const ri = localStorage.getItem('mz_refresh_interval') || '60000';
+            if (document.getElementById('cfgRefreshInterval')) document.getElementById('cfgRefreshInterval').value = ri;
+            const verifEl = document.getElementById('emailVerifStatus');
+            if (verifEl) verifEl.innerHTML = userData.email_verificado
+                ? '<span style="color:var(--success)"><i class="bi bi-patch-check-fill"></i> Email verificado</span>'
+                : '<span style="color:var(--warning)"><i class="bi bi-exclamation-triangle"></i> Email no verificado</span>';
+            switchProfileTab('perfil');
+            document.getElementById('profilePanel').classList.add('open');
+            document.getElementById('profileOverlay').classList.add('show');
+        }
+
+        function closeProfilePanel() {
+            document.getElementById('profilePanel').classList.remove('open');
+            document.getElementById('profileOverlay').classList.remove('show');
+        }
+
+        function switchProfileTab(tab) {
+            ['perfil','config','soporte'].forEach(t => {
+                const el  = document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
+                const btn = document.getElementById('tabBtn'+t.charAt(0).toUpperCase()+t.slice(1));
+                if (el)  el.style.display  = t===tab ? 'block' : 'none';
+                if (btn) { btn.style.color=t===tab?'var(--red)':'var(--text-muted)'; btn.style.borderBottomColor=t===tab?'var(--red)':'transparent'; }
+            });
+        }
+
+        function onAvatarChange(input) {
+            if (!input.files[0]) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                localStorage.setItem('mz_user_avatar', e.target.result);
+                document.getElementById('profileAvatarImgEl').src = e.target.result;
+                document.getElementById('profileAvatarImgEl').style.display = 'block';
+                document.getElementById('profileAvatarText').style.display  = 'none';
+                document.querySelectorAll('.user-avatar').forEach(el => { el.innerHTML=`<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; });
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+
+        async function saveProfile() {
+            const btn = document.querySelector('#tabPerfil .btn-save');
+            if (btn) { btn.disabled=true; btn.textContent='Guardando...'; }
+            try {
+                const userData = JSON.parse(localStorage.getItem('mz_auth_user_data') || '{}');
+                const userId   = userData.id_usuario;
+                if (!userId) throw new Error('No se encontró ID — abre el perfil de nuevo');
+                const payload  = { nombres:document.getElementById('pNombres').value.trim(), apellidos:document.getElementById('pApellidos').value.trim(), email:document.getElementById('pEmail').value.trim() };
+                const pass = document.getElementById('pPass').value;
+                if (pass) payload.password = pass;
+                const res = await ApiClient.request('PUT', `/usuarios/${userId}`, payload);
+                if (!res.ok) throw new Error(res.data?.detail || 'Error al guardar');
+                Object.assign(userData, payload);
+                localStorage.setItem('mz_auth_user_data', JSON.stringify(userData));
+                document.getElementById('profileName').textContent = (payload.nombres+' '+payload.apellidos).trim();
+                showToast('Perfil actualizado correctamente');
+            } catch(e) { showToast(e.message||'Error al guardar perfil','error'); }
+            finally { if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-floppy-fill"></i> Guardar cambios'; } }
+        }
+
+        async function solicitarVerificacion() {
+            try {
+                const res = await ApiClient.request('POST', '/usuarios/solicitar-verificacion');
+                if (res.ok) { document.getElementById('verifTokenBox').style.display='block'; showToast('Código generado. Revisa los logs del servidor.','info'); }
+                else showToast(res.data?.detail||'Error','error');
+            } catch(e) { showToast('Error de conexión','error'); }
+        }
+
+        async function confirmarVerificacion() {
+            const token = document.getElementById('verifToken').value.trim();
+            if (!token) { showToast('Ingresa el código','error'); return; }
+            try {
+                const res = await ApiClient.request('POST', `/usuarios/verificar-email?token=${token}`);
+                if (res.ok) {
+                    showToast('Email verificado correctamente ✓');
+                    document.getElementById('verifTokenBox').style.display='none';
+                    document.getElementById('emailVerifStatus').innerHTML='<span style="color:var(--success)"><i class="bi bi-patch-check-fill"></i> Email verificado</span>';
+                } else showToast(res.data?.detail||'Código incorrecto','error');
+            } catch(e) { showToast('Error de conexión','error'); }
+        }
+
+        function saveConfigOption(key, value) { localStorage.setItem('mz_'+key, value); showToast('Configuración guardada','info'); }
+        function getBadgeStatus(estado) { return `<span class="badge-status ${estado}">${estado}</span>`; }
+
+        // ── FACTURA MODAL ────────────────────────────────────────────────────
+        async function openFactModal(id=null) {
+            document.getElementById('factModalTitle').textContent = id ? 'Editar factura' : 'Nueva factura';
+            if (!id) {
+                ['fMonto','fCodigo','fVencimiento','fObs'].forEach(i=>document.getElementById(i).value='');
+                document.getElementById('fEstado').value='pendiente';
+            }
+            const res = await ApiClient.request('GET', '/contenedores?limit=500');
+            if (res.ok) document.getElementById('fContenedor').innerHTML = res.data.map(c=>`<option value="${c.id_contenedor}">${c.id_codigo}</option>`).join('');
+            document.getElementById('modalFact').classList.add('show');
+        }
+        async function saveFactura() {
+            const contenedor=document.getElementById('fContenedor').value;
+            const monto=document.getElementById('fMonto').value;
+            if(!contenedor||!monto){showToast('Contenedor y monto son obligatorios','error');return;}
+            const btn=document.getElementById('saveFactBtn'); btn.disabled=true;
+            try {
+                const payload={id_contenedor:parseInt(contenedor),monto:parseFloat(monto),codigo_factura:document.getElementById('fCodigo').value.trim()||null,fecha_vencimiento:document.getElementById('fVencimiento').value||null,estado_pago:document.getElementById('fEstado').value,observaciones:document.getElementById('fObs').value.trim()||null};
+                await ApiClient.request('POST','/facturacion',payload);
+                closeModal('modalFact'); loadFacturacionAPI(); showToast('Factura guardada');
+            } catch(e){ showToast(e.message||'Error al guardar factura','error'); }
+            btn.disabled=false;
+        }
+
+        // ── CLIENTES ────────────────────────────────────────────────────────
+        let DB_CLIENTES_API=[], _clientesFiltrados=[];
+        async function loadClientes() {
+            try {
+                const res=await ApiClient.request('GET','/clientes');
+                if(!res.ok) return;
+                DB_CLIENTES_API=res.data; _clientesFiltrados=[...DB_CLIENTES_API];
+                renderClientes(_clientesFiltrados);
+            } catch(e){ console.error('Error cargando clientes:',e); }
+        }
+        function filterClientesLocal() {
+            const q=(document.getElementById('filtClientSearch')?.value||'').toLowerCase();
+            _clientesFiltrados=DB_CLIENTES_API.filter(c=>c.nombre.toLowerCase().includes(q)||c.nit.toLowerCase().includes(q));
+            renderClientes(_clientesFiltrados);
+        }
+        function renderClientes(data) {
+            const tbody=document.getElementById('clientsTable');
+            const count=document.getElementById('clientCount');
+            if(count) count.textContent=`${data.length} clientes`;
+            if(!tbody) return;
+            if(!data.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty-state">Sin clientes</div></td></tr>';return;}
+            tbody.innerHTML=data.map(c=>`<tr>
+                <td><strong>${sanitizeHTML(c.nombre)}</strong></td>
+                <td>${sanitizeHTML(c.nit)}</td>
+                <td>${sanitizeHTML(c.telefono||'—')}</td>
+                <td>${sanitizeHTML(c.email||'—')}</td>
+                <td>${sanitizeHTML(c.direccion||'—')}</td>
+                <td><div class="table-actions">
+                    ${canPerformAction('editContainer')?`<div class="btn-icon" onclick="openClientModal(${c.id_cliente})" title="Editar"><i class="bi bi-pencil-fill"></i></div>`:''}
+                    ${canPerformAction('deleteContainer')?`<div class="btn-icon danger" onclick="deleteCliente(${c.id_cliente})" title="Eliminar"><i class="bi bi-trash-fill"></i></div>`:''}
+                </div></td></tr>`).join('');
+        }
+        let editClientId=null;
+        function openClientModal(id=null) {
+            editClientId=id;
+            document.getElementById('clientModalTitle').textContent=id?'Editar cliente':'Nuevo cliente';
+            if(id){const c=DB_CLIENTES_API.find(x=>x.id_cliente===id);if(c){document.getElementById('cNombre').value=c.nombre;document.getElementById('cNit').value=c.nit;document.getElementById('cTelefono').value=c.telefono||'';document.getElementById('cEmail').value=c.email||'';document.getElementById('cDireccion').value=c.direccion||'';}}
+            else ['cNombre','cNit','cTelefono','cEmail','cDireccion'].forEach(i=>document.getElementById(i).value='');
+            document.getElementById('modalClient').classList.add('show');
+        }
+        async function saveCliente() {
+            const nombre=document.getElementById('cNombre').value.trim(), nit=document.getElementById('cNit').value.trim();
+            if(!nombre||!nit){showToast('Nombre y NIT son obligatorios','error');return;}
+            const btn=document.getElementById('saveClientBtn'); btn.disabled=true;
+            try {
+                const payload={nombre,nit,telefono:document.getElementById('cTelefono').value.trim()||null,email:document.getElementById('cEmail').value.trim()||null,direccion:document.getElementById('cDireccion').value.trim()||null};
+                if(editClientId) await ApiClient.request('PUT',`/clientes/${editClientId}`,payload);
+                else await ApiClient.request('POST','/clientes',payload);
+                closeModal('modalClient'); loadClientes(); loadReferenceData(); showToast('Cliente guardado');
+            } catch(e){ showToast(e.message||'Error al guardar cliente','error'); }
+            btn.disabled=false;
+        }
+        async function deleteCliente(id) {
+            if(!confirm('¿Eliminar cliente? Esta acción no se puede deshacer.')) return;
+            try { await ApiClient.request('DELETE',`/clientes/${id}`); loadClientes(); loadReferenceData(); showToast('Cliente eliminado','info'); }
+            catch(e){ showToast(e.message||'Error','error'); }
+        }
+
+        // ── REPORTES ────────────────────────────────────────────────────────
+        async function loadReportes() {
+            try {
+                const res=await ApiClient.request('GET','/dashboard/stats');
+                if(!res.ok) return;
+                const s=res.data;
+                document.getElementById('reportKpiGrid').innerHTML=`
+                    <div class="kpi-card red"><div class="kpi-icon red"><i class="bi bi-box-seam-fill"></i></div><div class="kpi-value">${s.total_contenedores}</div><div class="kpi-label">Total contenedores</div></div>
+                    <div class="kpi-card green"><div class="kpi-icon green"><i class="bi bi-arrow-left-right"></i></div><div class="kpi-value">${s.total_movimientos}</div><div class="kpi-label">Total movimientos</div></div>
+                    <div class="kpi-card blue"><div class="kpi-icon blue"><i class="bi bi-calendar2-week-fill"></i></div><div class="kpi-value">${s.arrendamientos_activos}</div><div class="kpi-label">Arrendamientos activos</div></div>
+                    <div class="kpi-card yellow"><div class="kpi-icon yellow"><i class="bi bi-exclamation-triangle-fill"></i></div><div class="kpi-value">${s.proximos_vencer}</div><div class="kpi-label">Próximos a vencer</div></div>`;
+                const co=getComputedStyle(document.documentElement);
+                const chartOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:co.getPropertyValue('--text-primary')||'#e8f0fc',font:{size:11}}}}};
+                const axesOpts={ticks:{color:'rgba(160,185,215,0.7)',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'}};
+                const ctx=id=>document.getElementById(id)?.getContext('2d');
+                if(window._rcs) window._rcs.destroy();
+                if(ctx('chartReportStates')&&s.por_estado){const e=Object.entries(s.por_estado);window._rcs=new Chart(ctx('chartReportStates'),{type:'bar',data:{labels:e.map(([k])=>ESTADO_LABELS[k]||k),datasets:[{label:'Contenedores',data:e.map(([,v])=>v),backgroundColor:['#00c896','#42a5f5','#ffca28','#ce93d8','#ffb74d','#ff8a80']}]},options:{...chartOpts,scales:{x:axesOpts,y:{...axesOpts,beginAtZero:true}}}});}
+                if(window._rct) window._rct.destroy();
+                if(ctx('chartReportTypes')&&s.por_tipo){const e=Object.entries(s.por_tipo);window._rct=new Chart(ctx('chartReportTypes'),{type:'doughnut',data:{labels:e.map(([k])=>k),datasets:[{data:e.map(([,v])=>v),backgroundColor:['#D32F2F','#42a5f5','#00c896','#ffca28','#ce93d8','#ffb74d']}]},options:{...chartOpts,cutout:'65%'}});}
+                if(window._rcc) window._rcc.destroy();
+                if(ctx('chartReportClients')&&s.por_cliente){const e=Object.entries(s.por_cliente).sort((a,b)=>b[1]-a[1]).slice(0,10);window._rcc=new Chart(ctx('chartReportClients'),{type:'bar',data:{labels:e.map(([k])=>k),datasets:[{label:'Contenedores',data:e.map(([,v])=>v),backgroundColor:'#42a5f5'}]},options:{...chartOpts,scales:{x:axesOpts,y:{...axesOpts,beginAtZero:true}}}});}
+            } catch(e){ console.error('Error cargando reportes:',e); }
+        }
+
+        function openRentalModal() { openRentalModalWithData(); }
+        async function saveRental() {
+            const payload = { id_contenedor:parseInt(document.getElementById('rContenedor').value), id_cliente:parseInt(document.getElementById('rCliente').value), fecha_inicio:document.getElementById('rInicio').value, fecha_fin:document.getElementById('rFin').value||null, valor_alquiler:parseFloat(document.getElementById('rValor').value), estado_arrendamiento:document.getElementById('rEstado').value };
+            try { await ApiClient.request('POST','/arrendamientos',payload); closeModal('modalRental'); loadArrendamientosAPI(); showToast('Contrato guardado'); } catch(e) { showToast(e.message||'Error','error'); }
+        }
+        async function openRentalModalWithData() {
+            const [rC, rCont] = await Promise.all([ApiClient.request('GET','/clientes'), ApiClient.request('GET','/contenedores?limit=500')]);
+            if(rC.ok)    document.getElementById('rCliente').innerHTML    = rC.data.map(c=>`<option value="${c.id_cliente}">${c.nombre}</option>`).join('');
+            if(rCont.ok) document.getElementById('rContenedor').innerHTML = rCont.data.map(c=>`<option value="${c.id_contenedor}">${c.id_codigo}</option>`).join('');
+            document.getElementById('modalRental').classList.add('show');
+        }
     </script>
 </body>
 </html>
