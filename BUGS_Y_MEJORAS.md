@@ -1,4 +1,4 @@
-# Análisis de Bugs y Mejoras - Sistema Logística de Contenedores
+![Dashboard screenshot showing a logistics container management interface with a dark theme, a sidebar with navigation items like Panel General, Contenedores, Movimientos, Arrendamientos and Historial, and a user profile panel for Mateo Barraza with email mateomillanb@gmail.com and a verification button. The main panel displays a container inventory table with codes MZLO-001 through MZLO-010 and statuses such as asignado, en transito, disponible, en patio, en mantenimiento and fuera de servicio](image.png)# Análisis de Bugs y Mejoras - Sistema Logística de Contenedores
 
 ## ✓ BUGS SOLUCIONADOS
 
