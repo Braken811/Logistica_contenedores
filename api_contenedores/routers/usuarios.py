@@ -3,7 +3,7 @@ import shutil
 import random
 import string
 import logging as _logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
 from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File
@@ -14,6 +14,7 @@ from auth.dependencies import get_current_user, only_admin
 from schemas import UsuarioCreate, UsuarioUpdate, UsuarioSelfUpdate, UsuarioOut
 from database import get_db
 from models import Usuario
+from email_utils import validate_email_domain, send_verification_email
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 _logger = _logging.getLogger(__name__)
@@ -83,31 +84,68 @@ def upload_avatar(
 # ── Verificación de email ────────────────────────────────────────────────────
 
 @router.post("/solicitar-verificacion", summary="Solicitar código de verificación por email")
-def solicitar_verificacion(current=Depends(get_current_user), db: Session = Depends(get_db)):
+async def solicitar_verificacion(current=Depends(get_current_user), db: Session = Depends(get_db)):
     usuario = current["user"]
+
     if usuario.email_verificado:
         raise HTTPException(status_code=400, detail="El email ya está verificado")
 
+    if not usuario.email or usuario.email.strip() == "":
+        raise HTTPException(status_code=400, detail="Debes proporcionar un email primero")
+
+    # Validar dominio del email
+    es_valido, error_msg = validate_email_domain(usuario.email)
+    if not es_valido:
+        raise HTTPException(status_code=400, detail=error_msg)
+
+    # Generar código de 6 dígitos
     codigo = "".join(random.choices(string.digits, k=6))
     usuario.verification_token = codigo
+    usuario.verification_token_expires = datetime.utcnow() + timedelta(minutes=15)
     db.commit()
 
-    _logger.info(f"📧 CÓDIGO DE VERIFICACIÓN PARA {usuario.email}: {codigo}")
-    return {"mensaje": f"Código enviado al email {usuario.email}. Revisa los logs del servidor."}
+    # Enviar email real
+    exito, mensaje = await send_verification_email(usuario.email, usuario.nombres or usuario.user, codigo)
+
+    if not exito:
+        # Limpiar el token si falla el envío
+        usuario.verification_token = None
+        usuario.verification_token_expires = None
+        db.commit()
+        raise HTTPException(status_code=503, detail=mensaje)
+
+    _logger.info(f"✅ Email de verificación enviado a {usuario.email}")
+    return {"mensaje": "Código enviado a tu email. Puede tardar unos minutos en llegar."}
 
 
 @router.post("/verificar-email", summary="Verificar email con código")
 def verificar_email(token: str, current=Depends(get_current_user), db: Session = Depends(get_db)):
     usuario = current["user"]
+
     if usuario.email_verificado:
         raise HTTPException(status_code=400, detail="Ya verificado")
-    if not usuario.verification_token or usuario.verification_token != token:
+
+    if not usuario.verification_token:
+        raise HTTPException(status_code=400, detail="Primero solicita el código de verificación")
+
+    # Verificar expiración
+    if usuario.verification_token_expires and datetime.utcnow() > usuario.verification_token_expires:
+        usuario.verification_token = None
+        usuario.verification_token_expires = None
+        db.commit()
+        raise HTTPException(status_code=400, detail="Código expirado. Solicita uno nuevo.")
+
+    # Verificar código
+    if usuario.verification_token != token:
         raise HTTPException(status_code=400, detail="Código incorrecto")
 
     usuario.email_verificado = True
     usuario.verification_token = None
+    usuario.verification_token_expires = None
     db.commit()
-    return {"mensaje": "Email verificado correctamente"}
+
+    _logger.info(f"✅ Email {usuario.email} verificado correctamente")
+    return {"mensaje": "Email verificado correctamente ✓"}
 
 
 # ── Bootstrap público ────────────────────────────────────────────────────────

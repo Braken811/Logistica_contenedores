@@ -2639,7 +2639,15 @@
         }
 
         // Logout
-        function logout() { if(_sseSource){_sseSource.close();_sseSource=null;} TokenManager.clear(); localStorage.removeItem(STORAGE_KEY); window.location.href='/login'; }
+        function logout() {
+            if(_sseSource){_sseSource.close();_sseSource=null;}
+            const username = getAuthUser();
+            localStorage.removeItem('mz_user_avatar_' + username);
+            localStorage.removeItem('mz_auth_user_data');
+            TokenManager.clear();
+            localStorage.removeItem(STORAGE_KEY);
+            window.location.href='/login';
+        }
 
         // INIT
         document.addEventListener('DOMContentLoaded', async () => {
@@ -2655,7 +2663,7 @@
             document.getElementById('sidebarUser').textContent = username || 'Usuario';
             document.getElementById('sidebarRole').textContent = 'Rol: ' + role;
             // Mostrar foto guardada en el avatar del sidebar; si no hay, mostrar iniciales
-            const _savedAv = localStorage.getItem('mz_user_avatar');
+            const _savedAv = localStorage.getItem('mz_user_avatar_' + username);
             if (_savedAv) {
                 document.getElementById('userAvatar').innerHTML = `<img src="${_savedAv}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
             } else {
@@ -2680,7 +2688,8 @@
                 if (res && res.ok) {
                     localStorage.setItem('mz_auth_user_data', JSON.stringify(res.data));
                     currentUserId = res.data.id_usuario;
-                    if (!localStorage.getItem('mz_user_avatar') && res.data.ruta_imagen) {
+                    const userAvatarKey = 'mz_user_avatar_' + (username || res.data.user);
+                    if (!localStorage.getItem(userAvatarKey) && res.data.ruta_imagen) {
                         const avatarUrl = CONFIG.API_BASE + res.data.ruta_imagen;
                         document.getElementById('userAvatar').innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
                     }
@@ -2713,7 +2722,8 @@
 
             const initials = ((userData.nombres||'')[0]||'') + ((userData.apellidos||'')[0]||'');
             document.getElementById('profileAvatarText').textContent = initials.toUpperCase() || (getAuthUser()||'U').substring(0,2).toUpperCase();
-            const savedAvatar = localStorage.getItem('mz_user_avatar');
+            const userAvatarKey = 'mz_user_avatar_' + getAuthUser();
+            const savedAvatar = localStorage.getItem(userAvatarKey);
             if (savedAvatar) {
                 document.getElementById('profileAvatarImgEl').src = savedAvatar;
                 document.getElementById('profileAvatarImgEl').style.display = 'block';
@@ -2770,7 +2780,8 @@
             // Preview local inmediato
             const reader = new FileReader();
             reader.onload = e => {
-                localStorage.setItem('mz_user_avatar', e.target.result);
+                const userAvatarKey = 'mz_user_avatar_' + getAuthUser();
+                localStorage.setItem(userAvatarKey, e.target.result);
                 document.getElementById('profileAvatarImgEl').src = e.target.result;
                 document.getElementById('profileAvatarImgEl').style.display = 'block';
                 document.getElementById('profileAvatarText').style.display  = 'none';
@@ -2792,9 +2803,9 @@
                     cached.ruta_imagen = data.url;
                     localStorage.setItem('mz_auth_user_data', JSON.stringify(cached));
                 }
-                showToast('Foto de perfil guardada');
+                showToast('✓ Foto de perfil guardada');
               })
-              .catch(() => showToast('Foto guardada solo localmente', 'info'));
+              .catch(() => showToast('Foto guardada solo localmente (sin sincronizar al servidor)', 'info'));
         }
 
         async function saveProfile() {
@@ -2816,25 +2827,84 @@
             finally { if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-floppy-fill"></i> Guardar cambios'; } }
         }
 
+        let verifCooldownEnd = 0;
+
         async function solicitarVerificacion() {
+            const btn = document.getElementById('btnVerifEmail');
+            const email = document.getElementById('pEmail').value.trim();
+
+            if (!email) {
+                showToast('Ingresa tu email primero','error');
+                return;
+            }
+
+            if (btn) { btn.disabled=true; btn.innerHTML='<i class="bi bi-hourglass-split"></i> Enviando...'; }
             try {
                 const res = await ApiClient.request('POST', '/usuarios/solicitar-verificacion');
-                if (res.ok) { document.getElementById('verifTokenBox').style.display='block'; showToast('Código generado. Revisa los logs del servidor.','info'); }
-                else showToast(res.data?.detail||'Error','error');
-            } catch(e) { showToast('Error de conexión','error'); }
+                if (res.ok) {
+                    document.getElementById('verifTokenBox').style.display='block';
+                    document.getElementById('verifToken').value='';
+                    document.getElementById('verifToken').focus();
+                    showToast('✓ Código enviado a ' + email + '. Puede tardar unos minutos.','info');
+
+                    // Cooldown de 60 segundos
+                    verifCooldownEnd = Date.now() + 60000;
+                    updateVerifCooldown();
+                } else {
+                    showToast(res.data?.detail || 'Error al enviar el código','error');
+                }
+            } catch(e) {
+                showToast('Error de conexión al enviar el código','error');
+            } finally {
+                if (btn && Date.now() < verifCooldownEnd) {
+                    btn.disabled=true;
+                } else if (btn) {
+                    btn.disabled=false;
+                    btn.innerHTML='<i class="bi bi-envelope-check"></i> Verificar email';
+                }
+            }
+        }
+
+        function updateVerifCooldown() {
+            const btn = document.getElementById('btnVerifEmail');
+            if (!btn || Date.now() >= verifCooldownEnd) return;
+            const remaining = Math.ceil((verifCooldownEnd - Date.now()) / 1000);
+            btn.disabled = true;
+            btn.innerHTML = `<i class="bi bi-clock"></i> Reintenta en ${remaining}s`;
+            setTimeout(updateVerifCooldown, 1000);
         }
 
         async function confirmarVerificacion() {
             const token = document.getElementById('verifToken').value.trim();
-            if (!token) { showToast('Ingresa el código','error'); return; }
+            if (!token) { showToast('Ingresa el código de 6 dígitos','error'); return; }
+
+            const btn = document.querySelector('#verifTokenBox .btn-primary-sm');
+            if (btn) { btn.disabled=true; btn.innerHTML='<i class="bi bi-hourglass-split"></i> Verificando...'; }
+
             try {
                 const res = await ApiClient.request('POST', `/usuarios/verificar-email?token=${token}`);
                 if (res.ok) {
-                    showToast('Email verificado correctamente ✓');
+                    showToast('✓ Email verificado correctamente','info');
+
+                    // Actualizar estado en localStorage
+                    const cached = JSON.parse(localStorage.getItem('mz_auth_user_data') || '{}');
+                    cached.email_verificado = true;
+                    localStorage.setItem('mz_auth_user_data', JSON.stringify(cached));
+
                     document.getElementById('verifTokenBox').style.display='none';
-                    document.getElementById('emailVerifStatus').innerHTML='<span style="color:var(--success)"><i class="bi bi-patch-check-fill"></i> Email verificado</span>';
-                } else showToast(res.data?.detail||'Código incorrecto','error');
-            } catch(e) { showToast('Error de conexión','error'); }
+                    document.getElementById('emailVerifStatus').innerHTML='<span style="color:var(--success);font-weight:600"><i class="bi bi-patch-check-fill"></i> Email verificado</span>';
+                    document.getElementById('btnVerifEmail').style.display='none';
+                } else {
+                    showToast(res.data?.detail||'Código incorrecto','error');
+                }
+            } catch(e) {
+                showToast('Error de conexión','error');
+            } finally {
+                if (btn) {
+                    btn.disabled=false;
+                    btn.innerHTML='<i class="bi bi-check-lg"></i> Verificar';
+                }
+            }
         }
 
         function saveConfigOption(key, value) { localStorage.setItem('mz_'+key, value); showToast('Configuración guardada','info'); }

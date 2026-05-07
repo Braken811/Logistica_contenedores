@@ -36,6 +36,44 @@
 ### 3. Estadísticas de Movimientos
 - Nueva tarjeta con: Total, Promedio, Medio más usado, Responsable principal
 
+### 4. 🎉 MEJORAS RECIENTES (Mayo 2026)
+
+#### A. Foto de perfil por usuario (Frontend)
+- **Problema anterior**: La foto se guardaba con clave global `mz_user_avatar`, causando que al cambiar de cuenta la foto anterior persistiera
+- **Solución**: Cambiar clave a `mz_user_avatar_${username}` para que cada usuario tenga su propia foto
+- **Cambios**:
+  - `logout()`: Limpia el avatar específico del usuario y `mz_auth_user_data`
+  - `onAvatarChange()`: Usa clave específica del usuario
+  - `DOMContentLoaded`: Carga el avatar correcto por usuario
+  - `openProfilePanel()`: Usa clave específica del usuario
+- **Archivo**: `api_contenedores/dashboard.html`
+- **Estado**: ✅ Completado
+
+#### B. Verificación de email con envío real (Backend)
+- **Problema anterior**: Solo imprimía el código en logs, no enviaba email real
+- **Solución**: Implementar envío de correo real usando SMTP con Gmail
+- **Cambios**:
+  - **Nuevo archivo**: `api_contenedores/email_utils.py`
+    - `validate_email_domain(email)`: Valida que el dominio tenga registros MX
+    - `send_verification_email(to_email, nombre, codigo)`: Envía email HTML bonito
+  - **Modelo**: Agregada columna `verification_token_expires` al modelo Usuario
+  - **Router**: `routers/usuarios.py`
+    - `solicitar_verificacion()`: Valida email, verifica dominio, envía email real, expira token en 15 min
+    - `verificar_email()`: Verifica expiración del código, marca como verificado
+  - **Configuración**: `.env` con variables SMTP
+- **Dependencias nuevas**: `aiosmtplib>=3.0.0`, `dnspython>=2.6.0`
+- **Archivo setup**: `SETUP_EMAIL.md` con instrucciones para configurar Gmail
+- **Estado**: ✅ Completado (Requiere configuración de credenciales Gmail)
+
+#### C. Mejoras en UI de verificación de email (Frontend)
+- **Spinner/Loading**: Los botones muestran estado de carga
+- **Cooldown**: El botón "Verificar" se deshabilita por 60 segundos tras enviar
+- **Mensajes mejorados**: Toast clara indicando "Código enviado a tu email"
+- **Auto-actualización**: Al verificar, se actualiza `mz_auth_user_data` en localStorage sin recargar
+- **Validación**: Mensaje de error si el email está vacío o el dominio no existe
+- **Archivo**: `api_contenedores/dashboard.html`
+- **Estado**: ✅ Completado
+
 ## 💡 SUGERENCIAS DE MEJORAS FUTURAS
 
 ### 1. Funcionalidad de Reportes Exportables

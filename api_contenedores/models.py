@@ -18,6 +18,7 @@ class Usuario(Base):
     rol              = Column(String, nullable=False)
     email_verificado   = Column(Boolean, default=False)
     verification_token = Column(String, nullable=True)
+    verification_token_expires = Column(DateTime, nullable=True)
     ruta_imagen        = Column(String, nullable=True)
 
     movimientos = relationship("Movimiento", cascade="all, delete-orphan")
