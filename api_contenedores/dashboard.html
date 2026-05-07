@@ -2199,10 +2199,15 @@
             if (!tbody) return;
             if (!data.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Sin arrendamientos</div></td></tr>'; return; }
             tbody.innerHTML = data.map(a => {
+                // Botón de resumen: disponible para todos
                 const btnResumen = `<button class="btn-icon" title="Ver resumen" onclick="openRentalSummary(${a.id_arrendamiento})"><i class="bi bi-file-text-fill"></i></button>`;
-                const btnFactura = canPerformAction('createFactura')
-                    ? `<button class="btn-icon" title="Crear factura" onclick="event.stopPropagation(); _currentRentalData=${JSON.stringify(a).replace(/"/g,'&quot;')}; createFacturaFromRental()"><i class="bi bi-receipt"></i></button>`
+
+                // Botón de factura: solo para admin y supervisor
+                const canCreateFactura = canPerformAction('createFactura');
+                const btnFactura = canCreateFactura
+                    ? `<button class="btn-icon" title="Crear factura" onclick="crearFacturaDesdeArrendamiento(${a.id_arrendamiento})"><i class="bi bi-receipt"></i></button>`
                     : '';
+
                 return `
                 <tr>
                     <td><strong>${sanitizeHTML(contMap[a.id_contenedor] || '#'+a.id_contenedor)}</strong></td>
@@ -2211,7 +2216,7 @@
                     <td>${a.fecha_fin || '—'}</td>
                     <td>$${Number(a.valor_alquiler).toLocaleString('es-CO')}</td>
                     <td><span class="badge-status ${a.estado_arrendamiento==='activo'?'disponible':'fuera_de_servicio'}">${a.estado_arrendamiento==='activo'?'Activo':'Finalizado'}</span></td>
-                    <td style="display:flex;gap:0.5rem;">${btnResumen}${btnFactura}</td>
+                    <td style="display:flex;gap:0.5rem;align-items:center;">${btnResumen}${btnFactura}</td>
                 </tr>`;
             }).join('');
         }
@@ -3293,9 +3298,22 @@
             document.getElementById('modalRentalSummary').classList.add('show');
         }
 
+        function crearFacturaDesdeArrendamiento(rentalId) {
+            if (!canPerformAction('createFactura')) {
+                showToast('No tienes permisos para crear facturas', 'error');
+                return;
+            }
+            const a = _arrendamientosAPI.find(x => x.id_arrendamiento === rentalId);
+            if (!a) {
+                showToast('No se encontró el arrendamiento', 'error');
+                return;
+            }
+            _currentRentalData = a;
+            createFacturaFromRental();
+        }
+
         async function createFacturaFromRental() {
             if (!_currentRentalData) return;
-            closeModal('modalRentalSummary');
 
             try {
                 const payload = {
