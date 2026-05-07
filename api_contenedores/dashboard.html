@@ -347,6 +347,52 @@
 
         /* Responsive */
         @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(2,1fr); } .charts-row { grid-template-columns: 1fr; } .charts-row-3 { grid-template-columns: 1fr 1fr; } .zones-grid { grid-template-columns: 1fr; } }
+        /* ═══════════════════════ BOTÓN CREAR FACTURA ═══════════════════════ */
+        #btnCreateInvoice {
+            background: linear-gradient(135deg, #42a5f5 0%, #2a5298 100%) !important;
+            color: white !important;
+            padding: 0.8rem 1.8rem !important;
+            font-weight: 600 !important;
+            border-radius: 8px !important;
+            border: 2px solid var(--success) !important;
+            font-size: 0.95rem !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.6rem !important;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 20px rgba(66, 165, 245, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        #btnCreateInvoice::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        #btnCreateInvoice:hover {
+            background: linear-gradient(135deg, #5cb3f8 0%, #3a6bb8 100%) !important;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(66, 165, 245, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+            border-color: #00d1a6 !important;
+        }
+        #btnCreateInvoice:hover::before {
+            left: 100%;
+        }
+        #btnCreateInvoice:active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(66, 165, 245, 0.4), inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #btnCreateInvoice i {
+            font-size: 1.1rem;
+            display: inline-block;
+        }
+
         @media (max-width: 768px) {
             .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); }
             .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
@@ -540,7 +586,7 @@
                     <button class="btn-reset" onclick="document.getElementById('arrFilterState').value='';loadArrendamientosAPI()"><i class="bi bi-x-circle"></i> Limpiar</button>
                     <button class="btn-primary-sm" onclick="openRentalModal()" id="btnNewRental"><i class="bi bi-plus-lg"></i> Nuevo contrato</button>
                 </div>
-                <div class="card"><div class="chart-header"><div><div class="chart-title">Contratos de Arrendamiento</div><div class="chart-subtitle" id="arrCount">0 contratos</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Contenedor</th><th>Cliente</th><th>Inicio</th><th>Fin</th><th>Valor/mes</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="arrTable"></tbody></table></div></div>
+                <div class="card"><div class="chart-header"><div><div class="chart-title">Contratos de Arrendamiento</div><div class="chart-subtitle" id="arrCount">0 contratos</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Contenedor</th><th>Cliente</th><th>Inicio</th><th>Fin</th><th>Valor/mes</th><th>Estado</th><th id="arrActionsHeader">Resumen</th></tr></thead><tbody id="arrTable"></tbody></table></div></div>
             </div>
 
             <!-- HISTORIAL -->
@@ -621,15 +667,6 @@
                 </div>
             </div>
 
-            <!-- REPORTES -->
-            <div class="page" id="page-reportes">
-                <div class="kpi-grid" id="reportKpiGrid" style="margin-bottom:1.35rem"></div>
-                <div class="charts-row">
-                    <div class="card"><div class="chart-header"><div><div class="chart-title">Contenedores por estado</div></div></div><div class="chart-wrap"><canvas id="chartReportStates"></canvas></div></div>
-                    <div class="card"><div class="chart-header"><div><div class="chart-title">Distribución por tipo</div></div></div><div class="chart-wrap"><canvas id="chartReportTypes"></canvas></div></div>
-                </div>
-                <div class="card"><div class="chart-header"><div><div class="chart-title">Contenedores por cliente</div></div></div><div class="chart-wrap" style="height:250px"><canvas id="chartReportClients"></canvas></div></div>
-            </div>
         </div>
     </div>
 
@@ -659,7 +696,15 @@
     </div>
 
     <div class="modal-overlay" id="modalConfirm">
-        <div class="modal-box"><div class="modal-title"><i class="bi bi-trash-fill" style="margin-right:.4rem"></i>Confirmar eliminación</div><div class="modal-sub" id="confirmMsg"></div><div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modalConfirm')">Cancelar</button><button class="btn-save" id="confirmBtn" style="background:var(--red)"><i class="bi bi-trash-fill"></i> Eliminar</button></div></div>
+        <div class="modal-box">
+            <div class="modal-title"><i class="bi bi-trash-fill" style="margin-right:.4rem"></i>Confirmar eliminación</div>
+            <div class="modal-sub" id="confirmMsg"></div>
+            <div class="modal-field" style="margin-top:.8rem">
+                <label class="modal-label">Motivo <span style="color:var(--red)">*</span></label>
+                <input class="modal-input" id="confirmReason" placeholder="¿Por qué se elimina este registro?" required>
+            </div>
+            <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modalConfirm')">Cancelar</button><button class="btn-save" id="confirmBtn" style="background:var(--red)"><i class="bi bi-trash-fill"></i> Eliminar</button></div>
+        </div>
     </div>
 
     <!-- MODAL USUARIO -->
@@ -770,6 +815,52 @@
                 <div class="modal-field"><label class="modal-label">Estado</label><select class="modal-select" id="rEstado"><option value="activo">Activo</option><option value="finalizado">Finalizado</option></select></div>
             </div>
             <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modalRental')">Cancelar</button><button class="btn-save" id="saveRentalBtn" onclick="saveRental()"><i class="bi bi-floppy-fill"></i> Guardar</button></div>
+        </div>
+    </div>
+
+    <!-- MODAL RESUMEN ARRENDAMIENTO -->
+    <div class="modal-overlay" id="modalRentalSummary">
+        <div class="modal-box" style="width:600px">
+            <div class="modal-title"><i class="bi bi-file-text-fill"></i> Resumen del Arrendamiento</div>
+            <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+                    <div>
+                        <div style="font-size:0.85rem;opacity:0.7;margin-bottom:0.3rem;">Contenedor</div>
+                        <div style="font-size:1.1rem;font-weight:600;" id="sumContCode">—</div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.85rem;opacity:0.7;margin-bottom:0.3rem;">Cliente</div>
+                        <div style="font-size:1.1rem;font-weight:600;" id="sumClient">—</div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.85rem;opacity:0.7;margin-bottom:0.3rem;">Fecha Inicio</div>
+                        <div style="font-size:1rem;" id="sumStart">—</div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.85rem;opacity:0.7;margin-bottom:0.3rem;">Fecha Fin</div>
+                        <div style="font-size:1rem;" id="sumEnd">—</div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.85rem;opacity:0.7;margin-bottom:0.3rem;">Valor Mensual</div>
+                        <div style="font-size:1.1rem;font-weight:600;color:var(--success);" id="sumValue">—</div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.85rem;opacity:0.7;margin-bottom:0.3rem;">Estado</div>
+                        <div id="sumStatus">—</div>
+                    </div>
+                </div>
+                <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);">
+                    <div style="font-size:0.85rem;opacity:0.7;margin-bottom:0.5rem;">Información Adicional</div>
+                    <div style="background:rgba(66,165,245,0.1);padding:1rem;border-radius:6px;">
+                        <div style="margin-bottom:0.5rem;"><strong>Duración:</strong> <span id="sumDuration">—</span></div>
+                        <div style="margin-bottom:0.5rem;"><strong>Total Estimado:</strong> <span style="color:var(--success);font-weight:600;" id="sumTotal">—</span></div>
+                        <div><strong>Días Restantes:</strong> <span id="sumDaysLeft">—</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal('modalRentalSummary')" style="margin-left:auto;"><i class="bi bi-x-circle"></i> Cerrar</button>
+            </div>
         </div>
     </div>
 
@@ -1108,7 +1199,6 @@
             {id:'historial', title:'Historial', icon:'bi-clock-history', section:'gestion'},
             {id:'clientes', title:'Clientes', icon:'bi-people-fill', section:'sistema'},
             {id:'facturacion', title:'Facturación', icon:'bi-receipt', section:'sistema'},
-            {id:'reportes', title:'Reportes', icon:'bi-bar-chart-fill', section:'sistema'},
             {id:'usuarios', title:'Usuarios', icon:'bi-shield-lock-fill', section:'sistema'}
         ];
         let currentUserRole=null, currentUserId=null, currentPage=1, rowsPerPage=10, sortCol='codigo', sortDir='asc';
@@ -1140,7 +1230,6 @@
                 historial:      ['admin','supervisor','operador','auditor'],
                 clientes:       ['admin','supervisor','auditor'],
                 facturacion:    ['admin','supervisor','auditor'],
-                reportes:       ['admin','supervisor','auditor'],
                 usuarios:       ['admin'],
             };
             return currentUserRole && perms[id]?.includes(currentUserRole);
@@ -1154,7 +1243,7 @@
                 createMovimiento:    ['admin','supervisor','operador'],
                 createArrendamiento: ['admin','supervisor'],
                 createCliente:       ['admin','supervisor'],
-                createFactura:       ['admin'],
+                createFactura:       ['admin','supervisor'],
                 exportCSV:           ['admin','supervisor','auditor'],
             };
             return currentUserRole && perms[a]?.includes(currentUserRole);
@@ -1233,7 +1322,7 @@
                     <div class="btn-icon" onclick="openContainerDetail(${c.id})" aria-label="Ver detalle" title="Ver detalle completo" style="color:var(--info)"><i class="bi bi-eye-fill"></i></div>
                     ${canPerformAction('editContainer')?`<div class="btn-icon" onclick="openContainerModal(${c.id})" aria-label="Editar" title="Editar contenedor"><i class="bi bi-pencil-fill"></i></div>`:''}
                     ${!canPerformAction('editContainer')&&canPerformAction('changeEstado')?`<div class="btn-icon" onclick="openEstadoModal(${c.id},'${c.estado}','${c.codigo}')" aria-label="Cambiar estado" title="Cambiar estado" style="color:var(--warning)"><i class="bi bi-arrow-repeat"></i></div>`:''}
-                    ${canPerformAction('deleteContainer')?`<div class="btn-icon danger" onclick="openConfirmModal(${c.id})" aria-label="Eliminar" title="Eliminar"><i class="bi bi-trash-fill"></i></div>`:''}
+                    ${canPerformAction('deleteContainer')?`<div class="btn-icon danger" onclick="deleteContainerConfirm(${c.id})" aria-label="Eliminar" title="Eliminar"><i class="bi bi-trash-fill"></i></div>`:''}
                 </div></td></tr>`).join('');
             renderPagination(meta);
         }
@@ -1797,28 +1886,43 @@
             btn.disabled = false; btn.innerHTML = '<i class="bi bi-floppy-fill"></i> Guardar';
         }
         let deleteId=null;
-        function openConfirmModal(id) {
-            deleteId=id; const c=DB_CONTENEDORES_API.find(x=>x.id_contenedor===id)||{id_codigo:'#'+id};
-            document.getElementById('confirmMsg').textContent=`¿Eliminar ${sanitizeHTML(c.id_codigo)}? Esta acción no se puede deshacer. Se eliminarán también todos los movimientos y registros asociados.`;
-            document.getElementById('confirmBtn').onclick=async()=>{
+        function openConfirmModal(msg, onConfirm) {
+            document.getElementById('confirmMsg').textContent = msg;
+            document.getElementById('confirmReason').value = '';
+            document.getElementById('confirmBtn').onclick = async () => {
+                const reasonInput = document.getElementById('confirmReason');
+                if (!reasonInput.value.trim()) {
+                    showToast('El motivo es obligatorio', 'warning');
+                    reasonInput.focus();
+                    return;
+                }
                 const btn = document.getElementById('confirmBtn');
                 btn.disabled = true;
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Eliminando...';
-                try{
-                    await ApiClient.request('DELETE',`/contenedores/${id}`);
+                try {
+                    await onConfirm();
                     closeModal('modalConfirm');
-                    loadContainers();
-                    updateKPIs();
-                    showToast('Contenedor eliminado correctamente','info');
-                } catch(e){
-                    const msg = e.message || 'No se pudo eliminar el contenedor';
-                    showToast('Error: ' + msg, 'error');
+                } catch(e) {
+                    showToast('Error: ' + (e.message || 'No se pudo eliminar'), 'error');
                 } finally {
                     btn.disabled = false;
-                    btn.innerHTML = 'Eliminar';
+                    btn.innerHTML = '<i class="bi bi-trash-fill"></i> Eliminar';
                 }
             };
             document.getElementById('modalConfirm').classList.add('show');
+        }
+
+        function deleteContainerConfirm(id) {
+            const c = DB_CONTENEDORES_API.find(x => x.id_contenedor === id) || { id_codigo: '#' + id };
+            openConfirmModal(
+                `¿Eliminar ${sanitizeHTML(c.id_codigo)}? Esta acción no se puede deshacer. Se eliminarán también todos los movimientos y registros asociados.`,
+                async () => {
+                    await ApiClient.request('DELETE', `/contenedores/${id}`);
+                    loadContainers();
+                    updateKPIs();
+                    showToast('Contenedor eliminado correctamente', 'info');
+                }
+            );
         }
 
         // ── Detalle completo de contenedor ────────────────────────────────────────
@@ -1964,24 +2068,20 @@
             renderUsers(_usuariosFiltrados);
         }
         async function deleteUser(id) {
-            if(id===1){showToast('No puedes eliminar tu propio usuario','error');return;}
+            if(id === currentUserId) { showToast('No puedes eliminar tu propio usuario', 'error'); return; }
             const seedUsers = [1, 2, 3, 4, 5, 6];
-            if(seedUsers.includes(id) && currentUserRole !== 'admin'){
-                showToast('No puedes eliminar usuarios del sistema','error');
+            if(seedUsers.includes(id) && currentUserRole !== 'admin') {
+                showToast('No puedes eliminar usuarios del sistema', 'error');
                 return;
             }
-            if(seedUsers.includes(id)){
-                if(!confirm('Este es un usuario del sistema. ¿Estás seguro de que deseas eliminarlo?')) return;
-            } else {
-                if(!confirm('¿Eliminar usuario?')) return;
-            }
-            try {
-                await ApiClient.request('DELETE',`/usuarios/${id}`);
+            const msg = seedUsers.includes(id)
+                ? 'Este es un usuario del sistema. ¿Estás seguro de que deseas eliminarlo? Esta acción no se puede deshacer.'
+                : '¿Eliminar este usuario? Esta acción no se puede deshacer.';
+            openConfirmModal(msg, async () => {
+                await ApiClient.request('DELETE', `/usuarios/${id}`);
                 loadUsers();
-                showToast('Usuario eliminado correctamente','info');
-            } catch(e) {
-                showToast('Error: ' + (e.message || 'No se pudo eliminar el usuario'), 'error');
-            }
+                showToast('Usuario eliminado correctamente', 'info');
+            });
         }
 
         // Zonas
@@ -2078,6 +2178,12 @@
                 window._clienteMap = clienteMap;
                 window._contMap    = contMap;
 
+                // Actualizar encabezado según permisos
+                const headerEl = document.getElementById('arrActionsHeader');
+                if (headerEl) {
+                    headerEl.textContent = canPerformAction('createFactura') ? 'Acciones' : 'Resumen';
+                }
+
                 renderArrendamientosAPI(_arrendamientosAPI, clienteMap, contMap);
                 if (!estado) {
                     const ba = document.getElementById('badgeArr');
@@ -2092,7 +2198,12 @@
             if (count) count.textContent = `${data.length} contratos`;
             if (!tbody) return;
             if (!data.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Sin arrendamientos</div></td></tr>'; return; }
-            tbody.innerHTML = data.map(a => `
+            tbody.innerHTML = data.map(a => {
+                const btnResumen = `<button class="btn-icon" title="Ver resumen" onclick="openRentalSummary(${a.id_arrendamiento})"><i class="bi bi-file-text-fill"></i></button>`;
+                const btnFactura = canPerformAction('createFactura')
+                    ? `<button class="btn-icon" title="Crear factura" onclick="event.stopPropagation(); _currentRentalData=${JSON.stringify(a).replace(/"/g,'&quot;')}; createFacturaFromRental()"><i class="bi bi-receipt"></i></button>`
+                    : '';
+                return `
                 <tr>
                     <td><strong>${sanitizeHTML(contMap[a.id_contenedor] || '#'+a.id_contenedor)}</strong></td>
                     <td>${sanitizeHTML(clienteMap[a.id_cliente] || '#'+a.id_cliente)}</td>
@@ -2100,8 +2211,9 @@
                     <td>${a.fecha_fin || '—'}</td>
                     <td>$${Number(a.valor_alquiler).toLocaleString('es-CO')}</td>
                     <td><span class="badge-status ${a.estado_arrendamiento==='activo'?'disponible':'fuera_de_servicio'}">${a.estado_arrendamiento==='activo'?'Activo':'Finalizado'}</span></td>
-                    <td><button class="btn-icon" title="Ver facturas" onclick="navigateTo('facturacion');showToast('Filtra por contenedor en Facturación','info')"><i class="bi bi-receipt"></i></button></td>
-                </tr>`).join('');
+                    <td style="display:flex;gap:0.5rem;">${btnResumen}${btnFactura}</td>
+                </tr>`;
+            }).join('');
         }
 
         function filterRentals() { loadArrendamientosAPI(); }
@@ -2608,7 +2720,15 @@
             document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
             document.getElementById('page-'+pageId)?.classList.add('active');
-            if(el) el.classList.add('active');
+
+            // Si no se pasa el elemento, buscarlo por data-page
+            if(el) {
+                el.classList.add('active');
+            } else {
+                const navItem = document.querySelector(`[data-page="${pageId}"]`);
+                if (navItem) navItem.classList.add('active');
+            }
+
             document.getElementById('pageTitle').textContent=pageId.charAt(0).toUpperCase()+pageId.slice(1);
             document.getElementById('breadcrumb').textContent=`Inicio › ${pageId.charAt(0).toUpperCase()+pageId.slice(1)}`;
             if(window.innerWidth<=768) closeMobileSidebar();
@@ -2622,7 +2742,6 @@
             else if(pageId==='usuarios') loadUsers();
             else if(pageId==='facturacion') loadFacturacionAPI();
             else if(pageId==='clientes') loadClientes();
-            else if(pageId==='reportes') loadReportes();
         }
         function closeMobileSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('show'); }
         function toggleSidebar() {
@@ -2992,30 +3111,6 @@
             catch(e){ showToast(e.message||'Error','error'); }
         }
 
-        // ── REPORTES ────────────────────────────────────────────────────────
-        async function loadReportes() {
-            try {
-                const res=await ApiClient.request('GET','/dashboard/stats');
-                if(!res.ok) return;
-                const s=res.data;
-                document.getElementById('reportKpiGrid').innerHTML=`
-                    <div class="kpi-card red"><div class="kpi-icon red"><i class="bi bi-box-seam-fill"></i></div><div class="kpi-value">${s.total_contenedores}</div><div class="kpi-label">Total contenedores</div></div>
-                    <div class="kpi-card green"><div class="kpi-icon green"><i class="bi bi-arrow-left-right"></i></div><div class="kpi-value">${s.total_movimientos}</div><div class="kpi-label">Total movimientos</div></div>
-                    <div class="kpi-card blue"><div class="kpi-icon blue"><i class="bi bi-calendar2-week-fill"></i></div><div class="kpi-value">${s.arrendamientos_activos}</div><div class="kpi-label">Arrendamientos activos</div></div>
-                    <div class="kpi-card yellow"><div class="kpi-icon yellow"><i class="bi bi-exclamation-triangle-fill"></i></div><div class="kpi-value">${s.proximos_vencer}</div><div class="kpi-label">Próximos a vencer</div></div>`;
-                const co=getComputedStyle(document.documentElement);
-                const chartOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:co.getPropertyValue('--text-primary')||'#e8f0fc',font:{size:11}}}}};
-                const axesOpts={ticks:{color:'rgba(160,185,215,0.7)',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'}};
-                const ctx=id=>document.getElementById(id)?.getContext('2d');
-                if(window._rcs) window._rcs.destroy();
-                if(ctx('chartReportStates')&&s.por_estado){const e=Object.entries(s.por_estado);const rk=e.map(([k])=>k);window._rcs=new Chart(ctx('chartReportStates'),{type:'bar',data:{labels:e.map(([k])=>ESTADO_LABELS[k]||k),datasets:[{label:'Contenedores',data:e.map(([,v])=>v),backgroundColor:['#00c896','#42a5f5','#ffca28','#ce93d8','#ffb74d','#ff8a80']}]},options:{...chartOpts,scales:{x:axesOpts,y:{...axesOpts,beginAtZero:true}},onClick:(evt,elems)=>{if(!elems.length)return;const k=rk[elems[0].index];if(k)drillByEstado(k);}}});}
-                if(window._rct) window._rct.destroy();
-                if(ctx('chartReportTypes')&&s.por_tipo){const e=Object.entries(s.por_tipo);window._rct=new Chart(ctx('chartReportTypes'),{type:'doughnut',data:{labels:e.map(([k])=>k),datasets:[{data:e.map(([,v])=>v),backgroundColor:['#D32F2F','#42a5f5','#00c896','#ffca28','#ce93d8','#ffb74d'],hoverOffset:8}]},options:{...chartOpts,cutout:'65%',onClick:(evt,elems)=>{if(!elems.length)return;const lbl=window._rct.data.labels[elems[0].index];if(lbl)drillByTipo(lbl);}}});}
-                if(window._rcc) window._rcc.destroy();
-                if(ctx('chartReportClients')&&s.por_cliente){const e=Object.entries(s.por_cliente).sort((a,b)=>b[1]-a[1]).slice(0,10);window._rcc=new Chart(ctx('chartReportClients'),{type:'bar',data:{labels:e.map(([k])=>k),datasets:[{label:'Contenedores',data:e.map(([,v])=>v),backgroundColor:'#42a5f5',hoverBackgroundColor:'#64b5f6'}]},options:{...chartOpts,scales:{x:axesOpts,y:{...axesOpts,beginAtZero:true}},onClick:(evt,elems)=>{if(!elems.length)return;const lbl=window._rcc.data.labels[elems[0].index];if(lbl)drillByCliente(lbl);}}});}
-            } catch(e){ console.error('Error cargando reportes:',e); }
-        }
-
         // ── MODAL CAMBIAR ESTADO (operador) ──────────────────────────────────────
         let _estadoContId = null;
         function openEstadoModal(id, estadoActual, codigo) {
@@ -3148,6 +3243,78 @@
                 showToast('Error al cargar datos del formulario', 'error');
             }
         }
+
+        let _currentRentalId = null, _currentRentalData = null;
+        function openRentalSummary(rentalId) {
+            const a = _arrendamientosAPI.find(x => x.id_arrendamiento === rentalId);
+            if (!a) return;
+            _currentRentalId = rentalId;
+            _currentRentalData = a;
+
+            const clienteMap = window._clienteMap || {};
+            const contMap = window._contMap || {};
+            const clienteName = clienteMap[a.id_cliente] || `Cliente #${a.id_cliente}`;
+            const contCode = contMap[a.id_contenedor] || `#${a.id_contenedor}`;
+
+            document.getElementById('sumContCode').textContent = contCode;
+            document.getElementById('sumClient').textContent = clienteName;
+            document.getElementById('sumStart').textContent = a.fecha_inicio || '—';
+            document.getElementById('sumEnd').textContent = a.fecha_fin || '—';
+            document.getElementById('sumValue').textContent = `$${Number(a.valor_alquiler).toLocaleString('es-CO')}`;
+
+            const statusBadge = a.estado_arrendamiento === 'activo'
+                ? '<span class="badge-status disponible">Activo</span>'
+                : '<span class="badge-status fuera_de_servicio">Finalizado</span>';
+            document.getElementById('sumStatus').innerHTML = statusBadge;
+
+            if (a.fecha_inicio && a.fecha_fin) {
+                const start = new Date(a.fecha_inicio);
+                const end = new Date(a.fecha_fin);
+                const durDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
+                const durationMonths = (durDays / 30).toFixed(1);
+                document.getElementById('sumDuration').textContent = `${durDays} días (≈ ${durationMonths} meses)`;
+
+                const totalEstimated = (a.valor_alquiler * (durDays / 30)).toLocaleString('es-CO');
+                document.getElementById('sumTotal').textContent = `$${totalEstimated}`;
+
+                const today = new Date();
+                const endDate = new Date(a.fecha_fin);
+                const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                document.getElementById('sumDaysLeft').textContent = daysLeft > 0 ? `${daysLeft} días` : 'Finalizado';
+            }
+
+            const btnCreateInvoice = document.getElementById('btnCreateInvoice');
+            if (canPerformAction('createFactura')) {
+                btnCreateInvoice.style.display = 'inline-flex';
+            } else {
+                btnCreateInvoice.style.display = 'none';
+            }
+
+            document.getElementById('modalRentalSummary').classList.add('show');
+        }
+
+        async function createFacturaFromRental() {
+            if (!_currentRentalData) return;
+            closeModal('modalRentalSummary');
+
+            try {
+                const payload = {
+                    id_contenedor: _currentRentalData.id_contenedor,
+                    monto: _currentRentalData.valor_alquiler,
+                    codigo_factura: `FAC-${Date.now()}`,
+                    fecha_vencimiento: _currentRentalData.fecha_fin || new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
+                    estado_pago: 'pendiente'
+                };
+
+                await ApiClient.request('POST', '/facturacion', payload);
+                loadFacturacionAPI();
+                showToast('Factura creada exitosamente', 'success');
+                navigateTo('facturacion');
+            } catch(e) {
+                showToast('Error al crear factura: ' + (e.message || ''), 'error');
+            }
+        }
+
         // ── DRILL-DOWN MODAL ────────────────────────────────────────────────
         function openDrillModal(title, content) {
             document.getElementById('drillTitle').textContent = title;
