@@ -28,7 +28,7 @@ class RolUsuario(str, Enum):
 class UsuarioCreate(BaseModel):
     nombres         : str
     apellidos       : Optional[str] = None
-    email           : Optional[str] = None
+    email           : str
     user            : str
     password        : str
     rol             : RolUsuario
@@ -41,6 +41,12 @@ class UsuarioUpdate(BaseModel):
     password        : Optional[str]      = None
     email_verificado: Optional[bool]     = None
 
+class UsuarioSelfUpdate(BaseModel):
+    nombres  : Optional[str] = None
+    apellidos: Optional[str] = None
+    email    : Optional[str] = None
+    password : Optional[str] = None
+
 class UsuarioOut(BaseModel):
     id_usuario      : int
     nombres         : str
@@ -49,6 +55,7 @@ class UsuarioOut(BaseModel):
     user            : str
     rol             : str
     email_verificado: bool = False
+    ruta_imagen     : Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -129,6 +136,7 @@ class ContenedorOut(BaseModel):
 class MovimientoCreate(BaseModel):
     id_contenedor    : int
     id_usuario       : int
+    fecha_salida     : Optional[date] = None
     ubicacion_origen : Optional[str] = None
     ubicacion_destino: Optional[str] = None
     medio_transporte : Optional[str] = None
@@ -139,6 +147,7 @@ class MovimientoOut(BaseModel):
     id_contenedor    : int
     id_usuario       : int
     fecha_hora       : Optional[datetime]
+    fecha_salida     : Optional[date]
     ubicacion_origen : Optional[str]
     ubicacion_destino: Optional[str]
     medio_transporte : Optional[str]
@@ -255,14 +264,30 @@ class VentaOut(BaseModel):
 
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
+class MovimientoResumenDash(BaseModel):
+    id_movimiento    : int
+    id_contenedor    : int
+    codigo_contenedor: Optional[str] = None
+    ubicacion_origen : Optional[str] = None
+    ubicacion_destino: Optional[str] = None
+    medio_transporte : Optional[str] = None
+    responsable      : Optional[str] = None
+    fecha_hora       : Optional[str] = None
+
 class DashboardStats(BaseModel):
     total_contenedores     : int
     por_estado             : dict
     por_tipo               : dict
     por_cliente            : dict
     arrendamientos_activos : int
+    total_arrendamientos   : int = 0
     proximos_vencer        : int
     total_movimientos      : int
+    # Datos pre-calculados para las gráficas
+    movimientos_por_mes    : List[dict] = []
+    arr_activos            : int = 0
+    arr_finalizados        : int = 0
+    ultimos_movimientos    : List[MovimientoResumenDash] = []
 
 class NotificacionItem(BaseModel):
     tipo   : str
@@ -270,6 +295,21 @@ class NotificacionItem(BaseModel):
     mensaje: str
     fecha  : str
     leido  : bool = False
+
+
+# ── Notificaciones ───────────────────────────────────────────────────────────
+class NotificacionOut(BaseModel):
+    id_notificacion : int
+    tipo            : str
+    titulo          : str
+    mensaje         : Optional[str]
+    fecha           : datetime
+    leido           : bool
+    fecha_lectura   : Optional[datetime]
+    ref_id          : Optional[str]
+
+    class Config:
+        from_attributes = True
 
 
 # ── Autenticación ─────────────────────────────────────────────────────────────

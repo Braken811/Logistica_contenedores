@@ -1,5 +1,5 @@
-from typing import List
-from fastapi import APIRouter, HTTPException, status, Depends
+from typing import List, Optional
+from fastapi import APIRouter, HTTPException, Query, status, Depends
 from sqlalchemy.orm import Session
 
 from schemas import ClienteCreate, ClienteUpdate, ClienteOut
@@ -11,8 +11,15 @@ router = APIRouter(prefix="/clientes", tags=["Clientes"])
 
 
 @router.get("/", response_model=List[ClienteOut], summary="Listar clientes")
-def get_clientes(current=Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(Cliente).all()
+def get_clientes(
+    current=Depends(get_current_user),
+    db: Session = Depends(get_db),
+    search: Optional[str] = Query(None, description="Filtrar por nombre"),
+):
+    query = db.query(Cliente)
+    if search:
+        query = query.filter(Cliente.nombre.ilike(f"%{search}%"))
+    return query.all()
 
 
 @router.get("/{cliente_id}", response_model=ClienteOut, summary="Obtener cliente por ID")

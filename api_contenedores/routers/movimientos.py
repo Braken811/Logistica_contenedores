@@ -7,6 +7,7 @@ from schemas import MovimientoCreate, MovimientoOut
 from database import get_db
 from models import Movimiento, Contenedor
 from auth.dependencies import get_current_user, only_admin
+from broadcaster import broadcaster
 
 router = APIRouter(prefix="/movimientos", tags=["Movimientos"])
 
@@ -55,10 +56,17 @@ def create_movimiento(
 ):
     if not db.query(Contenedor).filter(Contenedor.id_contenedor == data.id_contenedor).first():
         raise HTTPException(status_code=404, detail="Contenedor no encontrado")
-    nuevo = Movimiento(**data.model_dump(), fecha_hora=datetime.utcnow())
+
+    # Usar el usuario autenticado, no el del request (bug de seguridad)
+    datos = data.model_dump()
+    datos["id_usuario"] = current["user"].id_usuario
+    datos["fecha_hora"] = datetime.utcnow()
+
+    nuevo = Movimiento(**datos)
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)
+    broadcaster.emit("movimiento", {"action": "created"}, exclude_user_id=current["user"].id_usuario)
     return nuevo
 
 
@@ -73,3 +81,23 @@ def delete_movimiento(
         raise HTTPException(status_code=404, detail="Movimiento no encontrado")
     db.delete(m)
     db.commit()
+    broadcaster.emit("movimiento", {"action": "deleted"}, exclude_user_id=admin.id_usuario)
+
+
+@router.get("/estadisticas/transportes", summary="Estadísticas por tipo de transporte")
+def get_estadisticas_transportes(
+    current=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from sqlalchemy import func
+    movimientos = db.query(
+        Movimiento.medio_transporte,
+        func.count(Movimiento.id_movimiento).label("cantidad")
+    ).filter(
+        Movimiento.medio_transporte.isnot(None)
+    ).group_by(Movimiento.medio_transporte).all()
+
+    return [
+        {"transporte": m[0], "cantidad": m[1]}
+        for m in movimientos
+    ]

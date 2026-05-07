@@ -3,7 +3,10 @@
     "allow": [
       "Bash(python -c ' *)",
       "Bash(grep -E \"\\\\.py$\")",
-      "Bash(python write_js.py)"
+      "Bash(python write_js.py)",
+      "Bash(Get-ChildItem -Recurse \"c:\\\\Users\\\\MATEO\\\\OneDrive - Universidad Tecnológica de Bolívar\\\\Escritorio\\\\Logistica_contenedores\" -Force)",
+      "Bash(Select-Object FullName)",
+      "Read(//c/Users/MATEO/OneDrive - Universidad Tecnol�gica de Bol�var/Escritorio/**)"
     ]
   }
 }

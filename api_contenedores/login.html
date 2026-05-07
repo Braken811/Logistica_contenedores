@@ -935,8 +935,8 @@
                     showToast('¡Autenticación exitosa! Redirigiendo...', 'success');
                     await delay(1200);
 
-                    // Redirigir al dashboard
-                    window.location.href = '/dashboard';
+                    // Redirigir al dashboard (replace evita que login quede en el historial)
+                    window.location.replace('/dashboard');
                 } else {
                     // Error de credenciales
                     setLoading('btnLogin', false);
@@ -971,7 +971,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             // Si ya está autenticado, ir al dashboard
             if (getAuthToken()) {
-                window.location.href = '/dashboard';
+                window.location.replace('/dashboard');
                 return;
             }
 

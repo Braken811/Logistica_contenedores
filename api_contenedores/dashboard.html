@@ -61,8 +61,10 @@
         .sidebar { width: var(--sidebar-width); height: 100vh; background: var(--sidebar-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; z-index: 100; transition: width .3s ease, transform .3s ease; overflow: visible; }
         .sidebar.collapsed { width: var(--sidebar-collapsed-width); }
         .sidebar.collapsed .brand-name, .sidebar.collapsed .brand-sub, .sidebar.collapsed .nav-section-label,
-        .sidebar.collapsed .nav-item span:not(.nav-badge), .sidebar.collapsed .user-name, .sidebar.collapsed .user-role { display: none; }
+        .sidebar.collapsed .nav-item span:not(.nav-badge), .sidebar.collapsed .user-name, .sidebar.collapsed .user-role,
+        .sidebar.collapsed .sidebar-label { display: none; }
         .sidebar.collapsed .nav-item { justify-content: center; padding: .6rem; }
+        .sidebar.collapsed .sidebar-footer .user-card { justify-content: center; padding: .45rem .5rem; }
         .sidebar.collapsed .nav-badge { position: absolute; top: 4px; right: 4px; font-size: .55rem; }
         .sidebar-toggle-btn { position: absolute; top: 50%; right: -16px; transform: translateY(-50%); width: 32px; height: 32px; background: var(--red); border: none; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 110; font-size: 1rem; box-shadow: 0 2px 10px rgba(0,0,0,0.4); transition: background .2s, transform .2s; }
         .sidebar-toggle-btn:hover { background: var(--red-dark); }
@@ -73,10 +75,10 @@
         .brand-sub { font-size: .62rem; color: var(--text-muted); }
         .sidebar-nav { padding: .75rem .6rem; flex: 1; overflow-y: auto; }
         .nav-section-label { font-size: .6rem; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--text-muted); padding: .6rem .65rem .3rem; margin-top: .4rem; }
-        .nav-item { display: flex; align-items: center; gap: .65rem; padding: .58rem .8rem; border-radius: 8px; color: var(--text-muted); font-size: .82rem; cursor: pointer; transition: background var(--transition-fast), color var(--transition-fast); margin-bottom: 1px; position: relative; user-select: none; text-decoration: none; }
+        .nav-item { display: flex; align-items: center; gap: .65rem; padding: .58rem .8rem; border-radius: 8px; color: var(--text-muted); font-size: .82rem; cursor: pointer; transition: background var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast); margin-bottom: 1px; position: relative; user-select: none; text-decoration: none; }
         .nav-item:hover { background: var(--btn-hover-bg); color: var(--text-primary); }
-        .nav-item.active { background: linear-gradient(90deg, rgba(211,47,47,0.15) 0%, rgba(211,47,47,0.03) 100%); color: var(--text-primary); }
-        .nav-item.active::before { content: ''; position: absolute; left: 0; top: 18%; bottom: 18%; width: 3px; background: var(--red); border-radius: 0 3px 3px 0; }
+        .nav-item.active { background: linear-gradient(90deg, rgba(211,47,47,0.25) 0%, rgba(211,47,47,0.1) 100%); color: var(--text-primary); font-weight: 600; box-shadow: inset 0 0 12px rgba(211,47,47,0.15); }
+        .nav-item.active::before { content: ''; position: absolute; left: 0; top: 10%; bottom: 10%; width: 4px; background: var(--red); border-radius: 0 4px 4px 0; box-shadow: 0 0 8px var(--red-glow); }
         .nav-item i { font-size: .92rem; flex-shrink: 0; width: 20px; text-align: center; color: inherit; }
         .nav-badge { margin-left: auto; background: var(--red); color: #fff; font-size: .6rem; font-weight: 700; padding: .12rem .42rem; border-radius: 20px; }
         .nav-badge.yellow { background: var(--warning); color: #0b1525; }
@@ -211,8 +213,10 @@
 
         .notif-panel { position: fixed; top: var(--topbar-height); right: 0; width: 320px; height: calc(100vh - var(--topbar-height)); background: var(--navy-lighter); border-left: 1px solid var(--border-color); z-index: 500; display: flex; flex-direction: column; transform: translateX(320px); transition: transform .3s ease; box-shadow: -4px 0 24px rgba(0,0,0,0.3); }
         .notif-panel.open { transform: translateX(0); }
-        .notif-overlay { position: fixed; inset: 0; z-index: 499; display: none; background: rgba(0,0,0,0.4); }
-        .notif-overlay.show { display: block; }
+        /* El panel de perfil es 360px — necesita translateX propio para cerrar completamente */
+        #profilePanel:not(.open) { transform: translateX(360px); }
+        .notif-overlay { position: fixed; inset: 0; z-index: 499; opacity: 0; background: rgba(0,0,0,0.4); transition: opacity .3s ease; pointer-events: none; }
+        .notif-overlay.show { opacity: 1; pointer-events: auto; }
         .notif-panel-header { padding: 1.25rem 1.25rem .9rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: flex-start; justify-content: space-between; }
         .notif-panel-title { font-family: 'Archivo Black', sans-serif; font-size: .95rem; color: var(--text-primary); }
         .notif-badge { background: var(--red); color: #fff; font-size: .62rem; font-weight: 700; padding: .15rem .45rem; border-radius: 20px; margin-left: .5rem; }
@@ -220,13 +224,34 @@
         .notif-panel-body { flex: 1; overflow-y: auto; padding: .75rem; }
         .notif-section { margin-bottom: 1.1rem; }
         .notif-section-label { font-size: .62rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .6rem; }
-        .notif-item { display: flex; align-items: flex-start; gap: .65rem; padding: .7rem .75rem; border-radius: 9px; border: 1px solid var(--border-color); background: var(--card-bg); margin-bottom: .5rem; }
+        .notif-item { border-radius: 9px; border: 1px solid var(--border-color); background: var(--card-bg); margin-bottom: .5rem; overflow: hidden; transition: border-color .2s, box-shadow .2s; }
+        .notif-item:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.18); }
+        .notif-item.notif-read { opacity: .55; }
+        .notif-item-header { display: flex; align-items: flex-start; gap: .65rem; padding: .7rem .75rem; cursor: pointer; transition: background .15s; }
+        .notif-item-header:hover { background: var(--btn-hover-bg); }
         .notif-item-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: .8rem; flex-shrink: 0; }
         .notif-item-icon.warn  { background: rgba(255,202,40,0.12); color: var(--warning); }
         .notif-item-icon.error { background: rgba(211,47,47,0.1);   color: #ff8a80; }
         .notif-item-icon.info  { background: rgba(66,165,245,0.1);   color: var(--info); }
         .notif-item-text { font-size: .78rem; line-height: 1.4; color: var(--text-primary); }
         .notif-item-time { font-size: .65rem; color: var(--text-muted); margin-top: .2rem; }
+        .notif-item-end { display: flex; flex-direction: column; align-items: center; gap: .35rem; flex-shrink: 0; padding-top: .1rem; }
+        .notif-unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); animation: pulse-dot 1.5s ease infinite; }
+        .notif-chevron { font-size: .7rem; color: var(--text-muted); display: block; transition: transform .22s ease; }
+        .notif-item.expanded .notif-chevron { transform: rotate(180deg); }
+        .notif-expand { padding: 0 .75rem .7rem; }
+        .notif-expand-inner { background: var(--input-bg); border-radius: 6px; border-left: 3px solid var(--border-color); padding: .6rem .7rem; }
+        .notif-expand-msg { font-size: .74rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: .5rem; }
+        .notif-expand-actions { display: flex; gap: .4rem; flex-wrap: wrap; padding-top: .45rem; border-top: 1px solid var(--border-color); }
+        .btn-notif-sm { padding: .27rem .58rem; font-size: .71rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); border-radius: 6px; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: .28rem; transition: all .15s; }
+        .btn-notif-sm:hover { background: var(--btn-hover-bg); color: var(--text-primary); }
+        .btn-notif-sm.mark-read { border-color: rgba(0,200,150,.3); color: var(--success); }
+        .btn-notif-sm.mark-read:hover { background: rgba(0,200,150,.1); }
+        .btn-notif-sm.go-section { border-color: rgba(66,165,245,.3); color: var(--info); }
+        .btn-notif-sm.go-section:hover { background: rgba(66,165,245,.1); }
+        .notif-read-tag { font-size: .71rem; color: var(--success); display: inline-flex; align-items: center; gap: .28rem; }
+        .notif-leidas-header { display: flex; align-items: center; gap: .45rem; }
+        .notif-leidas-count { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-muted); font-size: .58rem; padding: .07rem .38rem; border-radius: 20px; font-weight: 700; line-height: 1.6; }
         .notif-panel-footer { padding: .85rem 1.25rem; border-top: 1px solid var(--border-color); }
         .btn-notif { width: 100%; padding: .65rem; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-muted); font-size: .78rem; cursor: pointer; font-family: inherit; margin-bottom: .5rem; display: flex; align-items: center; justify-content: center; gap: .4rem; }
         .btn-notif:hover { background: var(--btn-hover-bg); color: var(--text-primary); }
@@ -239,19 +264,24 @@
         .zone-card .num { font-family: 'Archivo Black', sans-serif; font-size: 1.6rem; color: var(--text-primary); }
 
         /* ═══════════════════════ MODALS (FIXED FOR DARK MODE) ═══════════════════════ */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: center; justify-content: center; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 1.5rem 1rem; }
         .modal-overlay.show { display: flex; animation: modal-fade .25s ease; }
         @keyframes modal-fade { from { opacity: 0; } to { opacity: 1; } }
-        .modal-box { 
-            background: var(--modal-bg); 
-            border: 1px solid var(--modal-border); 
-            border-radius: 14px; 
-            padding: 1.75rem; 
-            width: 460px; 
-            max-width: 94vw; 
+        .modal-box {
+            background: var(--modal-bg);
+            border: 1px solid var(--modal-border);
+            border-radius: 14px;
+            padding: 1.75rem;
+            width: 460px;
+            max-width: 94vw;
+            flex-shrink: 0;
+            margin: auto;
             animation: modal-slide .28s ease;
             color: var(--modal-text);
         }
+        .detail-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: .65rem .9rem; }
+        .detail-label { font-size: .62rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .2rem; }
+        .detail-value { font-size: .88rem; color: var(--text-primary); font-weight: 500; word-break: break-word; }
         @keyframes modal-slide { from { opacity: 0; transform: translateY(-18px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
         .modal-title { font-family: 'Archivo Black', sans-serif; font-size: 1rem; color: var(--modal-text); margin-bottom: .3rem; }
         .modal-sub { font-size: .78rem; color: var(--modal-muted); margin-bottom: 1.35rem; }
@@ -270,10 +300,16 @@
         }
         .modal-input:focus, .modal-select:focus { border-color: rgba(211,47,47,0.4); }
         .modal-input::placeholder { color: var(--modal-muted); }
-        /* FIX: Select options en dark mode */
-        .modal-select option { background: var(--modal-bg); color: var(--modal-text); }
-        [data-bs-theme="dark"] .modal-select option { background: #1a2b4c; color: #e8f0fc; }
-        [data-bs-theme="light"] .modal-select option { background: #ffffff; color: #1a2b4c; }
+        .autocomplete-dropdown { position:absolute; top:100%; left:0; right:0; z-index:500; background:var(--modal-bg); border:1.5px solid var(--modal-border); border-radius:9px; max-height:180px; overflow-y:auto; margin-top:2px; box-shadow:0 8px 24px rgba(0,0,0,0.35); display:none; }
+        .autocomplete-item { padding:.52rem .9rem; font-size:.83rem; color:var(--modal-text); cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.04); }
+        .autocomplete-item:last-child { border-bottom:none; }
+        .autocomplete-item:hover { background:rgba(211,47,47,0.1); }
+        .autocomplete-item.empty-opt { color:var(--modal-muted); font-style:italic; }
+        input[type="file"].modal-input { padding:.5rem .9rem; cursor:pointer; }
+        .cont-img-preview { max-height:70px; border-radius:6px; border:1px solid var(--modal-border); margin-top:.4rem; display:none; }
+        /* FIX: Select options — regla universal para todos los selects del dashboard */
+        [data-bs-theme="dark"]  select option { background-color: #1a2b4c; color: #e8f0fc; }
+        [data-bs-theme="light"] select option { background-color: #ffffff;  color: #1a2b4c; }
         
         .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
         .modal-actions { display: flex; gap: .65rem; justify-content: flex-end; margin-top: 1.35rem; padding-top: 1.1rem; border-top: 1px solid var(--modal-border); }
@@ -292,14 +328,31 @@
         @keyframes shrink-progress { to { width: 0%; } }
         @keyframes toast-in { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: translateX(0); } }
 
+        /* ═══════════════════════ TIMELINE HISTORIAL ═══════════════════════ */
+        .timeline { position: relative; padding-left: 1.75rem; }
+        .timeline::before { content: ''; position: absolute; left: .52rem; top: 0; bottom: 0; width: 2px; background: var(--border-color); border-radius: 2px; }
+        .tl-item { position: relative; margin-bottom: .9rem; }
+        .tl-dot { position: absolute; left: -1.75rem; top: .38rem; width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+        .tl-dot.mov    { background: var(--info);    box-shadow: 0 0 0 3px rgba(66,165,245,.18); }
+        .tl-dot.estado { background: var(--warning); box-shadow: 0 0 0 3px rgba(255,202,40,.18); }
+        .tl-dot.arr    { background: var(--success); box-shadow: 0 0 0 3px rgba(0,200,150,.18); }
+        .tl-dot.fact   { background: var(--red);     box-shadow: 0 0 0 3px rgba(211,47,47,.18); }
+        .tl-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 9px; padding: .65rem .9rem; transition: border-color .15s; }
+        .tl-card:hover { border-color: rgba(255,255,255,.15); }
+        .tl-date   { font-size: .63rem; color: var(--text-muted); margin-bottom: .22rem; }
+        .tl-title  { font-size: .82rem; font-weight: 600; color: var(--text-primary); margin-bottom: .14rem; }
+        .tl-detail { font-size: .74rem; color: var(--text-secondary); }
+        .hist-kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: .75rem; margin-bottom: 1.35rem; }
+        @media (max-width:900px) { .hist-kpi-grid { grid-template-columns: repeat(2,1fr); } }
+
         /* Responsive */
         @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(2,1fr); } .charts-row { grid-template-columns: 1fr; } .charts-row-3 { grid-template-columns: 1fr 1fr; } .zones-grid { grid-template-columns: 1fr; } }
-        @media (max-width: 768px) { 
+        @media (max-width: 768px) {
             .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); }
             .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
             .sidebar-overlay.show { display: block; }
             .topbar, .main-wrapper { left: 0; margin-left: 0; }
-            .kpi-grid { grid-template-columns: 1fr 1fr; } .charts-row-3 { grid-template-columns: 1fr; } 
+            .kpi-grid { grid-template-columns: 1fr 1fr; } .charts-row-3 { grid-template-columns: 1fr; }
             .notif-panel { width: 100%; } .filters-bar { flex-direction: column; align-items: flex-start; }
         }
     </style>
@@ -319,12 +372,12 @@
         <div class="sidebar-footer">
             <div class="user-card" onclick="openProfilePanel()" title="Ver perfil">
                 <div class="user-avatar" id="userAvatar">AD</div>
-                <div><div class="user-name" id="sidebarUser">Administrador</div><div class="user-role" id="sidebarRole">Rol: admin</div></div>
-                <i class="bi bi-person-gear" style="margin-left:auto;color:var(--text-muted);font-size:.85rem" aria-hidden="true"></i>
+                <div class="sidebar-label"><div class="user-name" id="sidebarUser">Administrador</div><div class="user-role" id="sidebarRole">Rol: admin</div></div>
+                <i class="bi bi-person-gear sidebar-label" style="margin-left:auto;color:var(--text-muted);font-size:.85rem" aria-hidden="true"></i>
             </div>
             <div class="user-card" onclick="logout()" title="Cerrar sesión" style="margin-top:.25rem">
                 <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-box-arrow-right" style="color:var(--text-muted);font-size:1rem"></i></div>
-                <div><div style="font-size:.78rem;color:var(--text-muted)">Cerrar sesión</div></div>
+                <div class="sidebar-label"><div style="font-size:.78rem;color:var(--text-muted)">Cerrar sesión</div></div>
             </div>
         </div>
     </aside>
@@ -372,23 +425,55 @@
             <!-- PANEL -->
             <div class="page active" id="page-panel">
                 <div class="kpi-grid" id="kpiGrid">
-                    <div class="kpi-card red"><div class="kpi-icon red"><i class="bi bi-box-seam-fill"></i></div><div class="kpi-value" id="kpiTotal">0</div><div class="kpi-label">Total contenedores</div><div class="kpi-trend" id="trendTotal">— Sin cambio</div></div>
-                    <div class="kpi-card green"><div class="kpi-icon green"><i class="bi bi-check-circle-fill"></i></div><div class="kpi-value" id="kpiDisp">0</div><div class="kpi-label">Disponibles</div><div class="kpi-trend" id="trendDisp">— Sin cambio</div></div>
-                    <div class="kpi-card blue"><div class="kpi-icon blue"><i class="bi bi-truck"></i></div><div class="kpi-value" id="kpiTrans">0</div><div class="kpi-label">En tránsito</div><div class="kpi-trend" id="trendTrans">— Sin cambio</div></div>
-                    <div class="kpi-card yellow"><div class="kpi-icon yellow"><i class="bi bi-exclamation-triangle-fill"></i></div><div class="kpi-value" id="kpiAlert">0</div><div class="kpi-label">Alertas activas</div><div class="kpi-trend stable"><i class="bi bi-dash"></i> Sin cambio</div></div>
+                    <div class="kpi-card red" style="cursor:pointer" onclick="showDetailModal('contenedores', 'Total de Contenedores')" title="Ver detalles"><div class="kpi-icon red"><i class="bi bi-box-seam-fill"></i></div><div class="kpi-value" id="kpiTotal">0</div><div class="kpi-label">Total contenedores</div><div class="kpi-trend" id="trendTotal">— Sin cambio</div></div>
+                    <div class="kpi-card green" style="cursor:pointer" onclick="showDetailModal('disponibles', 'Contenedores Disponibles')" title="Ver detalles"><div class="kpi-icon green"><i class="bi bi-check-circle-fill"></i></div><div class="kpi-value" id="kpiDisp">0</div><div class="kpi-label">Disponibles</div><div class="kpi-trend" id="trendDisp">— Sin cambio</div></div>
+                    <div class="kpi-card blue" style="cursor:pointer" onclick="showDetailModal('en_transito', 'Contenedores en Tránsito')" title="Ver detalles"><div class="kpi-icon blue"><i class="bi bi-truck"></i></div><div class="kpi-value" id="kpiTrans">0</div><div class="kpi-label">En tránsito</div><div class="kpi-trend" id="trendTrans">— Sin cambio</div></div>
+                    <div class="kpi-card yellow" style="cursor:pointer" onclick="showDetailModal('alertas', 'Alertas - Arrendamientos por Vencer')" title="Ver detalles"><div class="kpi-icon yellow"><i class="bi bi-exclamation-triangle-fill"></i></div><div class="kpi-value" id="kpiAlert">0</div><div class="kpi-label">Alertas activas</div><div class="kpi-trend stable"><i class="bi bi-dash"></i> Sin cambio</div></div>
                 </div>
-                <div style="display:flex;justify-content:flex-end;margin-bottom:1rem"><span id="updateLabel">Última actualización: hace 0 min</span></div>
+                <!-- Segunda fila de KPIs: métricas financieras -->
+                <div class="kpi-grid" style="margin-top:-.35rem">
+                    <div class="kpi-card blue" style="cursor:pointer" onclick="navigateTo('clientes')" title="Ver clientes"><div class="kpi-icon blue"><i class="bi bi-people-fill"></i></div><div class="kpi-value" id="kpiClientes">—</div><div class="kpi-label">Clientes registrados</div></div>
+                    <div class="kpi-card yellow" style="cursor:pointer" onclick="navigateTo('facturacion')" title="Ver facturas pendientes"><div class="kpi-icon yellow"><i class="bi bi-receipt"></i></div><div class="kpi-value" id="kpiFactPend">—</div><div class="kpi-label">Facturas pendientes</div></div>
+                    <div class="kpi-card red" style="cursor:pointer" onclick="navigateTo('facturacion')" title="Ver facturas en mora"><div class="kpi-icon red"><i class="bi bi-exclamation-octagon-fill"></i></div><div class="kpi-value" id="kpiFactMora">—</div><div class="kpi-label">Facturas en mora</div></div>
+                    <div class="kpi-card green"><div class="kpi-icon green"><i class="bi bi-cash-coin"></i></div><div class="kpi-value" id="kpiIngresosMes">—</div><div class="kpi-label">Ingresos del mes</div></div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;margin-top:.6rem"><span id="updateLabel">Última actualización: hace 0 min</span></div>
                 <div class="charts-row">
-                    <div class="card"><div class="chart-header"><div><div class="chart-title">Movimientos por mes</div><div class="chart-subtitle">Últimos 6 meses</div></div><span class="chart-badge">Línea</span></div><div class="chart-wrap"><canvas id="chartMovimientos"></canvas></div></div>
-                    <div class="card"><div class="chart-header"><div><div class="chart-title">Por tipo de contenedor</div><div class="chart-subtitle">Distribución actual</div></div><span class="chart-badge">Dona</span></div><div class="chart-wrap"><canvas id="chartTipo"></canvas></div></div>
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Envíos y traslados registrados</div><div class="chart-subtitle">Total de movimientos · Últimos 6 meses</div></div><span class="chart-badge">Movimientos</span></div><div class="chart-wrap"><canvas id="chartMovimientos" style="cursor:pointer"></canvas></div></div>
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Por tipo de contenedor</div><div class="chart-subtitle">Distribución actual · clic para detalles</div></div><span class="chart-badge">Dona</span></div><div class="chart-wrap"><canvas id="chartTipo" style="cursor:pointer"></canvas></div></div>
                 </div>
                 <div class="charts-row-3">
-                    <div class="card"><div class="chart-header"><div><div class="chart-title">Por estado operativo</div></div></div><div class="chart-wrap"><canvas id="chartEstado"></canvas></div></div>
-                    <div class="card"><div class="chart-header"><div><div class="chart-title">Contenedores por cliente</div></div></div><div class="chart-wrap"><canvas id="chartCliente"></canvas></div></div>
-                    <div class="card"><div class="chart-header"><div><div class="chart-title">Arrendamientos</div></div></div><div class="chart-wrap"><canvas id="chartArr"></canvas></div></div>
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Por estado operativo</div><div class="chart-subtitle">clic para ver contenedores</div></div></div><div class="chart-wrap"><canvas id="chartEstado" style="cursor:pointer"></canvas></div></div>
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Contenedores por cliente</div><div class="chart-subtitle">clic para ver detalle</div></div></div><div class="chart-wrap"><canvas id="chartCliente" style="cursor:pointer"></canvas></div></div>
+                    <div class="card"><div class="chart-header"><div><div class="chart-title">Arrendamientos</div><div class="chart-subtitle">clic para ver contratos</div></div></div><div class="chart-wrap"><canvas id="chartArr" style="cursor:pointer"></canvas></div></div>
                 </div>
                 <div class="card" style="margin-bottom:1.1rem"><div class="chart-header"><div><div class="chart-title">Alertas de arrendamiento</div><div class="chart-subtitle">Contratos próximos a vencer</div></div></div><div class="alerts-list" id="alertsList"></div></div>
-                <div class="card"><div class="chart-header"><div><div class="chart-title">Últimos movimientos</div><div class="chart-subtitle" id="movCount">0 registros</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>ID</th><th>Contenedor</th><th>Origen</th><th>Destino</th><th>Transporte</th><th>Responsable</th><th>Fecha</th></tr></thead><tbody id="movTable"></tbody></table></div></div>
+                <div class="card" style="margin-bottom:1.1rem">
+                    <div class="chart-header"><div><div class="chart-title">Estadísticas de movimientos</div><div class="chart-subtitle">Análisis detallado de traslados y envíos</div></div></div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;padding:0.5rem 0">
+                        <div style="background:rgba(211,47,47,0.08);border:1px solid rgba(211,47,47,0.2);border-radius:10px;padding:1rem">
+                            <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:.4rem"><i class="bi bi-box-seam"></i> Total registrado</div>
+                            <div style="font-family:'Archivo Black',sans-serif;font-size:1.8rem;color:var(--text-primary);margin-bottom:.2rem" id="movTotalStat">0</div>
+                            <div style="font-size:.7rem;color:var(--text-muted)">en los últimos 6 meses</div>
+                        </div>
+                        <div style="background:rgba(66,165,245,0.08);border:1px solid rgba(66,165,245,0.2);border-radius:10px;padding:1rem">
+                            <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:.4rem"><i class="bi bi-graph-up"></i> Promedio mensual</div>
+                            <div style="font-family:'Archivo Black',sans-serif;font-size:1.8rem;color:var(--text-primary);margin-bottom:.2rem" id="movPromStat">0</div>
+                            <div style="font-size:.7rem;color:var(--text-muted)">movimientos por mes</div>
+                        </div>
+                        <div style="background:rgba(0,200,150,0.08);border:1px solid rgba(0,200,150,0.2);border-radius:10px;padding:1rem">
+                            <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:.4rem"><i class="bi bi-truck"></i> Medio más usado</div>
+                            <div style="font-family:'Archivo Black',sans-serif;font-size:1.6rem;color:var(--text-primary);margin-bottom:.2rem;word-break:break-word" id="movTransporteStat">—</div>
+                            <div style="font-size:.7rem;color:var(--text-muted)">tipo de transporte</div>
+                        </div>
+                        <div style="background:rgba(255,202,40,0.08);border:1px solid rgba(255,202,40,0.2);border-radius:10px;padding:1rem">
+                            <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:.4rem"><i class="bi bi-person-check"></i> Principal responsable</div>
+                            <div style="font-family:'Archivo Black',sans-serif;font-size:1.5rem;color:var(--text-primary);margin-bottom:.2rem;word-break:break-word" id="movResponsableStat">—</div>
+                            <div style="font-size:.7rem;color:var(--text-muted)">persona a cargo</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card"><div class="chart-header"><div><div class="chart-title">Últimos movimientos registrados</div><div class="chart-subtitle" id="movCount">0 registros</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>ID</th><th>Contenedor</th><th>Origen</th><th>Destino</th><th>Transporte</th><th>Responsable</th><th>Fecha</th></tr></thead><tbody id="movTable"></tbody></table></div></div>
             </div>
 
             <!-- CONTENEDORES -->
@@ -411,6 +496,7 @@
                             <th onclick="sortContainers('tipo')">Tipo <i class="bi bi-arrow-down-up sort-icon"></i></th>
                             <th onclick="sortContainers('cliente')">Cliente <i class="bi bi-arrow-down-up sort-icon"></i></th>
                             <th onclick="sortContainers('estado')">Estado <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                            <th>Foto</th>
                             <th>Ubicación</th>
                             <th onclick="sortContainers('fecha')">Fecha <i class="bi bi-arrow-down-up sort-icon"></i></th>
                             <th>Acciones</th>
@@ -442,6 +528,7 @@
                     <input class="filter-input" type="date" id="movFilterEnd" onchange="filterMovements()" aria-label="Fecha fin">
                     <button class="btn-reset" onclick="resetMovementFilters()"><i class="bi bi-x-circle"></i> Limpiar</button>
                     <button class="btn-primary-sm" id="btnExportMov" onclick="exportCSV('movimientos')"><i class="bi bi-download"></i> Exportar CSV</button>
+                    <button class="btn-primary-sm" id="btnNewMov" onclick="openMovModal()"><i class="bi bi-plus-lg"></i> Registrar movimiento</button>
                 </div>
                 <div class="card"><div class="chart-header"><div><div class="chart-title">Historial de Movimientos</div><div class="chart-subtitle" id="movPageCount">0 registros</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>ID</th><th>Contenedor</th><th>Origen</th><th>Destino</th><th>Transporte</th><th>Responsable</th><th>Fecha</th></tr></thead><tbody id="movPageTable"></tbody></table></div></div>
             </div>
@@ -458,18 +545,53 @@
 
             <!-- HISTORIAL -->
             <div class="page" id="page-historial">
-                <div class="filters-bar"><select class="filter-select" id="histFilterContainer" onchange="showHistory()"><option value="">Seleccionar contenedor</option></select></div>
+                <!-- Eventos recientes (todos los contenedores) -->
+                <div class="card" style="margin-bottom:1.1rem">
+                    <div class="chart-header">
+                        <div><div class="chart-title"><i class="bi bi-activity" style="color:var(--info)"></i> Eventos recientes</div><div class="chart-subtitle" id="recentEventsCount">Cargando...</div></div>
+                        <button class="btn-reset" onclick="loadRecentEvents()" title="Actualizar"><i class="bi bi-arrow-clockwise"></i></button>
+                    </div>
+                    <div id="recentEventsBody"><div class="empty-state"><div class="loader-spinner" style="margin:0 auto"></div></div></div>
+                </div>
+                <!-- Filtro por contenedor -->
+                <div class="filters-bar" style="margin-bottom:.75rem">
+                    <select class="filter-select" id="histFilterContainer" onchange="showHistory()" style="flex:1;max-width:340px" aria-label="Seleccionar contenedor">
+                        <option value="">Ver historial detallado de un contenedor...</option>
+                    </select>
+                    <button class="btn-reset" onclick="document.getElementById('histFilterContainer').value='';showHistory()"><i class="bi bi-x-circle"></i> Limpiar</button>
+                </div>
+                <!-- Historial detallado del contenedor seleccionado -->
                 <div class="card" id="historyContainer">
-                    <div class="empty-state" id="historyEmpty"><i class="bi bi-clock-history" style="font-size:2rem;opacity:.5"></i><p style="margin-top:.5rem">Seleccione un contenedor para ver su historial completo.</p></div>
+                    <div class="empty-state" id="historyEmpty">
+                        <i class="bi bi-clock-history" style="font-size:2rem;opacity:.4"></i>
+                        <p style="margin-top:.6rem;font-size:.85rem">Selecciona un contenedor arriba para ver su línea de tiempo completa.</p>
+                    </div>
                     <div id="historyContent" style="display:none"></div>
                 </div>
             </div>
 
             <!-- USUARIOS (Admin Only) -->
             <div class="page" id="page-usuarios">
-                <div class="filters-bar"><button class="btn-primary-sm" onclick="openUserModal()"><i class="bi bi-plus-lg"></i> Nuevo usuario</button></div>
-                <div class="card"><div class="chart-header"><div><div class="chart-title">Gestión de Usuarios</div><div class="chart-subtitle">Solo administradores</div></div></div>
-                <div class="table-wrapper"><table class="data-table"><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="usersTable"></tbody></table></div></div>
+                <div class="filters-bar">
+                    <input class="filter-input" id="filtUserSearch" type="text" placeholder="Buscar por nombre o usuario..." oninput="filterUsersLocal()" aria-label="Buscar usuario" style="max-width:280px">
+                    <select class="filter-select" id="filtUserVerif" onchange="filterUsersLocal()" style="max-width:180px">
+                        <option value="">Todos</option>
+                        <option value="verificado">Email verificado</option>
+                        <option value="no_verificado">Sin verificar</option>
+                    </select>
+                    <button class="btn-reset" onclick="resetUserFilters()"><i class="bi bi-x-circle"></i> Limpiar</button>
+                    <button class="btn-primary-sm" onclick="openUserModal()"><i class="bi bi-plus-lg"></i> Nuevo usuario</button>
+                </div>
+                <div class="card">
+                    <div class="chart-header">
+                        <div><div class="chart-title">Gestión de Usuarios</div><div class="chart-subtitle" id="userCount">Solo administradores</div></div>
+                    </div>
+                    <div class="table-wrapper">
+                        <div style="overflow-x:auto"><table class="data-table"><thead><tr>
+                            <th>Usuario</th><th>Nombre completo</th><th>Email</th><th>Rol</th><th>Verificado</th><th>Acciones</th>
+                        </tr></thead><tbody id="usersTable"></tbody></table></div>
+                    </div>
+                </div>
             </div>
 
             <!-- CLIENTES -->
@@ -517,18 +639,19 @@
             <div class="modal-grid">
                 <div class="modal-field"><label class="modal-label">Código</label><input class="modal-input" id="mCode" placeholder="MZLO-011"></div>
                 <div class="modal-field"><label class="modal-label">Tipo</label><select class="modal-select" id="mType"></select></div>
-                <div class="modal-field"><label class="modal-label">Cliente (opcional)</label><select class="modal-select" id="mClient"><option value="">— Sin cliente —</option></select></div>
+                <div class="modal-field" style="position:relative"><label class="modal-label">Cliente (opcional)</label><input class="modal-input" id="mClientName" placeholder="Buscar cliente o dejar vacío..." autocomplete="off" oninput="filterClientAutocomplete()" onfocus="showClientDropdown()" onblur="hideClientDropdown()"><input type="hidden" id="mClientId" value=""><div class="autocomplete-dropdown" id="clientDropdown"></div></div>
                 <div class="modal-field"><label class="modal-label">Estado</label><select class="modal-select" id="mState" onchange="toggleTransitFields()"><option value="disponible">Disponible</option><option value="asignado">Asignado</option><option value="en_transito">En tránsito</option><option value="en_patio">En patio</option><option value="en_mantenimiento">En mantenimiento</option><option value="fuera_de_servicio">Fuera de servicio</option></select></div>
             </div>
             <div class="modal-field"><label class="modal-label">Ubicación actual</label><input class="modal-input" id="mLocation" placeholder="Puerto Cartagena — Zona A"></div>
-            <div class="modal-field"><label class="modal-label">URL de fotografía (opcional)</label><input class="modal-input" id="mPhoto" placeholder="https://..."></div>
+            <div class="modal-field"><label class="modal-label">Fotografía del contenedor</label><input type="file" class="modal-input" id="mPhotoFile" accept="image/*" onchange="onContainerImageChange()"><img class="cont-img-preview" id="mPhotoPreview" alt="Vista previa"></div>
             <div id="transitFields" style="display:none;border-top:1px solid var(--modal-border);padding-top:.9rem;margin-top:.5rem">
                 <div style="font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-bottom:.7rem"><i class="bi bi-truck"></i> Datos de tránsito</div>
                 <div class="modal-grid">
-                    <div class="modal-field"><label class="modal-label">Origen</label><input class="modal-input" id="mOrigen" placeholder="Puerto Cartagena"></div>
-                    <div class="modal-field"><label class="modal-label">Destino</label><input class="modal-input" id="mDestino" placeholder="Bogotá"></div>
-                    <div class="modal-field"><label class="modal-label">Medio de transporte</label><input class="modal-input" id="mTransporte" placeholder="Camión, Barco, Tren..."></div>
-                    <div class="modal-field"><label class="modal-label">Responsable</label><input class="modal-input" id="mResponsable" placeholder="Nombre del responsable"></div>
+                    <div class="modal-field"><label class="modal-label">Origen <span style="color:var(--red)">*</span></label><input class="modal-input" id="mOrigen" placeholder="Puerto Cartagena"></div>
+                    <div class="modal-field"><label class="modal-label">Destino <span style="color:var(--red)">*</span></label><input class="modal-input" id="mDestino" placeholder="Bogotá"></div>
+                    <div class="modal-field"><label class="modal-label">Transporte <span style="color:var(--red)">*</span></label><input class="modal-input" id="mTransporte" placeholder="Camión, Barco, Tren..."></div>
+                    <div class="modal-field"><label class="modal-label">Responsable <span style="color:var(--red)">*</span></label><input class="modal-input" id="mResponsable" placeholder="Nombre del responsable"></div>
+                    <div class="modal-field"><label class="modal-label">Fecha de salida <span style="color:var(--red)">*</span></label><input class="modal-input" id="mFechaSalida" type="date"></div>
                 </div>
             </div>
             <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modalContainer')">Cancelar</button><button class="btn-save" id="saveContainerBtn" onclick="saveContainer()"><i class="bi bi-floppy-fill"></i> Guardar</button></div>
@@ -583,6 +706,58 @@
         </div>
     </div>
 
+    <!-- MODAL CAMBIAR ESTADO (operador) -->
+    <div class="modal-overlay" id="modalEstado">
+        <div class="modal-box" style="width:440px">
+            <div class="modal-title"><i class="bi bi-arrow-repeat" style="margin-right:.4rem;color:var(--warning)"></i>Cambiar Estado</div>
+            <div class="modal-sub" id="modalEstadoCodigo">Contenedor</div>
+            <div class="modal-field" style="margin-top:1rem">
+                <label class="modal-label">Nuevo estado <span style="color:var(--red)">*</span></label>
+                <select class="modal-select" id="esEstado" onchange="toggleEstadoTransitFields()">
+                    <option value="disponible">Disponible</option>
+                    <option value="asignado">Asignado</option>
+                    <option value="en_transito">En tránsito</option>
+                    <option value="en_patio">En patio</option>
+                    <option value="en_mantenimiento">En mantenimiento</option>
+                    <option value="fuera_de_servicio">Fuera de servicio</option>
+                </select>
+            </div>
+            <div id="esTransitFields" style="display:none;border-top:1px solid var(--modal-border);padding-top:.9rem;margin-top:.8rem">
+                <div style="font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-bottom:.7rem"><i class="bi bi-truck"></i> Datos del movimiento en tránsito</div>
+                <div class="modal-grid">
+                    <div class="modal-field"><label class="modal-label">Origen <span style="color:var(--red)">*</span></label><input class="modal-input" id="esOrigen" placeholder="Puerto Cartagena"></div>
+                    <div class="modal-field"><label class="modal-label">Destino <span style="color:var(--red)">*</span></label><input class="modal-input" id="esDestino" placeholder="Bogotá"></div>
+                    <div class="modal-field"><label class="modal-label">Transporte <span style="color:var(--red)">*</span></label><input class="modal-input" id="esTransporte" placeholder="Camión, Barco, Tren..."></div>
+                    <div class="modal-field"><label class="modal-label">Responsable <span style="color:var(--red)">*</span></label><input class="modal-input" id="esResponsable" placeholder="Nombre del responsable"></div>
+                    <div class="modal-field"><label class="modal-label">Fecha de salida <span style="color:var(--red)">*</span></label><input class="modal-input" id="esFechaSalida" type="date"></div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal('modalEstado')">Cancelar</button>
+                <button class="btn-save" id="saveEstadoBtn" onclick="saveEstadoChange()"><i class="bi bi-floppy-fill"></i> Aplicar cambio</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL REGISTRAR MOVIMIENTO -->
+    <div class="modal-overlay" id="modalMov">
+        <div class="modal-box" style="width:480px">
+            <div class="modal-title"><i class="bi bi-arrow-left-right" style="margin-right:.4rem;color:var(--info)"></i>Registrar Movimiento</div>
+            <div class="modal-sub">Registra el desplazamiento de un contenedor entre ubicaciones.</div>
+            <div class="modal-grid" style="margin-top:.8rem">
+                <div class="modal-field"><label class="modal-label">Contenedor <span style="color:var(--red)">*</span></label><select class="modal-select" id="mvContenedor"></select></div>
+                <div class="modal-field"><label class="modal-label">Transporte <span style="color:var(--red)">*</span></label><input class="modal-input" id="mvTransporte" placeholder="Camión, Barco, Tren..."></div>
+                <div class="modal-field"><label class="modal-label">Origen <span style="color:var(--red)">*</span></label><input class="modal-input" id="mvOrigen" placeholder="Puerto Cartagena"></div>
+                <div class="modal-field"><label class="modal-label">Destino <span style="color:var(--red)">*</span></label><input class="modal-input" id="mvDestino" placeholder="Bogotá, Fontibón"></div>
+            </div>
+            <div class="modal-field" style="margin-top:.4rem"><label class="modal-label">Responsable <span style="color:var(--red)">*</span></label><input class="modal-input" id="mvResponsable" placeholder="Nombre del responsable del movimiento"></div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal('modalMov')">Cancelar</button>
+                <button class="btn-save" id="saveMovBtn" onclick="saveMovimiento()"><i class="bi bi-floppy-fill"></i> Registrar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL ARRENDAMIENTO -->
     <div class="modal-overlay" id="modalRental">
         <div class="modal-box"><div class="modal-title" id="rentalModalTitle">Nuevo contrato de arrendamiento</div><div class="modal-sub">Complete los datos del contrato.</div>
@@ -595,6 +770,46 @@
                 <div class="modal-field"><label class="modal-label">Estado</label><select class="modal-select" id="rEstado"><option value="activo">Activo</option><option value="finalizado">Finalizado</option></select></div>
             </div>
             <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('modalRental')">Cancelar</button><button class="btn-save" id="saveRentalBtn" onclick="saveRental()"><i class="bi bi-floppy-fill"></i> Guardar</button></div>
+        </div>
+    </div>
+
+    <!-- DRILL-DOWN MODAL -->
+    <div class="modal-overlay" id="drillModal" onclick="closeDrillModal()">
+        <div class="modal-box" style="width:760px;max-width:95vw;max-height:82vh;display:flex;flex-direction:column;padding:1.4rem 1.6rem" onclick="event.stopPropagation()">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-shrink:0">
+                <div class="modal-title" id="drillTitle" style="margin:0">Detalle</div>
+                <button class="btn-icon" onclick="closeDrillModal()" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div id="drillContent" style="overflow-y:auto;flex:1;min-height:0">
+                <div class="empty-state"><div class="loader-spinner" style="margin:0 auto"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DETAIL INFO MODAL -->
+    <div class="modal-overlay" id="detailModal" onclick="closeDetailModal()">
+        <div class="modal-box" style="width:720px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;padding:1.6rem" onclick="event.stopPropagation()">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem;flex-shrink:0">
+                <div><div class="modal-title" id="detailTitle" style="margin:0">Información General</div><div style="font-size:.72rem;color:var(--text-muted);margin-top:.3rem" id="detailSubtitle">Detalles del sistema</div></div>
+                <button class="btn-icon" onclick="closeDetailModal()" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div id="detailContent" style="overflow-y:auto;flex:1;min-height:0;padding-right:.5rem">
+                <div class="empty-state"><div class="loader-spinner" style="margin:0 auto"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETALLE CONTENEDOR -->
+    <div class="modal-overlay" id="modalContDetail" onclick="if(event.target===this)closeModal('modalContDetail')">
+        <div class="modal-box" style="width:640px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.1rem">
+                <div>
+                    <div class="modal-title" id="cdTitle">Detalle de Contenedor</div>
+                    <div id="cdBadge" style="margin-top:.3rem"></div>
+                </div>
+                <button onclick="closeModal('modalContDetail')" style="background:none;border:none;color:var(--modal-muted);font-size:1.1rem;cursor:pointer;padding:.2rem .4rem;border-radius:6px;line-height:1" title="Cerrar"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div id="cdBody"><div class="empty-state" style="padding:2rem"><div class="loader-spinner" style="margin:0 auto"></div></div></div>
         </div>
     </div>
 
@@ -693,9 +908,6 @@
 
         </div>
 
-        <div class="notif-panel-footer">
-            <button class="btn-notif" onclick="logout()" style="color:#ff8a80;border-color:rgba(211,47,47,0.3)"><i class="bi bi-box-arrow-right"></i> Cerrar sesión</button>
-        </div>
     </div>
 
     <div class="toast-stack" id="toastStack"></div>
@@ -772,9 +984,8 @@
             } catch(e) {}
         }
         function populateModalSelects() {
-            const mt=document.getElementById('mType'), mc=document.getElementById('mClient');
+            const mt=document.getElementById('mType');
             if(DB_TIPOS.length) mt.innerHTML=DB_TIPOS.map(t=>`<option value="${t.id_tipo}">${t.nombre}</option>`).join('');
-            if(DB_CLIENTES.length) mc.innerHTML=DB_CLIENTES.map(c=>`<option value="${c.id_cliente}">${c.nombre}</option>`).join('');
         }
 
         /* ═══════════════════════ 3. API & MOCK SERVER (FIXED MATCHING) ═══════════════════════ */
@@ -790,9 +1001,13 @@
         const ApiClient = {
             async request(method, endpoint, body=null) {
                 const headers = {'Content-Type':'application/json', ...TokenManager.headers()};
-                if(CONTROLLERS.containers && endpoint.includes('contenedores')) { CONTROLLERS.containers.abort(); CONTROLLERS.containers=null; }
-                CONTROLLERS.containers = new AbortController();
-                const signal = CONTROLLERS.containers.signal;
+                // Solo cancelar/recrear el controller para la lista paginada de contenedores
+                const isContainerList = /^\/contenedores(\?|$)/.test(endpoint);
+                if(isContainerList) {
+                    if(CONTROLLERS.containers) { CONTROLLERS.containers.abort(); CONTROLLERS.containers = null; }
+                    CONTROLLERS.containers = new AbortController();
+                }
+                const signal = isContainerList ? CONTROLLERS.containers.signal : undefined;
 
                 if(CONFIG.DEV_MODE) {
                     await new Promise(r=>setTimeout(r, 200+Math.random()*300));
@@ -812,6 +1027,17 @@
                     if(Array.isArray(json)) return {ok:true,data:json,meta:{total:json.length,page:1,totalPages:1}};
                     return {ok:true,data:json};
                 } catch(err) { if(err.name==='AbortError') return {ok:true,data:[]}; console.error('API Error',err); throw err; }
+            },
+            async uploadFile(endpoint, formData) {
+                const headers = { ...TokenManager.headers() };
+                const url = `${CONFIG.API_BASE}${endpoint}`;
+                const res = await fetch(url, { method: 'POST', headers, body: formData });
+                if (!res.ok) {
+                    let errMsg = `Error ${res.status}`;
+                    try { const b = await res.json(); errMsg = b.detail || errMsg; } catch(e) {}
+                    throw new Error(errMsg);
+                }
+                return await res.json();
             },
             _mockResponse(method, endpoint, body) {
                 const url=new URL(endpoint, 'http://localhost');
@@ -885,7 +1111,7 @@
             {id:'reportes', title:'Reportes', icon:'bi-bar-chart-fill', section:'sistema'},
             {id:'usuarios', title:'Usuarios', icon:'bi-shield-lock-fill', section:'sistema'}
         ];
-        let currentUserRole=null, currentPage=1, rowsPerPage=10, sortCol='codigo', sortDir='asc';
+        let currentUserRole=null, currentUserId=null, currentPage=1, rowsPerPage=10, sortCol='codigo', sortDir='asc';
 
         function buildSidebar() {
             const nav=document.getElementById('sidebarNav');
@@ -904,20 +1130,46 @@
             nav.innerHTML=html;
         }
 
-        function canAccessPage(id) { 
-            const perms={panel:['admin','supervisor','operador','auditor'],contenedores:['admin','supervisor','operador','auditor'],zonas:['admin','supervisor','operador','auditor'],movimientos:['admin','supervisor','operador','auditor'],arrendamientos:['admin','supervisor','auditor'],historial:['admin','supervisor','operador','auditor'],clientes:['admin','auditor'],facturacion:['admin','auditor'],reportes:['admin','supervisor','auditor'],usuarios:['admin']};
+        function canAccessPage(id) {
+            const perms={
+                panel:          ['admin','supervisor','operador','auditor'],
+                contenedores:   ['admin','supervisor','operador','auditor'],
+                zonas:          ['admin','supervisor','operador','auditor'],
+                movimientos:    ['admin','supervisor','operador','auditor'],
+                arrendamientos: ['admin','supervisor','operador','auditor'],
+                historial:      ['admin','supervisor','operador','auditor'],
+                clientes:       ['admin','supervisor','auditor'],
+                facturacion:    ['admin','supervisor','auditor'],
+                reportes:       ['admin','supervisor','auditor'],
+                usuarios:       ['admin'],
+            };
             return currentUserRole && perms[id]?.includes(currentUserRole);
         }
         function canPerformAction(a) {
-            const perms={createContainer:['admin','supervisor'],editContainer:['admin','supervisor'],deleteContainer:['admin'],exportCSV:['admin','supervisor','auditor']};
+            const perms={
+                createContainer:     ['admin','supervisor'],
+                editContainer:       ['admin','supervisor'],
+                deleteContainer:     ['admin'],
+                changeEstado:        ['admin','supervisor','operador'],
+                createMovimiento:    ['admin','supervisor','operador'],
+                createArrendamiento: ['admin','supervisor'],
+                createCliente:       ['admin','supervisor'],
+                createFactura:       ['admin'],
+                exportCSV:           ['admin','supervisor','auditor'],
+            };
             return currentUserRole && perms[a]?.includes(currentUserRole);
         }
         function applyRoleBasedUI() {
             buildSidebar();
-            document.getElementById('btnNewContainer').style.display=canPerformAction('createContainer')?'':'none';
-            document.getElementById('btnExportCont').style.display=canPerformAction('exportCSV')?'':'none';
-            document.getElementById('btnExportMov').style.display=canPerformAction('exportCSV')?'':'none';
-            document.getElementById('page-usuarios').style.display=currentUserRole==='admin'?'':'none';
+            document.getElementById('btnNewContainer').style.display = canPerformAction('createContainer') ? '' : 'none';
+            document.getElementById('btnExportCont').style.display   = canPerformAction('exportCSV')        ? '' : 'none';
+            document.getElementById('btnExportMov').style.display    = canPerformAction('exportCSV')        ? '' : 'none';
+            document.getElementById('btnNewMov').style.display       = canPerformAction('createMovimiento') ? '' : 'none';
+            document.getElementById('btnNewRental').style.display    = canPerformAction('createArrendamiento') ? '' : 'none';
+            document.getElementById('btnNewClient').style.display    = canPerformAction('createCliente')    ? '' : 'none';
+            document.getElementById('btnNewFact').style.display      = canPerformAction('createFactura')    ? '' : 'none';
+            document.getElementById('btnExportFact').style.display   = canPerformAction('exportCSV')        ? '' : 'none';
+            document.getElementById('page-usuarios').style.display   = currentUserRole === 'admin' ? '' : 'none';
         }
 
         function showLoader(id) { const l=document.getElementById(id); if(l) l.classList.add('active'); }
@@ -937,7 +1189,10 @@
                 const bc = document.getElementById('badgeCont');
                 const ba = document.getElementById('badgeArr');
                 if (bc) bc.textContent = s.total_contenedores ?? 0;
-                if (ba) ba.textContent = s.proximos_vencer ?? 0;
+                if (ba) ba.textContent = s.total_arrendamientos ?? 0;
+
+                // Guardar stats para modales
+                window._dashboardStats = s;
 
                 // Trends dinámicos
                 const lastStats = JSON.parse(localStorage.getItem('mz_last_stats') || '{}');
@@ -959,22 +1214,26 @@
                     en_transito:        s.por_estado?.en_transito
                 }));
 
-                updatePanelCharts(s);
+                try { updatePanelCharts(s); } catch(e) { console.error('Error updatePanelCharts:', e); }
+                updateFinanciero();
             } catch(e) { console.error('Error updateKPIs:', e); }
         }
 
         function renderContainers(data, meta) {
             const tbody=document.getElementById('contTableBody');
             document.getElementById('contMetaInfo').textContent=`${meta.total} registros · Página ${meta.page} de ${meta.totalPages}`;
-            if(!data.length) { tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state">Sin resultados</div></td></tr>`; return; }
+            if(!data.length) { tbody.innerHTML=`<tr><td colspan="8"><div class="empty-state">Sin resultados</div></td></tr>`; return; }
             tbody.innerHTML=data.map(c=>`<tr>
                 <td><strong>${sanitizeHTML(c.codigo)}</strong></td><td>${sanitizeHTML(c.tipo)}</td><td>${sanitizeHTML(c.cliente)}</td>
-                <td><span class="badge-status ${c.estado}">${c.estado.replace('_',' ')}</span></td>
+                <td><span class="badge-status ${c.estado}">${c.estado.replace(/_/g,' ')}</span></td>
+                <td style="text-align:center">${c.imagen?`<img src="${sanitizeHTML(c.imagen)}" style="height:32px;border-radius:4px;object-fit:cover;border:1px solid var(--border-color)" alt="foto">`:'<span style="color:var(--text-muted);font-size:.7rem">—</span>'}</td>
                 <td style="font-size:.72rem;color:var(--text-muted)">${sanitizeHTML(c.ubicacion)}</td>
                 <td style="font-size:.72rem;color:var(--text-muted)">${sanitizeHTML(c.fecha)}</td>
                 <td><div class="table-actions">
-                    ${canPerformAction('editContainer')?`<div class="btn-icon" onclick="openContainerModal(${c.id})" aria-label="Editar"><i class="bi bi-pencil-fill"></i></div>`:''}
-                    ${canPerformAction('deleteContainer')?`<div class="btn-icon danger" onclick="openConfirmModal(${c.id})" aria-label="Eliminar"><i class="bi bi-trash-fill"></i></div>`:''}
+                    <div class="btn-icon" onclick="openContainerDetail(${c.id})" aria-label="Ver detalle" title="Ver detalle completo" style="color:var(--info)"><i class="bi bi-eye-fill"></i></div>
+                    ${canPerformAction('editContainer')?`<div class="btn-icon" onclick="openContainerModal(${c.id})" aria-label="Editar" title="Editar contenedor"><i class="bi bi-pencil-fill"></i></div>`:''}
+                    ${!canPerformAction('editContainer')&&canPerformAction('changeEstado')?`<div class="btn-icon" onclick="openEstadoModal(${c.id},'${c.estado}','${c.codigo}')" aria-label="Cambiar estado" title="Cambiar estado" style="color:var(--warning)"><i class="bi bi-arrow-repeat"></i></div>`:''}
+                    ${canPerformAction('deleteContainer')?`<div class="btn-icon danger" onclick="openConfirmModal(${c.id})" aria-label="Eliminar" title="Eliminar"><i class="bi bi-trash-fill"></i></div>`:''}
                 </div></td></tr>`).join('');
             renderPagination(meta);
         }
@@ -989,17 +1248,42 @@
             bar.innerHTML=html;
         }
 
+        let _usuariosFiltrados = [];
         function renderUsers(data) {
-            const tbody=document.getElementById('usersTable');
-            if(!data) return;
-            tbody.innerHTML=data.map(u=>`<tr>
-                <td>${sanitizeHTML(u.username)}</td><td>${sanitizeHTML(u.name)}</td>
-                <td><span class="badge-status ${u.role==='admin'?'disponible':u.role==='supervisor'?'en_transito':'en_patio'}">${u.role}</span></td>
-                <td><span class="badge-status ${u.active?'disponible':'fuera_de_servicio'}">${u.active?'Activo':'Inactivo'}</span></td>
+            const tbody = document.getElementById('usersTable');
+            const count = document.getElementById('userCount');
+            if (!data) return;
+            if (count) count.textContent = `${data.length} usuario${data.length!==1?'s':''}`;
+            if (!data.length) { tbody.innerHTML='<tr><td colspan="6"><div class="empty-state">Sin usuarios</div></td></tr>'; return; }
+            const rolClass = r => r==='admin'?'disponible':r==='supervisor'?'en_transito':r==='operador'?'en_patio':'asignado';
+            tbody.innerHTML = data.map(u => `<tr>
+                <td><strong>${sanitizeHTML(u.username)}</strong></td>
+                <td>${sanitizeHTML(u.name)}</td>
+                <td style="font-size:.78rem">${sanitizeHTML(u.email||'—')}</td>
+                <td><span class="badge-status ${rolClass(u.role)}">${u.role}</span></td>
+                <td style="text-align:center">${u.verified
+                    ? '<span style="color:var(--success);font-size:.8rem"><i class="bi bi-patch-check-fill"></i> Verificado</span>'
+                    : '<span style="color:var(--warning);font-size:.75rem"><i class="bi bi-exclamation-triangle-fill"></i> Pendiente</span>'
+                }</td>
                 <td><div class="table-actions">
-                    <div class="btn-icon" onclick="openUserModal(${u.id})" aria-label="Editar"><i class="bi bi-pencil-fill"></i></div>
-                    ${u.id!==1?`<div class="btn-icon danger" onclick="deleteUser(${u.id})" aria-label="Eliminar"><i class="bi bi-trash-fill"></i></div>`:''}
-                </div></td></tr>`).join('');
+                    <div class="btn-icon" onclick="openUserModal(${u.id})" title="Editar" aria-label="Editar"><i class="bi bi-pencil-fill"></i></div>
+                    ${!u.verified ? `<div class="btn-icon" onclick="forceVerifyUser(${u.id})" title="Marcar como verificado" style="color:var(--success)" aria-label="Verificar"><i class="bi bi-patch-check"></i></div>` : ''}
+                    ${u.id!==currentUserId ? `<div class="btn-icon danger" onclick="deleteUser(${u.id})" title="Eliminar" aria-label="Eliminar"><i class="bi bi-trash-fill"></i></div>` : ''}
+                </div></td>
+            </tr>`).join('');
+        }
+        function filterUsersLocal() {
+            const q = (document.getElementById('filtUserSearch')?.value||'').toLowerCase();
+            const v = document.getElementById('filtUserVerif')?.value || '';
+            let data = [..._usuariosFiltrados];
+            if (q) data = data.filter(u => u.username.toLowerCase().includes(q) || u.name.toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q));
+            if (v === 'verificado')    data = data.filter(u =>  u.verified);
+            if (v === 'no_verificado') data = data.filter(u => !u.verified);
+            renderUsers(data);
+        }
+        function resetUserFilters() {
+            ['filtUserSearch','filtUserVerif'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+            renderUsers(_usuariosFiltrados);
         }
 
         /* ═══════════════════════ 5. CHARTS & MAP ═══════════════════════ */
@@ -1021,67 +1305,161 @@
             const axesOpts  = { ticks:{ color:'rgba(160,185,215,0.7)', font:{size:10} }, grid:{ color:'rgba(255,255,255,0.05)' } };
             const ctx = id => document.getElementById(id)?.getContext('2d');
 
-            if(ctx('chartMovimientos')) chartMovimientos = new Chart(ctx('chartMovimientos'), { type:'line', data:{ labels:[], datasets:[{ label:'Movimientos', data:[], borderColor:'#D32F2F', backgroundColor:'rgba(211,47,47,0.08)', tension:.4, fill:true }] }, options:{ ...chartOpts, scales:{ x:axesOpts, y:{...axesOpts, beginAtZero:true} } } });
-            if(ctx('chartTipo'))        chartTipo        = new Chart(ctx('chartTipo'),        { type:'doughnut', data:{ labels:[], datasets:[{ data:[], backgroundColor:['#D32F2F','#42a5f5','#00c896','#ffca28','#ce93d8','#ffb74d'] }] }, options:{ ...chartOpts, cutout:'65%' } });
-            if(ctx('chartEstado'))      chartEstado      = new Chart(ctx('chartEstado'),      { type:'bar',     data:{ labels:[], datasets:[{ label:'Contenedores', data:[], backgroundColor:['#00c896','#42a5f5','#ffca28','#ce93d8','#ffb74d','#ff8a80'] }] }, options:{ ...chartOpts, indexAxis:'y', scales:{ x:axesOpts, y:axesOpts } } });
-            if(ctx('chartCliente'))     chartCliente     = new Chart(ctx('chartCliente'),     { type:'bar',     data:{ labels:[], datasets:[{ label:'Contenedores', data:[], backgroundColor:'#42a5f5' }] }, options:{ ...chartOpts, scales:{ x:axesOpts, y:{...axesOpts, beginAtZero:true} } } });
-            if(ctx('chartArr'))         chartArr         = new Chart(ctx('chartArr'),         { type:'bar',     data:{ labels:['Activos','Finalizados'], datasets:[{ data:[0,0], backgroundColor:['#00c896','#ff8a80'] }] }, options:{ ...chartOpts, scales:{ x:axesOpts, y:{...axesOpts, beginAtZero:true} } } });
+            if(ctx('chartMovimientos')) chartMovimientos = new Chart(ctx('chartMovimientos'), {
+                type:'bar',
+                data:{
+                    labels:[],
+                    datasets:[{
+                        label:'Envíos y traslados',
+                        data:[],
+                        backgroundColor:['#D32F2F','#ff6b6b','#ff8a80','#ef5350','#e53935','#c62828'],
+                        borderColor:'rgba(211,47,47,0.5)',
+                        borderWidth:1,
+                        borderRadius:6,
+                        hoverBackgroundColor:'#b71c1c'
+                    }]
+                },
+                options:{
+                    ...chartOpts,
+                    plugins:{
+                        ...chartOpts.plugins,
+                        tooltip:{
+                            backgroundColor:'rgba(0,0,0,0.8)',
+                            padding:12,
+                            callbacks:{
+                                title:(ctx)=>`${ctx[0].label}`,
+                                label:(ctx)=>`Movimientos: ${ctx.parsed.y}`,
+                                afterLabel:(ctx)=>`Promedio mensual: ${(chartMovimientos._total / 6).toFixed(1)}`
+                            }
+                        }
+                    },
+                    scales:{
+                        x:axesOpts,
+                        y:{...axesOpts, beginAtZero:true, title:{display:true, text:'Cantidad de movimientos'}}
+                    },
+                    onClick:(evt,elems)=>{
+                        if(!elems.length) return;
+                        const idx=elems[0].index;
+                        const ym=chartMovimientos._yearMonths?.[idx];
+                        if(ym) drillByMes(ym, chartMovimientos.data.labels[idx]);
+                    }
+                }
+            });
+            if(ctx('chartTipo'))        chartTipo        = new Chart(ctx('chartTipo'),        { type:'doughnut', data:{ labels:[], datasets:[{ data:[], backgroundColor:['#D32F2F','#42a5f5','#00c896','#ffca28','#ce93d8','#ffb74d'], hoverOffset:8 }] }, options:{ ...chartOpts, cutout:'65%', onClick:(evt,elems)=>{ if(!elems.length) return; const lbl=chartTipo.data.labels[elems[0].index]; if(lbl) drillByTipo(lbl); } } });
+            if(ctx('chartEstado'))      chartEstado      = new Chart(ctx('chartEstado'),      { type:'bar',     data:{ labels:[], datasets:[{ label:'Contenedores', data:[], backgroundColor:['#00c896','#42a5f5','#ffca28','#ce93d8','#ffb74d','#ff8a80'] }] }, options:{ ...chartOpts, indexAxis:'y', scales:{ x:axesOpts, y:axesOpts }, onClick:(evt,elems)=>{ if(!elems.length) return; const rk=chartEstado._rawKeys?.[elems[0].index]; if(rk) drillByEstado(rk); } } });
+            if(ctx('chartCliente'))     chartCliente     = new Chart(ctx('chartCliente'),     { type:'bar',     data:{ labels:[], datasets:[{ label:'Contenedores', data:[], backgroundColor:'#42a5f5', hoverBackgroundColor:'#64b5f6' }] }, options:{ ...chartOpts, scales:{ x:axesOpts, y:{...axesOpts, beginAtZero:true} }, onClick:(evt,elems)=>{ if(!elems.length) return; const lbl=chartCliente.data.labels[elems[0].index]; if(lbl) drillByCliente(lbl); } } });
+            if(ctx('chartArr'))         chartArr         = new Chart(ctx('chartArr'),         { type:'bar',     data:{ labels:['Activos','Finalizados'], datasets:[{ data:[0,0], backgroundColor:['#00c896','#ff8a80'] }] }, options:{ ...chartOpts, scales:{ x:axesOpts, y:{...axesOpts, beginAtZero:true} }, onClick:(evt,elems)=>{ if(!elems.length) return; const tipo=elems[0].index===0?'activo':'finalizado'; drillArrendamientos(tipo); } } });
         }
 
         const ESTADO_LABELS = { disponible:'Disponible', asignado:'Asignado', en_transito:'En Tránsito', en_patio:'En Patio', en_mantenimiento:'Mantenimiento', fuera_de_servicio:'Fuera Servicio' };
         const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
-        async function updatePanelCharts(stats) {
-            if (chartTipo && stats.por_tipo) {
-                const entries = Object.entries(stats.por_tipo);
-                chartTipo.data.labels = entries.map(([k])=>k);
-                chartTipo.data.datasets[0].data = entries.map(([,v])=>v);
+        function updatePanelCharts(stats) {
+            // ── Gráfica: Por tipo de contenedor ─────────────────────────────
+            if (chartTipo) {
+                const entries = Object.entries(stats.por_tipo || {});
+                if (entries.length) {
+                    chartTipo.data.labels              = entries.map(([k]) => k);
+                    chartTipo.data.datasets[0].data    = entries.map(([, v]) => v);
+                } else {
+                    chartTipo.data.labels           = ['Sin datos'];
+                    chartTipo.data.datasets[0].data = [1];
+                    chartTipo.data.datasets[0].backgroundColor = ['rgba(128,128,128,0.3)'];
+                }
                 chartTipo.update();
             }
-            if (chartEstado && stats.por_estado) {
-                const entries = Object.entries(stats.por_estado);
-                chartEstado.data.labels = entries.map(([k])=>ESTADO_LABELS[k]||k);
-                chartEstado.data.datasets[0].data = entries.map(([,v])=>v);
+
+            // ── Gráfica: Por estado operativo ────────────────────────────────
+            if (chartEstado) {
+                const entries = Object.entries(stats.por_estado || {});
+                chartEstado.data.labels           = entries.map(([k]) => ESTADO_LABELS[k] || k);
+                chartEstado.data.datasets[0].data = entries.map(([, v]) => v);
+                chartEstado._rawKeys              = entries.map(([k]) => k);
                 chartEstado.update();
             }
-            if (chartCliente && stats.por_cliente) {
-                const entries = Object.entries(stats.por_cliente).sort((a,b)=>b[1]-a[1]).slice(0,8);
-                chartCliente.data.labels = entries.map(([k])=>k);
-                chartCliente.data.datasets[0].data = entries.map(([,v])=>v);
+
+            // ── Gráfica: Por cliente ──────────────────────────────────────────
+            if (chartCliente) {
+                const entries = Object.entries(stats.por_cliente || {}).sort((a, b) => b[1] - a[1]).slice(0, 8);
+                chartCliente.data.labels           = entries.map(([k]) => k);
+                chartCliente.data.datasets[0].data = entries.map(([, v]) => v);
                 chartCliente.update();
             }
+
+            // ── Gráfica: Movimientos por mes (datos pre-calculados por el backend) ──
             if (chartMovimientos) {
-                try {
-                    const res = await ApiClient.request('GET', '/movimientos?limit=500');
-                    if (res.ok && res.data) {
-                        const hoy = new Date();
-                        const ultimos6 = Array.from({length:6}, (_,i) => {
-                            const d = new Date(hoy.getFullYear(), hoy.getMonth()-5+i, 1);
-                            return { key:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`, label:MESES_ES[d.getMonth()] };
-                        });
-                        const conteo = {};
-                        ultimos6.forEach(m => conteo[m.key] = 0);
-                        res.data.forEach(m => {
-                            if (!m.fecha_hora) return;
-                            const k = m.fecha_hora.substring(0,7);
-                            if (conteo[k] !== undefined) conteo[k]++;
-                        });
-                        chartMovimientos.data.labels = ultimos6.map(m=>m.label);
-                        chartMovimientos.data.datasets[0].data = ultimos6.map(m=>conteo[m.key]);
-                        chartMovimientos.update();
-                    }
-                } catch(e) { console.error('Error gráfica movimientos:', e); }
+                const meses = Array.isArray(stats.movimientos_por_mes) ? stats.movimientos_por_mes : [];
+                if (meses.length) {
+                    chartMovimientos.data.labels              = meses.map(m => m.label);
+                    chartMovimientos.data.datasets[0].data    = meses.map(m => m.count);
+                    chartMovimientos._yearMonths               = meses.map(m => m.key);
+                    const total = meses.reduce((sum, m) => sum + m.count, 0);
+                    chartMovimientos._total = total;
+                } else {
+                    chartMovimientos.data.labels           = MESES_ES.slice(-6);
+                    chartMovimientos.data.datasets[0].data = [0, 0, 0, 0, 0, 0];
+                    chartMovimientos._total = 0;
+                }
+                chartMovimientos.update();
             }
+
+            // ── Gráfica: Arrendamientos activos vs finalizados ──────────────
             if (chartArr) {
-                try {
-                    const res = await ApiClient.request('GET', '/arrendamientos');
-                    if (res.ok && res.data) {
-                        const activos    = res.data.filter(a=>a.estado_arrendamiento==='activo').length;
-                        const finalizados= res.data.filter(a=>a.estado_arrendamiento!=='activo').length;
-                        chartArr.data.datasets[0].data = [activos, finalizados];
-                        chartArr.update();
-                    }
-                } catch(e) {}
+                chartArr.data.datasets[0].data = [
+                    stats.arr_activos    || 0,
+                    stats.arr_finalizados || 0,
+                ];
+                chartArr.update();
+            }
+
+            // ── Tabla: Últimos movimientos en el panel ───────────────────────
+            const ultimos = Array.isArray(stats.ultimos_movimientos) ? stats.ultimos_movimientos : [];
+            _movimientosAPI = ultimos;
+            const tbody = document.getElementById('movTable');
+            const count = document.getElementById('movCount');
+            if (count) count.textContent = `${stats.total_movimientos ?? ultimos.length} registros`;
+            if (tbody) {
+                if (!ultimos.length) {
+                    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Sin movimientos registrados</div></td></tr>';
+                } else {
+                    tbody.innerHTML = ultimos.map(m => `
+                        <tr>
+                            <td>${m.id_movimiento}</td>
+                            <td><strong>${sanitizeHTML(m.codigo_contenedor || String(m.id_contenedor))}</strong></td>
+                            <td>${sanitizeHTML(m.ubicacion_origen || '—')}</td>
+                            <td>${sanitizeHTML(m.ubicacion_destino || '—')}</td>
+                            <td>${sanitizeHTML(m.medio_transporte || '—')}</td>
+                            <td>${sanitizeHTML(m.responsable || '—')}</td>
+                            <td>${m.fecha_hora ? m.fecha_hora.substring(0, 16).replace('T', ' ') : '—'}</td>
+                        </tr>`).join('');
+                }
+            }
+
+            // ── Estadísticas de movimientos ──────────────────────────────────
+            const movTotalEl = document.getElementById('movTotalStat');
+            const movPromEl = document.getElementById('movPromStat');
+            const movTransporteEl = document.getElementById('movTransporteStat');
+            const movResponsableEl = document.getElementById('movResponsableStat');
+
+            if (movTotalEl || movPromEl || movTransporteEl || movResponsableEl) {
+                const total = stats.total_movimientos || 0;
+                const promedio = total > 0 ? (total / 6).toFixed(1) : '0';
+
+                // Contar tipos de transporte
+                const transporteCounts = {};
+                const responsableCounts = {};
+                ultimos.forEach(m => {
+                    if (m.medio_transporte) transporteCounts[m.medio_transporte] = (transporteCounts[m.medio_transporte] || 0) + 1;
+                    if (m.responsable) responsableCounts[m.responsable] = (responsableCounts[m.responsable] || 0) + 1;
+                });
+
+                const transporteMasUsado = Object.entries(transporteCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'No disponible';
+                const responsablePrincipal = Object.entries(responsableCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'No disponible';
+
+                if (movTotalEl) movTotalEl.textContent = total;
+                if (movPromEl) movPromEl.textContent = promedio;
+                if (movTransporteEl) movTransporteEl.textContent = sanitizeHTML(transporteMasUsado);
+                if (movResponsableEl) movResponsableEl.textContent = sanitizeHTML(responsablePrincipal);
             }
         }
         function initMap(zones={}) {
@@ -1130,7 +1508,7 @@
                 const res=await ApiClient.request('GET', `/contenedores?${params}`);
                 if(res.ok) {
                     DB_CONTENEDORES_API=res.data;
-                    const norm=res.data.map(c=>({id:c.id_contenedor,codigo:c.id_codigo,tipo:DB_TIPOS.find(t=>t.id_tipo===c.id_tipo)?.nombre||`Tipo ${c.id_tipo}`,cliente:DB_CLIENTES.find(cl=>cl.id_cliente===c.id_cliente)?.nombre||`Cliente ${c.id_cliente}`,estado:c.estado,ubicacion:c.ubicacion_actual,fecha:c.created_at}));
+                    const norm=res.data.map(c=>({id:c.id_contenedor,codigo:c.id_codigo,tipo:DB_TIPOS.find(t=>t.id_tipo===c.id_tipo)?.nombre||`Tipo ${c.id_tipo}`,cliente:DB_CLIENTES.find(cl=>cl.id_cliente===c.id_cliente)?.nombre||`Cliente ${c.id_cliente}`,estado:c.estado,ubicacion:c.ubicacion_actual,fecha:c.created_at,imagen:c.ruta_imagen||null}));
                     renderContainers(norm, res.meta);
                 }
             } catch(e){ if(e.name!=='AbortError') showToast('Error cargando','error'); }
@@ -1142,72 +1520,468 @@
         const debouncedFilterContainers=debounce(()=>{currentPage=1;loadContainers();},300);
         function filterContainers() { currentPage=1; loadContainers(); }
         function resetFilters() { ['filtCode','filtState','filtClient','filtType'].forEach(id=>document.getElementById(id).value=''); currentPage=1; loadContainers(); }
-        const handleGlobalSearch=debounce(v=>{if(!v){loadContainers();return;}document.getElementById('filtCode').value=v;currentPage=1;loadContainers();},300);
+        const handleGlobalSearch=debounce(v=>{
+            const onContainers = document.getElementById('page-contenedores')?.classList.contains('active');
+            if(!v){
+                const fc = document.getElementById('filtCode');
+                if(fc) fc.value = '';
+                if(onContainers) loadContainers();
+                return;
+            }
+            // Si no estamos en contenedores, navegar primero (navigateTo limpia filtCode)
+            if(!onContainers){
+                navigateTo('contenedores', document.querySelector('[data-page="contenedores"]'));
+            }
+            // Aplicar el filtro y cargar (el AbortController cancela la petición vacía anterior)
+            document.getElementById('filtCode').value=v;
+            currentPage=1;
+            loadContainers();
+        },300);
 
         function populateFilters() {
             if(DB_CLIENTES.length){const s=document.getElementById('filtClient');s.innerHTML='<option value="">Todos</option>'+DB_CLIENTES.map(c=>`<option value="${c.id_cliente}">${c.nombre}</option>`).join('');}
             if(DB_TIPOS.length){const s=document.getElementById('filtType');s.innerHTML='<option value="">Todos</option>'+DB_TIPOS.map(t=>`<option value="${t.id_tipo}">${t.nombre}</option>`).join('');}
         }
 
+        // ── Transit fields toggle ──────────────────────────────────────────────
+        function toggleTransitFields() {
+            const state = document.getElementById('mState').value;
+            document.getElementById('transitFields').style.display = state === 'en_transito' ? 'block' : 'none';
+        }
+
+        // ── Client autocomplete (API-driven with debounce) ─────────────────────
+        let _clientAcTimeout = null;
+        function _renderClientDropdown(matches) {
+            const dd = document.getElementById('clientDropdown');
+            if (!dd) return;
+            const items = ['<div class="autocomplete-item empty-opt" onmousedown="selectClient(null,\'\')">— Sin cliente —</div>'];
+            if (!matches.length) {
+                items.push('<div class="autocomplete-item empty-opt">Sin resultados</div>');
+            } else {
+                matches.slice(0, 30).forEach(c => {
+                    items.push(`<div class="autocomplete-item" onmousedown="selectClient(${c.id_cliente}, '${c.nombre.replace(/'/g,"\\'")}')">` +
+                        `${sanitizeHTML(c.nombre)}</div>`);
+                });
+            }
+            dd.innerHTML = items.join('');
+            dd.style.display = 'block';
+        }
+        function showClientDropdown() {
+            _renderClientDropdown(DB_CLIENTES);
+        }
+        function hideClientDropdown() {
+            setTimeout(() => {
+                const dd = document.getElementById('clientDropdown');
+                if (dd) dd.style.display = 'none';
+            }, 180);
+        }
+        function filterClientAutocomplete() {
+            clearTimeout(_clientAcTimeout);
+            const q = (document.getElementById('mClientName')?.value || '').trim();
+            // Render local results immediately for responsiveness
+            const local = DB_CLIENTES.filter(c => !q || c.nombre.toLowerCase().includes(q.toLowerCase()));
+            _renderClientDropdown(local);
+            if (!q) return;
+            // Then refine with a debounced API call
+            _clientAcTimeout = setTimeout(async () => {
+                try {
+                    const res = await ApiClient.request('GET', `/clientes?search=${encodeURIComponent(q)}`);
+                    if (res.ok && res.data) {
+                        // Merge any new clients into local cache
+                        res.data.forEach(c => { if (!DB_CLIENTES.find(x => x.id_cliente === c.id_cliente)) DB_CLIENTES.push(c); });
+                        _renderClientDropdown(res.data);
+                    }
+                } catch(e) { /* keep local results */ }
+            }, 300);
+        }
+        function selectClient(id, nombre) {
+            document.getElementById('mClientId').value = id || '';
+            document.getElementById('mClientName').value = nombre || '';
+            document.getElementById('clientDropdown').style.display = 'none';
+        }
+
+        // ── Image preview ──────────────────────────────────────────────────────
+        function onContainerImageChange() {
+            const fi = document.getElementById('mPhotoFile');
+            const prev = document.getElementById('mPhotoPreview');
+            if (!fi || !fi.files.length) { if (prev) prev.style.display = 'none'; return; }
+            const reader = new FileReader();
+            reader.onload = e => { prev.src = e.target.result; prev.style.display = 'block'; };
+            reader.readAsDataURL(fi.files[0]);
+        }
+
         // CRUD Contenedores
         let editId=null;
         function openContainerModal(id=null) {
-            editId=id; document.getElementById('modalTitle').textContent=id?'Editar contenedor':'Nuevo contenedor';
+            editId = id;
+            document.getElementById('modalTitle').textContent = id ? 'Editar contenedor' : 'Nuevo contenedor';
             populateModalSelects();
-            if(id){const c=DB_CONTENEDORES_API.find(x=>x.id_contenedor===id);if(c){document.getElementById('mCode').value=c.id_codigo;document.getElementById('mType').value=c.id_tipo;document.getElementById('mClient').value=c.id_cliente;document.getElementById('mState').value=c.estado;document.getElementById('mLocation').value=c.ubicacion_actual||'';document.getElementById('mPhoto').value='';}}
-            else ['mCode','mLocation','mPhoto'].forEach(i=>document.getElementById(i).value='');
+            // Reset photo
+            const fi = document.getElementById('mPhotoFile');
+            const prev = document.getElementById('mPhotoPreview');
+            if (fi) fi.value = '';
+            if (prev) prev.style.display = 'none';
+            // Reset transit
+            document.getElementById('transitFields').style.display = 'none';
+            ['mOrigen','mDestino','mTransporte','mResponsable','mFechaSalida'].forEach(i => { const el = document.getElementById(i); if(el) el.value = ''; });
+            if (id) {
+                const c = DB_CONTENEDORES_API.find(x => x.id_contenedor === id);
+                if (c) {
+                    document.getElementById('mCode').value = c.id_codigo;
+                    document.getElementById('mType').value = c.id_tipo;
+                    document.getElementById('mState').value = c.estado;
+                    document.getElementById('mLocation').value = c.ubicacion_actual || '';
+                    // Client autocomplete
+                    const cl = DB_CLIENTES.find(x => x.id_cliente === c.id_cliente);
+                    document.getElementById('mClientId').value = c.id_cliente || '';
+                    document.getElementById('mClientName').value = cl ? cl.nombre : '';
+                    // Show transit if already en_transito
+                    if (c.estado === 'en_transito') document.getElementById('transitFields').style.display = 'block';
+                }
+            } else {
+                ['mCode','mLocation'].forEach(i => { const el = document.getElementById(i); if(el) el.value = ''; });
+                document.getElementById('mClientId').value = '';
+                document.getElementById('mClientName').value = '';
+            }
             document.getElementById('modalContainer').classList.add('show');
         }
         function closeModal(id) { document.getElementById(id).classList.remove('show'); if(id==='modalContainer')editId=null; if(id==='modalUser')editUserId=null; }
+        
+        // DETAIL MODAL - Information Panels
+        function showDetailModal(section, title) {
+            const modal = document.getElementById('detailModal');
+            const titleEl = document.getElementById('detailTitle');
+            const subtitleEl = document.getElementById('detailSubtitle');
+            const contentEl = document.getElementById('detailContent');
+            const stats = window._dashboardStats || {};
+            
+            titleEl.textContent = title;
+            
+            let html = '';
+            switch(section) {
+                case 'contenedores':
+                    subtitleEl.textContent = `${stats.total_contenedores || 0} contenedores en el sistema`;
+                    html = `
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem">
+                            <div style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:10px;padding:1.2rem">
+                                <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.4rem"><i class="bi bi-box-seam"></i> Total</div>
+                                <div style="font-family:'Archivo Black',sans-serif;font-size:2rem;margin-bottom:.5rem">${stats.total_contenedores || 0}</div>
+                                <div style="font-size:.75rem;color:var(--text-muted)">Todos registrados en el sistema</div>
+                            </div>
+                            ${Object.entries(stats.por_estado || {}).map(([estado, count]) => `
+                            <div style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:10px;padding:1.2rem">
+                                <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.4rem"><i class="bi bi-circle-fill"></i> ${estado.replace(/_/g,' ')}</div>
+                                <div style="font-family:'Archivo Black',sans-serif;font-size:2rem;margin-bottom:.5rem">${count}</div>
+                                <div style="font-size:.75rem;color:var(--text-muted)">${((count/(stats.total_contenedores||1))*100).toFixed(1)}% del total</div>
+                            </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    break;
+                case 'disponibles':
+                    subtitleEl.textContent = `${stats.por_estado?.disponible || 0} contenedores disponibles`;
+                    html = `
+                        <div style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:10px;padding:1.5rem;text-align:center;margin-bottom:1rem">
+                            <div style="font-size:2.5rem;color:var(--success);margin-bottom:.5rem"><i class="bi bi-check-circle-fill"></i></div>
+                            <div style="font-family:'Archivo Black',sans-serif;font-size:2rem;margin-bottom:.5rem">${stats.por_estado?.disponible || 0}</div>
+                            <div style="font-size:.85rem;color:var(--text-muted)">Listos para arrendar o asignar</div>
+                        </div>
+                        <div style="background:rgba(0,200,150,0.08);border:1px solid rgba(0,200,150,0.2);border-radius:10px;padding:1rem;font-size:.85rem;line-height:1.6">
+                            <p><strong>Beneficios:</strong></p>
+                            <ul style="margin:.5rem 0;padding-left:1.5rem">
+                                <li>Pueden ser asignados a nuevos clientes</li>
+                                <li>Sin movimientos o arrendamientos activos</li>
+                                <li>En condición óptima para transporte</li>
+                            </ul>
+                        </div>
+                    `;
+                    break;
+                case 'en_transito':
+                    subtitleEl.textContent = `${stats.por_estado?.en_transito || 0} contenedores en movimiento`;
+                    html = `
+                        <div style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:10px;padding:1.5rem;text-align:center;margin-bottom:1rem">
+                            <div style="font-size:2.5rem;color:var(--info);margin-bottom:.5rem"><i class="bi bi-truck"></i></div>
+                            <div style="font-family:'Archivo Black',sans-serif;font-size:2rem;margin-bottom:.5rem">${stats.por_estado?.en_transito || 0}</div>
+                            <div style="font-size:.85rem;color:var(--text-muted)">Actualmente en ruta</div>
+                        </div>
+                        <div style="background:rgba(66,165,245,0.08);border:1px solid rgba(66,165,245,0.2);border-radius:10px;padding:1rem;font-size:.85rem;line-height:1.6">
+                            <p><strong>Estados de movimiento:</strong></p>
+                            <ul style="margin:.5rem 0;padding-left:1.5rem">
+                                <li>Contenedores en ruta a destino</li>
+                                <li>Rastreados en sistema de movimientos</li>
+                                <li>Responsable asignado por cada envío</li>
+                            </ul>
+                        </div>
+                    `;
+                    break;
+                case 'alertas':
+                    subtitleEl.textContent = `${stats.proximos_vencer || 0} arrendamientos por vencer`;
+                    html = `
+                        <div style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:10px;padding:1.5rem;text-align:center;margin-bottom:1rem">
+                            <div style="font-size:2.5rem;color:var(--warning);margin-bottom:.5rem"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                            <div style="font-family:'Archivo Black',sans-serif;font-size:2rem;margin-bottom:.5rem">${stats.proximos_vencer || 0}</div>
+                            <div style="font-size:.85rem;color:var(--text-muted)">En los próximos 7 días</div>
+                        </div>
+                        <div style="background:rgba(255,202,40,0.08);border:1px solid rgba(255,202,40,0.2);border-radius:10px;padding:1rem;font-size:.85rem;line-height:1.6">
+                            <p><strong>Próximas acciones:</strong></p>
+                            <ul style="margin:.5rem 0;padding-left:1.5rem">
+                                <li>Renovar contratos antes del vencimiento</li>
+                                <li>Contactar clientes para confirmación</li>
+                                <li>Planificar devoluciones o prórroga</li>
+                                <li>Revisar la sección de Arrendamientos para más detalles</li>
+                            </ul>
+                        </div>
+                    `;
+                    break;
+                default:
+                    html = '<div class="empty-state">Información no disponible</div>';
+            }
+            
+            contentEl.innerHTML = html;
+            modal.classList.add('show');
+        }
+        
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.remove('show');
+        }
         async function saveContainer() {
-            const code=document.getElementById('mCode').value.trim();
-            if(!code){showToast('Código obligatorio','error');return;}
-            const btn=document.getElementById('saveContainerBtn'); btn.disabled=true; btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Guardando...';
+            const code = document.getElementById('mCode').value.trim();
+            if (!code) { showToast('Código obligatorio', 'error'); return; }
+            const estado = document.getElementById('mState').value;
+            if (estado === 'en_transito') {
+                if (!document.getElementById('mOrigen').value.trim())     { showToast('Origen requerido en tránsito', 'error'); return; }
+                if (!document.getElementById('mDestino').value.trim())    { showToast('Destino requerido en tránsito', 'error'); return; }
+                if (!document.getElementById('mTransporte').value.trim()) { showToast('Medio de transporte requerido', 'error'); return; }
+                if (!document.getElementById('mResponsable').value.trim()){ showToast('Responsable requerido', 'error'); return; }
+                if (!document.getElementById('mFechaSalida').value)       { showToast('Fecha de salida requerida', 'error'); return; }
+            }
+            const btn = document.getElementById('saveContainerBtn');
+            btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Guardando...';
             try {
-                const payload={id_codigo:code,id_tipo:parseInt(document.getElementById('mType').value),id_cliente:parseInt(document.getElementById('mClient').value),estado:document.getElementById('mState').value,ubicacion_actual:document.getElementById('mLocation').value.trim()};
-                if(editId) await ApiClient.request('PUT',`/contenedores/${editId}`,payload);
-                else await ApiClient.request('POST','/contenedores',payload);
+                const clientIdRaw = document.getElementById('mClientId').value;
+                const payload = {
+                    id_codigo: code,
+                    id_tipo: parseInt(document.getElementById('mType').value),
+                    estado: estado,
+                    ubicacion_actual: document.getElementById('mLocation').value.trim()
+                };
+                if (clientIdRaw) payload.id_cliente = parseInt(clientIdRaw);
+                let contId = editId;
+                if (editId) {
+                    await ApiClient.request('PUT', `/contenedores/${editId}`, payload);
+                } else {
+                    const res = await ApiClient.request('POST', '/contenedores', payload);
+                    contId = res.data?.id_contenedor;
+                }
+                // Upload image if selected
+                const fileInput = document.getElementById('mPhotoFile');
+                if (fileInput && fileInput.files.length && contId) {
+                    const fd = new FormData();
+                    fd.append('file', fileInput.files[0]);
+                    await ApiClient.uploadFile(`/contenedores/${contId}/imagen`, fd);
+                }
+                // Auto-create movement when en_transito
+                if (estado === 'en_transito' && contId && currentUserId) {
+                    await ApiClient.request('POST', '/movimientos', {
+                        id_contenedor:     contId,
+                        id_usuario:        currentUserId,
+                        fecha_salida:      document.getElementById('mFechaSalida').value || null,
+                        ubicacion_origen:  document.getElementById('mOrigen').value.trim(),
+                        ubicacion_destino: document.getElementById('mDestino').value.trim(),
+                        medio_transporte:  document.getElementById('mTransporte').value.trim(),
+                        responsable:       document.getElementById('mResponsable').value.trim()
+                    });
+                }
                 closeModal('modalContainer'); loadContainers(); updateKPIs(); showToast('Guardado correctamente');
-            } catch(e){ showToast('Error al guardar','error'); }
-            btn.disabled=false; btn.innerHTML='<i class="bi bi-floppy-fill"></i> Guardar';
+            } catch(e) { showToast('Error al guardar: ' + (e.message || ''), 'error'); }
+            btn.disabled = false; btn.innerHTML = '<i class="bi bi-floppy-fill"></i> Guardar';
         }
         let deleteId=null;
         function openConfirmModal(id) {
             deleteId=id; const c=DB_CONTENEDORES_API.find(x=>x.id_contenedor===id)||{id_codigo:'#'+id};
-            document.getElementById('confirmMsg').textContent=`¿Eliminar ${sanitizeHTML(c.id_codigo)}? Esta acción no se puede deshacer.`;
+            document.getElementById('confirmMsg').textContent=`¿Eliminar ${sanitizeHTML(c.id_codigo)}? Esta acción no se puede deshacer. Se eliminarán también todos los movimientos y registros asociados.`;
             document.getElementById('confirmBtn').onclick=async()=>{
-                try{await ApiClient.request('DELETE',`/contenedores/${id}`);closeModal('modalConfirm');loadContainers();updateKPIs();showToast('Eliminado','info');}catch(e){showToast('Error','error');}
+                const btn = document.getElementById('confirmBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Eliminando...';
+                try{
+                    await ApiClient.request('DELETE',`/contenedores/${id}`);
+                    closeModal('modalConfirm');
+                    loadContainers();
+                    updateKPIs();
+                    showToast('Contenedor eliminado correctamente','info');
+                } catch(e){
+                    const msg = e.message || 'No se pudo eliminar el contenedor';
+                    showToast('Error: ' + msg, 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Eliminar';
+                }
             };
             document.getElementById('modalConfirm').classList.add('show');
+        }
+
+        // ── Detalle completo de contenedor ────────────────────────────────────────
+        async function openContainerDetail(id) {
+            const modal  = document.getElementById('modalContDetail');
+            const body   = document.getElementById('cdBody');
+            const title  = document.getElementById('cdTitle');
+            const badge  = document.getElementById('cdBadge');
+            body.innerHTML  = '<div class="empty-state" style="padding:2rem"><div class="loader-spinner" style="margin:0 auto"></div></div>';
+            badge.innerHTML = '';
+            title.textContent = 'Cargando...';
+            modal.classList.add('show');
+            try {
+                const [cRes, hRes] = await Promise.all([
+                    ApiClient.request('GET', `/contenedores/${id}`),
+                    ApiClient.request('GET', `/contenedores/${id}/historial`)
+                ]);
+                if (!cRes.ok) { body.innerHTML = '<div class="empty-state">Error al cargar datos</div>'; return; }
+                const c = cRes.data;
+                const h = hRes.ok ? hRes.data : null;
+                const tipo    = DB_TIPOS.find(t => t.id_tipo === c.id_tipo)?.nombre    || `Tipo ${c.id_tipo}`;
+                const cliente = DB_CLIENTES.find(cl => cl.id_cliente === c.id_cliente)?.nombre || (c.id_cliente ? `Cliente #${c.id_cliente}` : '—');
+                const estadoLabel = ESTADO_LABELS[c.estado] || c.estado;
+                title.textContent = `Contenedor ${c.id_codigo}`;
+                badge.innerHTML   = `<span class="badge-status ${c.estado}">${estadoLabel}</span>`;
+                let html = '';
+                // ── Foto ──
+                if (c.ruta_imagen) {
+                    html += `<div style="text-align:center;margin-bottom:1.2rem">
+                        <img src="${sanitizeHTML(c.ruta_imagen)}" alt="Foto contenedor"
+                             style="max-width:100%;max-height:220px;border-radius:10px;border:1px solid var(--border-color);object-fit:cover">
+                    </div>`;
+                }
+                // ── Datos básicos ──
+                html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1rem">
+                    <div class="detail-card"><div class="detail-label">Código</div><div class="detail-value">${sanitizeHTML(c.id_codigo)}</div></div>
+                    <div class="detail-card"><div class="detail-label">Tipo</div><div class="detail-value">${sanitizeHTML(tipo)}</div></div>
+                    <div class="detail-card"><div class="detail-label">Cliente</div><div class="detail-value">${sanitizeHTML(cliente)}</div></div>
+                    <div class="detail-card"><div class="detail-label">Estado</div><div class="detail-value"><span class="badge-status ${c.estado}">${estadoLabel}</span></div></div>
+                    <div class="detail-card"><div class="detail-label">Ubicación</div><div class="detail-value">${sanitizeHTML(c.ubicacion_actual || '—')}</div></div>
+                    <div class="detail-card"><div class="detail-label">Creado</div><div class="detail-value">${sanitizeHTML(c.created_at || '—')}</div></div>
+                </div>`;
+                // ── Historial de estado ──
+                if (h && h.historial_estado && h.historial_estado.length) {
+                    html += `<div style="font-size:.65rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--warning);margin:.8rem 0 .5rem"><i class="bi bi-clock-history"></i> Historial de estado</div>
+                    <div style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.8rem">`;
+                    h.historial_estado.slice(0, 5).forEach(hs => {
+                        const lbl = ESTADO_LABELS[hs.estado] || hs.estado;
+                        html += `<div style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:7px;padding:.5rem .8rem;font-size:.79rem;display:flex;justify-content:space-between;align-items:center">
+                            <span class="badge-status ${hs.estado}" style="font-size:.68rem">${lbl}</span>
+                            <span style="color:var(--text-muted);font-size:.72rem">${sanitizeHTML(hs.fecha_inicio)}${hs.fecha_fin ? ` → ${sanitizeHTML(hs.fecha_fin)}` : ' → hoy'}</span>
+                        </div>`;
+                    });
+                    html += '</div>';
+                }
+                // ── Últimos movimientos ──
+                if (h && h.movimientos && h.movimientos.length) {
+                    html += `<div style="font-size:.65rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--info);margin:.8rem 0 .5rem"><i class="bi bi-arrow-left-right"></i> Últimos movimientos</div>
+                    <div style="display:flex;flex-direction:column;gap:.4rem">`;
+                    h.movimientos.slice(0, 4).forEach(m => {
+                        const fecha = m.fecha_hora ? m.fecha_hora.substring(0,16).replace('T',' ') : '—';
+                        html += `<div style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:7px;padding:.55rem .8rem;font-size:.8rem">
+                            <div style="color:var(--text-muted);font-size:.7rem;margin-bottom:.25rem">${sanitizeHTML(fecha)}${m.fecha_salida ? ` · Salida: ${sanitizeHTML(m.fecha_salida)}` : ''}</div>
+                            <div style="font-weight:500">${sanitizeHTML(m.ubicacion_origen || '?')} → ${sanitizeHTML(m.ubicacion_destino || '?')}</div>
+                            ${m.medio_transporte || m.responsable ? `<div style="color:var(--text-muted);font-size:.72rem;margin-top:.15rem">${[m.medio_transporte,m.responsable].filter(Boolean).map(sanitizeHTML).join(' · ')}</div>` : ''}
+                        </div>`;
+                    });
+                    html += '</div>';
+                }
+                body.innerHTML = html;
+            } catch(e) {
+                body.innerHTML = `<div class="empty-state">Error: ${sanitizeHTML(e.message || 'No se pudo cargar el contenedor')}</div>`;
+            }
         }
 
         // CRUD Usuarios
         let editUserId=null;
         function openUserModal(id=null) {
-            editUserId=id; document.getElementById('userModalTitle').textContent=id?'Editar usuario':'Nuevo usuario';
-            if(id){const u=DB_USUARIOS_API.find(x=>x.id_usuario===id);if(u){document.getElementById('uName').value=u.nombres||'';document.getElementById('uApellidos').value=u.apellidos||'';document.getElementById('uEmail').value=u.email||'';document.getElementById('uUsername').value=u.user;document.getElementById('uPass').value='';document.getElementById('uRole').value=u.rol;}}
-            else ['uName','uApellidos','uEmail','uUsername','uPass'].forEach(i=>document.getElementById(i).value='');
+            editUserId = id;
+            document.getElementById('userModalTitle').textContent = id ? 'Editar usuario' : 'Nuevo usuario';
+            const sub = document.querySelector('#modalUser .modal-sub');
+            if (id) {
+                const u = DB_USUARIOS_API.find(x => x.id_usuario === id);
+                if (u) {
+                    document.getElementById('uName').value      = u.nombres  || '';
+                    document.getElementById('uApellidos').value = u.apellidos|| '';
+                    document.getElementById('uEmail').value     = u.email    || '';
+                    document.getElementById('uUsername').value  = u.user;
+                    document.getElementById('uPass').value      = '';
+                    document.getElementById('uRole').value      = u.rol;
+                    if (sub) sub.innerHTML = u.email_verificado
+                        ? '<i class="bi bi-patch-check-fill" style="color:var(--success)"></i> Email verificado'
+                        : '<i class="bi bi-exclamation-triangle-fill" style="color:var(--warning)"></i> Email <strong>no verificado</strong>';
+                }
+            } else {
+                ['uName','uApellidos','uEmail','uUsername','uPass'].forEach(i => document.getElementById(i).value = '');
+                if (sub) sub.textContent = 'El correo electrónico es obligatorio para crear el usuario.';
+            }
             document.getElementById('modalUser').classList.add('show');
         }
         async function saveUser() {
-            const name=document.getElementById('uName').value.trim(), user=document.getElementById('uUsername').value.trim(), pass=document.getElementById('uPass').value.trim(), role=document.getElementById('uRole').value, apellidos=document.getElementById('uApellidos').value.trim(), email=document.getElementById('uEmail').value.trim();
-            if(!name||!user){showToast('Nombre y usuario obligatorios','error');return;}
-            if(!editUserId&&!pass){showToast('La contraseña es obligatoria','error');return;}
-            const btn=document.getElementById('saveUserBtn'); btn.disabled=true;
+            const name      = document.getElementById('uName').value.trim();
+            const user      = document.getElementById('uUsername').value.trim();
+            const pass      = document.getElementById('uPass').value.trim();
+            const role      = document.getElementById('uRole').value;
+            const apellidos = document.getElementById('uApellidos').value.trim();
+            const email     = document.getElementById('uEmail').value.trim();
+            if (!name || !user) { showToast('Nombre y usuario son obligatorios','error'); return; }
+            if (!email) { showToast('El correo electrónico es obligatorio','error'); return; }
+            if (!editUserId && !pass) { showToast('La contraseña es obligatoria para nuevos usuarios','error'); return; }
+            const btn = document.getElementById('saveUserBtn'); btn.disabled = true;
             try {
-                let payload;
-                if(editUserId) payload={nombres:name,apellidos:apellidos||null,email:email||null,rol:role};
-                else payload={nombres:name,apellidos:apellidos||null,email:email||null,user,password:pass,rol:role};
-                if(editUserId) await ApiClient.request('PUT',`/usuarios/${editUserId}`,payload);
-                else await ApiClient.request('POST','/usuarios',payload);
+                const payload = editUserId
+                    ? { nombres:name, apellidos:apellidos||null, email, rol:role, ...(pass ? {password:pass} : {}) }
+                    : { nombres:name, apellidos:apellidos||null, email, user, password:pass, rol:role };
+                if (editUserId) await ApiClient.request('PUT', `/usuarios/${editUserId}`, payload);
+                else            await ApiClient.request('POST', '/usuarios', payload);
                 closeModal('modalUser'); loadUsers(); showToast('Usuario guardado');
-            } catch(e){ showToast(e.message||'Error guardando usuario','error'); }
-            btn.disabled=false;
+            } catch(e) { showToast(e.message||'Error guardando usuario','error'); }
+            btn.disabled = false;
         }
-        async function loadUsers() { if(currentUserRole!=='admin')return; const res=await ApiClient.request('GET','/usuarios'); if(res.ok) { DB_USUARIOS_API=res.data; const norm=res.data.map(u=>({id:u.id_usuario,username:u.user,name:u.nombres+(u.apellidos?' '+u.apellidos:''),role:u.rol,active:true})); renderUsers(norm); } }
+        async function forceVerifyUser(id) {
+            if (!confirm('¿Marcar este usuario como email verificado?')) return;
+            try {
+                const res = await ApiClient.request('PUT', `/usuarios/${id}`, { email_verificado: true });
+                if (res.ok) { loadUsers(); showToast('Usuario marcado como verificado'); }
+                else showToast(res.data?.detail||'Error','error');
+            } catch(e) { showToast('Error de conexión','error'); }
+        }
+        async function loadUsers() {
+            if(currentUserRole!=='admin') return;
+            const res = await ApiClient.request('GET', '/usuarios');
+            if (!res.ok) return;
+            DB_USUARIOS_API = res.data;
+            _usuariosFiltrados = res.data.map(u => ({
+                id:       u.id_usuario,
+                username: u.user,
+                name:     (u.nombres||'') + (u.apellidos ? ' '+u.apellidos : ''),
+                email:    u.email || '',
+                role:     u.rol,
+                verified: u.email_verificado === true,
+            }));
+            renderUsers(_usuariosFiltrados);
+        }
         async function deleteUser(id) {
             if(id===1){showToast('No puedes eliminar tu propio usuario','error');return;}
-            if(confirm('¿Eliminar usuario?')){await ApiClient.request('DELETE',`/usuarios/${id}`);loadUsers();showToast('Eliminado','info');}
+            const seedUsers = [1, 2, 3, 4, 5, 6];
+            if(seedUsers.includes(id) && currentUserRole !== 'admin'){
+                showToast('No puedes eliminar usuarios del sistema','error');
+                return;
+            }
+            if(seedUsers.includes(id)){
+                if(!confirm('Este es un usuario del sistema. ¿Estás seguro de que deseas eliminarlo?')) return;
+            } else {
+                if(!confirm('¿Eliminar usuario?')) return;
+            }
+            try {
+                await ApiClient.request('DELETE',`/usuarios/${id}`);
+                loadUsers();
+                showToast('Usuario eliminado correctamente','info');
+            } catch(e) {
+                showToast('Error: ' + (e.message || 'No se pudo eliminar el usuario'), 'error');
+            }
         }
 
         // Zonas
@@ -1305,6 +2079,10 @@
                 window._contMap    = contMap;
 
                 renderArrendamientosAPI(_arrendamientosAPI, clienteMap, contMap);
+                if (!estado) {
+                    const ba = document.getElementById('badgeArr');
+                    if (ba) ba.textContent = _arrendamientosAPI.length;
+                }
             } catch(e) { console.error('Error cargando arrendamientos:', e); }
         }
 
@@ -1328,37 +2106,138 @@
 
         function filterRentals() { loadArrendamientosAPI(); }
 
-        // Historial — API real
+        // ── HISTORIAL ──────────────────────────────────────────────────────────
         async function populateHistFilter() {
             const s = document.getElementById('histFilterContainer');
             if (!s) return;
-            const res = await ApiClient.request('GET', '/contenedores?limit=500');
-            if (res.ok) s.innerHTML = '<option value="">Seleccionar contenedor</option>' + res.data.map(c=>`<option value="${c.id_contenedor}">${c.id_codigo}</option>`).join('');
+            loadRecentEvents();
+            try {
+                const res = await ApiClient.request('GET', '/contenedores?limit=500');
+                if (res.ok) s.innerHTML = '<option value="">Ver historial detallado de un contenedor...</option>'
+                    + res.data.map(c=>`<option value="${c.id_contenedor}">${sanitizeHTML(c.id_codigo)} — ${sanitizeHTML(c.ubicacion_actual||'sin ubicación')}</option>`).join('');
+            } catch(e) {}
+        }
+
+        async function loadRecentEvents() {
+            const body  = document.getElementById('recentEventsBody');
+            const count = document.getElementById('recentEventsCount');
+            if (!body) return;
+            body.innerHTML = '<div class="empty-state" style="padding:1rem"><div class="loader-spinner" style="margin:0 auto"></div></div>';
+            try {
+                const [movRes, contRes] = await Promise.all([
+                    ApiClient.request('GET', '/movimientos?limit=10'),
+                    ApiClient.request('GET', '/contenedores?limit=500'),
+                ]);
+                if (!movRes.ok) { body.innerHTML='<div class="empty-state">Sin datos</div>'; return; }
+                const contMap = {};
+                if (contRes.ok) contRes.data.forEach(c => contMap[c.id_contenedor] = c.id_codigo);
+                const movs = movRes.data;
+                if (count) count.textContent = `${movs.length} movimientos más recientes en el sistema`;
+                if (!movs.length) { body.innerHTML='<div class="empty-state">Sin movimientos registrados.</div>'; return; }
+                body.innerHTML = `<div style="overflow-x:auto"><table class="data-table">
+                    <thead><tr><th>Contenedor</th><th>Origen</th><th>Destino</th><th>Medio</th><th>Responsable</th><th>Fecha</th></tr></thead>
+                    <tbody>${movs.map(m=>`<tr>
+                        <td><strong style="cursor:pointer;color:var(--info)" onclick="selectHistContainer(${m.id_contenedor})">${sanitizeHTML(contMap[m.id_contenedor]||'#'+m.id_contenedor)}</strong></td>
+                        <td>${sanitizeHTML(m.ubicacion_origen||'—')}</td>
+                        <td>${sanitizeHTML(m.ubicacion_destino||'—')}</td>
+                        <td>${sanitizeHTML(m.medio_transporte||'—')}</td>
+                        <td>${sanitizeHTML(m.responsable||'—')}</td>
+                        <td>${m.fecha_hora?m.fecha_hora.substring(0,10):'—'}</td>
+                    </tr>`).join('')}</tbody>
+                </table></div>`;
+            } catch(e) { body.innerHTML='<div class="empty-state">Error cargando eventos recientes.</div>'; }
+        }
+
+        function selectHistContainer(id) {
+            const s = document.getElementById('histFilterContainer');
+            if (s) { s.value = id; showHistory(); s.scrollIntoView({behavior:'smooth', block:'nearest'}); }
         }
 
         async function showHistory() {
             const id = document.getElementById('histFilterContainer').value;
-            const empty = document.getElementById('historyEmpty');
+            const empty   = document.getElementById('historyEmpty');
             const content = document.getElementById('historyContent');
             if (!id) { empty.style.display='block'; content.style.display='none'; return; }
             empty.style.display = 'none'; content.style.display = 'block';
-            content.innerHTML = '<div class="empty-state"><div class="loader-spinner" style="margin:0 auto"></div></div>';
+            content.innerHTML = '<div class="empty-state" style="padding:2rem"><div class="loader-spinner" style="margin:0 auto"></div></div>';
             try {
                 const res = await ApiClient.request('GET', `/contenedores/${id}/historial`);
                 if (!res.ok) { content.innerHTML='<div class="empty-state">Error cargando historial</div>'; return; }
-                const h = res.data;
+                const h    = res.data;
                 const movs = h.movimientos || [];
                 const sts  = h.historial_estado || [];
                 const ren  = h.arrendamientos || [];
+                const fact = h.facturaciones || [];
+                const cont = h.contenedor || {};
+
+                // Timeline unificada ordenada por fecha desc
+                const events = [
+                    ...movs.map(m => ({type:'mov',    date: m.fecha_hora||'', data: m})),
+                    ...sts.map(s  => ({type:'estado',  date: s.fecha_inicio||'', data: s})),
+                    ...ren.map(r  => ({type:'arr',     date: r.fecha_inicio||'', data: r})),
+                    ...fact.map(f => ({type:'fact',    date: f.fecha_facturacion||'', data: f})),
+                ].sort((a, b) => b.date.localeCompare(a.date));
+
+                const kpiBox = (num, label, color, bg) =>
+                    `<div style="background:${bg};border:1px solid ${color}33;border-radius:9px;padding:.8rem;text-align:center">
+                        <div style="font-family:'Archivo Black',sans-serif;font-size:1.5rem;color:${color}">${num}</div>
+                        <div style="font-size:.68rem;color:var(--text-muted)">${label}</div>
+                    </div>`;
+
+                const tlItem = (typeClass, dateStr, typeLabel, typeColor, title, detail) =>
+                    `<div class="tl-item">
+                        <div class="tl-dot ${typeClass}"></div>
+                        <div class="tl-card">
+                            <div class="tl-date"><i class="bi bi-calendar3"></i> ${dateStr}&nbsp;·&nbsp;<span style="color:${typeColor}">${typeLabel}</span></div>
+                            <div class="tl-title">${title}</div>
+                            <div class="tl-detail">${detail}</div>
+                        </div>
+                    </div>`;
+
+                const renderEvent = ev => {
+                    if (ev.type === 'mov') {
+                        const m = ev.data;
+                        return tlItem('mov', m.fecha_hora?m.fecha_hora.substring(0,10):'—', 'Movimiento', 'var(--info)',
+                            `${sanitizeHTML(m.ubicacion_origen||'—')} <i class="bi bi-arrow-right"></i> ${sanitizeHTML(m.ubicacion_destino||'—')}`,
+                            `<i class="bi bi-truck"></i> ${sanitizeHTML(m.medio_transporte||'—')} &nbsp;|&nbsp; <i class="bi bi-person-fill"></i> ${sanitizeHTML(m.responsable||'—')}`);
+                    } else if (ev.type === 'estado') {
+                        const s = ev.data;
+                        return tlItem('estado', s.fecha_inicio||'—', 'Cambio de estado', 'var(--warning)',
+                            `<span class="badge-status ${s.estado}">${s.estado||'—'}</span>`,
+                            `Hasta: ${s.fecha_fin||'<span style="color:var(--success)">Activo actualmente</span>'}`);
+                    } else if (ev.type === 'arr') {
+                        const r = ev.data;
+                        const arrClass = r.estado_arrendamiento==='activo' ? 'asignado' : 'disponible';
+                        return tlItem('arr', r.fecha_inicio||'—', 'Arrendamiento', 'var(--success)',
+                            `<i class="bi bi-building"></i> ${sanitizeHTML(r.nombre_cliente||'—')}`,
+                            `$${Number(r.valor_alquiler||0).toLocaleString('es-CO')}/mes &nbsp;|&nbsp; <span class="badge-status ${arrClass}">${sanitizeHTML(r.estado_arrendamiento||'—')}</span> &nbsp;|&nbsp; Fin: ${r.fecha_fin||'—'}`);
+                    } else {
+                        const f = ev.data;
+                        const pagoClass = f.estado_pago==='pagado'?'disponible':f.estado_pago==='mora'?'fuera_de_servicio':'asignado';
+                        return tlItem('fact', f.fecha_facturacion||'—', 'Factura', 'var(--red)',
+                            `${sanitizeHTML(f.codigo_factura||'Sin código')} &nbsp;·&nbsp; $${Number(f.monto||0).toLocaleString('es-CO')}`,
+                            `<span class="badge-status ${pagoClass}">${sanitizeHTML(f.estado_pago||'—')}</span> &nbsp;|&nbsp; Vence: ${f.fecha_vencimiento||'—'}`);
+                    }
+                };
+
                 content.innerHTML = `
-                    <h5 style="margin-bottom:.75rem"><i class="bi bi-arrow-left-right"></i> Movimientos (${movs.length})</h5>
-                    ${movs.length ? `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>ID</th><th>Origen</th><th>Destino</th><th>Transporte</th><th>Fecha</th></tr></thead><tbody>${movs.map(m=>`<tr><td>#${m.id_movimiento}</td><td>${m.ubicacion_origen||'—'}</td><td>${m.ubicacion_destino||'—'}</td><td>${m.medio_transporte||'—'}</td><td>${m.fecha_hora?m.fecha_hora.substring(0,10):'—'}</td></tr>`).join('')}</tbody></table></div>` : '<p style="color:var(--text-muted);margin-bottom:1rem">Sin movimientos.</p>'}
-                    <h5 style="margin:1rem 0 .75rem"><i class="bi bi-arrow-repeat"></i> Cambios de estado (${sts.length})</h5>
-                    ${sts.length ? `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Estado</th><th>Inicio</th><th>Fin</th></tr></thead><tbody>${sts.map(e=>`<tr><td><span class="badge-status ${e.estado}">${e.estado}</span></td><td>${e.fecha_inicio||'—'}</td><td>${e.fecha_fin||'Activo'}</td></tr>`).join('')}</tbody></table></div>` : '<p style="color:var(--text-muted);margin-bottom:1rem">Sin cambios.</p>'}
-                    <h5 style="margin:1rem 0 .75rem"><i class="bi bi-calendar2-week"></i> Arrendamientos (${ren.length})</h5>
-                    ${ren.length ? `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Cliente</th><th>Inicio</th><th>Fin</th><th>Valor</th></tr></thead><tbody>${ren.map(a=>`<tr><td>#${a.id_cliente}</td><td>${a.fecha_inicio}</td><td>${a.fecha_fin||'—'}</td><td>$${Number(a.valor_alquiler).toLocaleString('es-CO')}</td></tr>`).join('')}</tbody></table></div>` : '<p style="color:var(--text-muted)">Sin arrendamientos.</p>'}
-                `;
-            } catch(e) { content.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`; }
+                    <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border-color)">
+                        <span style="font-family:'Archivo Black',sans-serif;font-size:1.05rem">${sanitizeHTML(cont.id_codigo||'')}</span>
+                        <span class="badge-status ${cont.estado||''}">${cont.estado||''}</span>
+                        <span style="font-size:.78rem;color:var(--text-muted)"><i class="bi bi-geo-alt-fill"></i> ${sanitizeHTML(cont.ubicacion_actual||'—')}</span>
+                        <span style="margin-left:auto;font-size:.72rem;color:var(--text-muted)">${events.length} eventos totales</span>
+                    </div>
+                    <div class="hist-kpi-grid">
+                        ${kpiBox(movs.length, 'Movimientos',    'var(--info)',    'rgba(66,165,245,.08)')}
+                        ${kpiBox(sts.length,  'Cambios estado', 'var(--warning)', 'rgba(255,202,40,.08)')}
+                        ${kpiBox(ren.length,  'Arrendamientos', 'var(--success)', 'rgba(0,200,150,.08)')}
+                        ${kpiBox(fact.length, 'Facturas',       'var(--red)',     'rgba(211,47,47,.08)')}
+                    </div>
+                    <div class="chart-title" style="margin-bottom:.9rem"><i class="bi bi-clock-history"></i> Línea de tiempo</div>
+                    <div class="timeline">
+                        ${events.length ? events.map(renderEvent).join('') : '<div class="empty-state">Sin eventos registrados para este contenedor.</div>'}
+                    </div>`;
+            } catch(e) { content.innerHTML = `<div class="empty-state">Error: ${sanitizeHTML(e.message)}</div>`; }
         }
 
         // Facturación — API real (stub)
@@ -1391,83 +2270,260 @@
         }
 
         // ── NOTIFICACIONES ──────────────────────────────────────────────────────
-        let _notifData = [];
-        const NOTIF_READ_KEY = 'mz_notif_read';
-
-        function getReadIds() { try { return JSON.parse(localStorage.getItem(NOTIF_READ_KEY)||'[]'); } catch(e) { return []; } }
-        function markNotifRead(id) { const ids=getReadIds(); if(!ids.includes(id)){ids.push(id);localStorage.setItem(NOTIF_READ_KEY,JSON.stringify(ids));} }
-        function markAllRead() { localStorage.setItem(NOTIF_READ_KEY, JSON.stringify(_notifData.map((_,i)=>i))); updateNotifBadge(); buildNotifPanel(); showToast('Todas marcadas como leídas','info'); }
+        let _notifData = [];        // NotificacionOut[] desde GET /notificaciones
+        let _notifUnreadCount = 0;
 
         function updateNotifBadge() {
-            const readIds = getReadIds();
-            const unread  = _notifData.filter((_,i)=>!readIds.includes(i)).length;
-            const badge   = document.getElementById('notifCount');
-            const dot     = document.getElementById('notifDot');
-            if (badge) { badge.textContent=unread; badge.style.display=unread>0?'inline-block':'none'; }
-            if (dot)   dot.style.display = 'none';
+            const badge = document.getElementById('notifCount');
+            const dot   = document.getElementById('notifDot');
+            if (badge) { badge.textContent = _notifUnreadCount; badge.style.display = _notifUnreadCount > 0 ? 'inline-block' : 'none'; }
+            if (dot)   dot.style.display = _notifUnreadCount > 0 ? 'block' : 'none';
         }
 
         async function loadNotifications() {
             try {
-                const res = await ApiClient.request('GET', '/dashboard/notificaciones');
-                if (res.ok && Array.isArray(res.data)) { _notifData = res.data; updateNotifBadge(); }
+                const res = await ApiClient.request('GET', '/notificaciones');
+                if (res.ok && Array.isArray(res.data)) {
+                    _notifData        = res.data;
+                    _notifUnreadCount = _notifData.filter(n => !n.leido).length;
+                    updateNotifBadge();
+                }
             } catch(e) { /* silencioso */ }
+        }
+
+        async function markAllRead() {
+            try {
+                await ApiClient.request('POST', '/notificaciones/read-all');
+                _notifData.forEach(n => { n.leido = true; });
+                _notifUnreadCount = 0;
+                updateNotifBadge();
+                buildNotifPanel();
+                showToast('Todas marcadas como leídas', 'info');
+            } catch(e) { showToast('Error al actualizar notificaciones', 'error'); }
         }
 
         function renderAlerts() {
             const alertsList = document.getElementById('alertsList');
             if (!alertsList) return;
-            const errores = _notifData.filter(n=>n.tipo==='error'||n.tipo==='warn');
+            const errores = _notifData.filter(n => n.tipo === 'error' || n.tipo === 'warn');
             alertsList.innerHTML = errores.length
-                ? errores.map(n=>`<div class="alert-row"><div class="alert-icon ${n.tipo}"><i class="bi bi-${n.tipo==='error'?'exclamation-triangle-fill':'clock-fill'}"></i></div><div><div class="alert-text"><strong>${sanitizeHTML(n.titulo)}</strong></div><div class="alert-time">${sanitizeHTML(n.mensaje)} · ${n.fecha}</div></div></div>`).join('')
+                ? errores.map(n => `
+                    <div class="alert-row" style="${n.leido ? 'opacity:.6' : ''}">
+                        <div class="alert-icon ${n.tipo}"><i class="bi bi-${n.tipo === 'error' ? 'exclamation-triangle-fill' : 'clock-fill'}"></i></div>
+                        <div>
+                            <div class="alert-text"><strong>${sanitizeHTML(n.titulo)}</strong></div>
+                            <div class="alert-time">${sanitizeHTML(n.mensaje || '')} · ${n.fecha ? n.fecha.substring(0, 10) : ''}</div>
+                        </div>
+                    </div>`).join('')
                 : '<div style="text-align:center;padding:1.5rem;color:var(--text-muted)">Sin alertas activas.</div>';
             const dot = document.getElementById('notifDot');
-            if (dot) dot.style.display = errores.length ? 'block' : 'none';
+            if (dot) dot.style.display = errores.filter(n => !n.leido).length ? 'block' : 'none';
+        }
+
+        function _getNotifDest(n) {
+            const t = n.titulo || '';
+            if (t.includes('Arrendamiento') || t.includes('contrato')) return { id: 'arrendamientos', label: 'Arrendamientos' };
+            if (t.includes('Movimiento'))  return { id: 'movimientos',   label: 'Movimientos' };
+            if (t.includes('Factura'))     return { id: 'facturacion',   label: 'Facturación' };
+            if (t.includes('Contenedor'))  return { id: 'contenedores',  label: 'Contenedores' };
+            return { id: '', label: '' };
+        }
+
+        function _renderNotifItem(n, tipo) {
+            const iconMap = { error: 'exclamation-triangle-fill', warn: 'clock-history', info: 'arrow-left-right' };
+            const icon = iconMap[tipo] || 'bell-fill';
+            const dest = _getNotifDest(n);
+            const markBtn = !n.leido
+                ? `<button class="btn-notif-sm mark-read" onclick="event.stopPropagation();markNotifRead(${n.id_notificacion})"><i class="bi bi-check2"></i> Marcar como leído</button>`
+                : `<span class="notif-read-tag"><i class="bi bi-check2-all"></i> Ya leído</span>`;
+            const goBtn = dest.id
+                ? `<button class="btn-notif-sm go-section" onclick="event.stopPropagation();goToNotifSection('${dest.id}')"><i class="bi bi-arrow-right-circle"></i> Ir a ${dest.label}</button>`
+                : '';
+            return `
+                <div class="notif-item${n.leido ? ' notif-read' : ''}" id="notif-item-${n.id_notificacion}">
+                    <div class="notif-item-header" onclick="onNotifClick(${n.id_notificacion})">
+                        <div class="notif-item-icon ${tipo}"><i class="bi bi-${icon}"></i></div>
+                        <div style="flex:1;min-width:0">
+                            <div class="notif-item-text"><strong>${sanitizeHTML(n.titulo)}</strong></div>
+                            <div class="notif-item-time">${n.fecha ? n.fecha.substring(0, 10) : ''}</div>
+                        </div>
+                        <div class="notif-item-end">
+                            ${!n.leido ? '<div class="notif-unread-dot"></div>' : ''}
+                            <i class="bi bi-chevron-down notif-chevron"></i>
+                        </div>
+                    </div>
+                    <div class="notif-expand" id="notif-detail-${n.id_notificacion}" style="display:none">
+                        <div class="notif-expand-inner">
+                            <div class="notif-expand-msg">${sanitizeHTML(n.mensaje || 'Sin detalles adicionales')}</div>
+                            <div class="notif-expand-actions">${markBtn}${goBtn}</div>
+                        </div>
+                    </div>
+                </div>`;
         }
 
         function buildNotifPanel() {
-            const body    = document.getElementById('notifBody');
-            const badge   = document.getElementById('notifBadge');
-            const readIds = getReadIds();
-            const unread  = _notifData.filter((_,i)=>!readIds.includes(i)).length;
-            if (badge) badge.textContent = unread;
+            const body  = document.getElementById('notifBody');
+            const badge = document.getElementById('notifBadge');
+            if (badge) badge.textContent = _notifUnreadCount;
             if (!body) return;
-            if (!_notifData.length) { body.innerHTML='<div class="empty-state" style="padding:2rem 0"><i class="bi bi-bell-slash" style="font-size:2rem;opacity:.4"></i><p style="margin-top:.5rem;font-size:.8rem">Sin notificaciones</p></div>'; return; }
+            if (!_notifData.length) {
+                body.innerHTML = '<div class="empty-state" style="padding:2rem 0"><i class="bi bi-bell-slash" style="font-size:2rem;opacity:.4"></i><p style="margin-top:.5rem;font-size:.8rem">Sin notificaciones</p></div>';
+                return;
+            }
 
-            const byTipo = { error:[], warn:[], info:[] };
-            _notifData.forEach((n,i) => { (byTipo[n.tipo]||byTipo.info).push({...n, _idx:i}); });
+            const unread = _notifData.filter(n => !n.leido);
+            const read   = _notifData.filter(n =>  n.leido);
 
+            const byTipo = { error: [], warn: [], info: [] };
+            unread.forEach(n => (byTipo[n.tipo] || byTipo.info).push(n));
             const secciones = [
-                { tipo:'error', label:'🔴 ALERTAS CRÍTICAS',       items:byTipo.error },
-                { tipo:'warn',  label:'⚠️ PRÓXIMOS A VENCER',      items:byTipo.warn  },
-                { tipo:'info',  label:'📦 MOVIMIENTOS RECIENTES',  items:byTipo.info  },
+                { tipo: 'error', label: '🔴 ALERTAS CRÍTICAS',      items: byTipo.error },
+                { tipo: 'warn',  label: '⚠️ PRÓXIMOS A VENCER',     items: byTipo.warn  },
+                { tipo: 'info',  label: '📦 MOVIMIENTOS RECIENTES', items: byTipo.info  },
             ];
 
-            body.innerHTML = secciones.filter(s=>s.items.length).map(sec => `
-                <div class="notif-section">
-                    <div class="notif-section-label">${sec.label}</div>
-                    ${sec.items.map(n => {
-                        const isRead = readIds.includes(n._idx);
-                        return `<div class="notif-item" id="notif-item-${n._idx}" style="${isRead?'opacity:.5;':''}cursor:pointer" onclick="onNotifClick(${n._idx})">
-                            <div class="notif-item-icon ${sec.tipo}"><i class="bi bi-${sec.tipo==='error'?'exclamation-triangle-fill':sec.tipo==='warn'?'clock-history':'arrow-left-right'}"></i></div>
-                            <div style="flex:1">
-                                <div class="notif-item-text"><strong>${sanitizeHTML(n.titulo)}</strong></div>
-                                <div class="notif-item-time">${n.fecha}</div>
-                                <div id="notif-detail-${n._idx}" style="display:none;margin-top:.4rem;padding:.5rem;background:var(--input-bg);border-radius:6px;font-size:.74rem;color:var(--text-secondary);line-height:1.5">${sanitizeHTML(n.mensaje)}</div>
-                            </div>
-                            ${!isRead ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:4px"></div>` : ''}
-                        </div>`;
-                    }).join('')}
-                </div>`).join('');
+            let html = '';
+            if (unread.length) {
+                html += secciones.filter(s => s.items.length).map(sec => `
+                    <div class="notif-section" id="notif-sec-${sec.tipo}">
+                        <div class="notif-section-label">${sec.label}</div>
+                        ${sec.items.map(n => _renderNotifItem(n, sec.tipo)).join('')}
+                    </div>`).join('');
+            } else {
+                html += `<div id="notif-all-done" style="text-align:center;padding:1.2rem 0;color:var(--text-muted);font-size:.78rem">
+                    <i class="bi bi-check2-all" style="font-size:1.4rem;display:block;margin-bottom:.35rem;color:var(--success)"></i>
+                    Todo al día</div>`;
+            }
+
+            if (read.length) {
+                html += `
+                    <div class="notif-section" id="notif-sec-leidas" style="margin-top:.4rem;border-top:1px solid var(--border-color);padding-top:.7rem">
+                        <div class="notif-section-label notif-leidas-header">
+                            ✓ NOTIFICACIONES LEÍDAS
+                            <span class="notif-leidas-count" id="notif-leidas-count">${read.length}</span>
+                        </div>
+                        <div id="notif-leidas-body">
+                            ${read.map(n => _renderNotifItem(n, n.tipo || 'info')).join('')}
+                        </div>
+                    </div>`;
+            }
+
+            body.innerHTML = html;
         }
 
-        function onNotifClick(idx) {
-            const detail = document.getElementById(`notif-detail-${idx}`);
-            if (detail) detail.style.display = detail.style.display==='none' ? 'block' : 'none';
-            markNotifRead(idx);
-            const item = document.getElementById(`notif-item-${idx}`);
-            if (item) { item.style.opacity='.5'; const dot=item.querySelector('div[style*="background:var(--red)"]'); if(dot) dot.remove(); }
-            updateNotifBadge();
+        function onNotifClick(id) {
+            const item   = document.getElementById(`notif-item-${id}`);
+            const detail = document.getElementById(`notif-detail-${id}`);
+            if (!item || !detail) return;
+            const isOpen = item.classList.contains('expanded');
+            item.classList.toggle('expanded', !isOpen);
+            detail.style.display = isOpen ? 'none' : 'block';
+        }
+
+        async function markNotifRead(id) {
+            const notif = _notifData.find(n => n.id_notificacion === id);
+            if (!notif || notif.leido) return;
+            try {
+                await ApiClient.request('POST', `/notificaciones/${id}/read`);
+                notif.leido = true;
+                _notifUnreadCount = Math.max(0, _notifUnreadCount - 1);
+                updateNotifBadge();
+                const badge = document.getElementById('notifBadge');
+                if (badge) badge.textContent = _notifUnreadCount;
+
+                const item = document.getElementById(`notif-item-${id}`);
+                if (item) {
+                    // Animar salida hacia la derecha
+                    item.style.transition = 'opacity .22s ease, transform .22s ease';
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateX(24px)';
+
+                    setTimeout(() => {
+                        const section = item.closest('.notif-section');
+                        item.remove();
+
+                        // Si la sección quedó vacía, quitarla o mostrar "todo al día"
+                        if (section && section.id !== 'notif-sec-leidas') {
+                            const remaining = section.querySelectorAll('.notif-item');
+                            if (!remaining.length) {
+                                section.remove();
+                                if (!_notifData.filter(n => !n.leido).length) {
+                                    const body = document.getElementById('notifBody');
+                                    const done = document.createElement('div');
+                                    done.id = 'notif-all-done';
+                                    done.style.cssText = 'text-align:center;padding:1.2rem 0;color:var(--text-muted);font-size:.78rem';
+                                    done.innerHTML = '<i class="bi bi-check2-all" style="font-size:1.4rem;display:block;margin-bottom:.35rem;color:var(--success)"></i>Todo al día';
+                                    const leidasSec = document.getElementById('notif-sec-leidas');
+                                    if (body && leidasSec) body.insertBefore(done, leidasSec);
+                                    else if (body) body.prepend(done);
+                                }
+                            }
+                        }
+
+                        _appendToLeidasSection(notif);
+                    }, 230);
+                }
+            } catch(e) { showToast('Error al marcar notificación', 'error'); }
+        }
+
+        function _appendToLeidasSection(notif) {
+            const body = document.getElementById('notifBody');
+            if (!body) return;
+
+            let leidasSec = document.getElementById('notif-sec-leidas');
+            if (!leidasSec) {
+                leidasSec = document.createElement('div');
+                leidasSec.className = 'notif-section';
+                leidasSec.id = 'notif-sec-leidas';
+                leidasSec.style.cssText = 'margin-top:.4rem;border-top:1px solid var(--border-color);padding-top:.7rem';
+                leidasSec.innerHTML = `
+                    <div class="notif-section-label notif-leidas-header">
+                        ✓ NOTIFICACIONES LEÍDAS
+                        <span class="notif-leidas-count" id="notif-leidas-count">0</span>
+                    </div>
+                    <div id="notif-leidas-body"></div>`;
+                body.appendChild(leidasSec);
+            }
+
+            const leidasBody = document.getElementById('notif-leidas-body');
+            if (!leidasBody) return;
+
+            // Crear el elemento del item
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = _renderNotifItem(notif, notif.tipo || 'info').trim();
+            const newItem = wrapper.firstElementChild;
+            if (!newItem) return;
+
+            // Insertar al principio de la sección leídas
+            newItem.style.opacity = '0';
+            newItem.style.transform = 'translateX(-20px)';
+            leidasBody.insertBefore(newItem, leidasBody.firstChild);
+
+            // Actualizar contador
+            const countEl = document.getElementById('notif-leidas-count');
+            if (countEl) countEl.textContent = _notifData.filter(n => n.leido).length;
+
+            // Animar entrada
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    newItem.style.transition = 'opacity .28s ease, transform .28s ease';
+                    newItem.style.opacity = '';
+                    newItem.style.transform = '';
+                    setTimeout(() => { newItem.style.transition = ''; }, 300);
+                });
+            });
+        }
+
+        function goToNotifSection(destino) {
+            closeNotifPanel();
+            navigateTo(destino);
+        }
+        
+        function closeNotifPanel() {
+            const panel   = document.getElementById('notifPanel');
+            const overlay = document.getElementById('notifOverlay');
+            panel.classList.remove('open');
+            overlay.classList.remove('show');
         }
 
         function toggleNotifPanel() {
@@ -1480,8 +2536,40 @@
         function closeNotifPanel()        { document.getElementById('notifPanel').classList.remove('open'); document.getElementById('notifOverlay').classList.remove('show'); }
         function markAllNotificationsRead() { markAllRead(); }
 
-        // Polling de notificaciones cada 30s
-        setInterval(loadNotifications, 30000);
+        // Polling de notificaciones y KPIs (intervalo configurable, mínimo 30s)
+        setInterval(loadNotifications, Math.max(30000, parseInt(localStorage.getItem('mz_refresh_interval') || '60000')));
+        setInterval(updateKPIs, Math.max(30000, parseInt(localStorage.getItem('mz_refresh_interval') || '60000')));
+
+        // ── SSE: tiempo real para todos los roles excepto quien hizo el cambio ──
+        let _sseSource = null;
+        function connectSSE() {
+            if (_sseSource) return;
+            const token = getAuthToken();
+            if (!token) return;
+            _sseSource = new EventSource(`/dashboard/events?token=${encodeURIComponent(token)}`);
+
+            // Arrendamiento creado/actualizado/eliminado por otro usuario
+            _sseSource.addEventListener('arrendamiento', () => {
+                loadArrendamientosAPI();
+                updateKPIs();
+                loadNotifications();
+            });
+
+            // Movimiento creado/eliminado por otro usuario
+            _sseSource.addEventListener('movimiento', () => {
+                if (document.getElementById('page-movimientos')?.classList.contains('active')) {
+                    loadMovimientos();
+                }
+                updateKPIs();
+                loadNotifications();
+            });
+
+            _sseSource.onerror = () => {
+                _sseSource.close();
+                _sseSource = null;
+                setTimeout(connectSSE, 5000);
+            };
+        }
         function _downloadCSV(csv, name) {
             const b=new Blob([csv],{type:'text/csv'}), u=URL.createObjectURL(b), a=document.createElement('a');
             a.href=u; a.download=`${name}_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(u); showToast('CSV descargado');
@@ -1508,6 +2596,15 @@
         // Navegación & Sidebar
         function navigateTo(pageId, el) {
             if(!canAccessPage(pageId)){showToast('Sin permisos','error');return;}
+
+            // Limpiar búsqueda global al cambiar de página; en contenedores también reiniciar filtCode
+            const gSearch = document.getElementById('globalSearch');
+            if (gSearch) gSearch.value = '';
+            if (pageId === 'contenedores') {
+                const fc = document.getElementById('filtCode');
+                if (fc) fc.value = '';
+            }
+
             document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
             document.getElementById('page-'+pageId)?.classList.add('active');
@@ -1515,8 +2612,8 @@
             document.getElementById('pageTitle').textContent=pageId.charAt(0).toUpperCase()+pageId.slice(1);
             document.getElementById('breadcrumb').textContent=`Inicio › ${pageId.charAt(0).toUpperCase()+pageId.slice(1)}`;
             if(window.innerWidth<=768) closeMobileSidebar();
-            
-            if(pageId==='panel'){updateKPIs();renderAlerts();applyTheme();}
+
+            if(pageId==='panel'){applyTheme();updateKPIs();renderAlerts();}
             else if(pageId==='contenedores'){if(DB_TIPOS.length){loadContainers();populateFilters();}else{loadReferenceData().then(()=>{loadContainers();populateFilters();});}}
             else if(pageId==='zonas') renderZoneData();
             else if(pageId==='movimientos') loadMovimientos();
@@ -1531,7 +2628,7 @@
         function toggleSidebar() {
             if(window.innerWidth<=768){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebarOverlay').classList.toggle('show');}
             else {document.getElementById('sidebar').classList.toggle('collapsed');localStorage.setItem('sidebar_col',document.getElementById('sidebar').classList.contains('collapsed')?'1':'0');}
-            document.getElementById('sidebarToggle').querySelector('i').className=document.getElementById('sidebar').classList.contains('collapsed')?'bi bi-chevron-right':'bi bi-chevron-left';
+            // El ícono siempre es chevron-left; el CSS rota el botón 180° con transición suave
         }
 
         // Theme
@@ -1542,7 +2639,7 @@
         }
 
         // Logout
-        function logout() { TokenManager.clear(); localStorage.removeItem(STORAGE_KEY); window.location.href='/login'; }
+        function logout() { if(_sseSource){_sseSource.close();_sseSource=null;} TokenManager.clear(); localStorage.removeItem(STORAGE_KEY); window.location.href='/login'; }
 
         // INIT
         document.addEventListener('DOMContentLoaded', async () => {
@@ -1557,7 +2654,13 @@
             currentUserRole = role;
             document.getElementById('sidebarUser').textContent = username || 'Usuario';
             document.getElementById('sidebarRole').textContent = 'Rol: ' + role;
-            document.getElementById('userAvatar').textContent = (username || 'AD').substring(0,2).toUpperCase();
+            // Mostrar foto guardada en el avatar del sidebar; si no hay, mostrar iniciales
+            const _savedAv = localStorage.getItem('mz_user_avatar');
+            if (_savedAv) {
+                document.getElementById('userAvatar').innerHTML = `<img src="${_savedAv}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+            } else {
+                document.getElementById('userAvatar').textContent = (username || 'AD').substring(0,2).toUpperCase();
+            }
             applyRoleBasedUI();
             
             const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -1568,9 +2671,21 @@
             rowsPerPage = parseInt(localStorage.getItem('rowsPref')) || 10;
 
             loadNotifications();
-            updateKPIs(); renderAlerts();
+            updateKPIs(); renderAlerts(); updateFinanciero();
             loadReferenceData().then(()=>{ loadContainers(); populateFilters(); });
             if(currentUserRole === 'admin') loadUsers();
+            connectSSE();
+            // Cargar perfil del servidor para actualizar avatar y establecer currentUserId
+            ApiClient.request('GET', '/usuarios/me').then(res => {
+                if (res && res.ok) {
+                    localStorage.setItem('mz_auth_user_data', JSON.stringify(res.data));
+                    currentUserId = res.data.id_usuario;
+                    if (!localStorage.getItem('mz_user_avatar') && res.data.ruta_imagen) {
+                        const avatarUrl = CONFIG.API_BASE + res.data.ruta_imagen;
+                        document.getElementById('userAvatar').innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+                    }
+                }
+            }).catch(() => {});
             
             setInterval(()=>{const m=Math.floor((Date.now()-performance.timeOrigin)/60000);document.getElementById('updateLabel').textContent=`Última actualización: hace ${m} min`;document.getElementById('lastUpdate').textContent=`Actualizado hace ${m} min`;},60000);
             
@@ -1586,16 +2701,10 @@
 
         async function openProfilePanel() {
             let userData = JSON.parse(localStorage.getItem('mz_auth_user_data') || '{}');
-            if (!userData.id_usuario) {
-                const username = getAuthUser();
-                try {
-                    const res = await ApiClient.request('GET', '/usuarios');
-                    if (res.ok) {
-                        const found = res.data.find(u => u.user === username);
-                        if (found) { userData = found; localStorage.setItem('mz_auth_user_data', JSON.stringify(found)); }
-                    }
-                } catch(e) {}
-            }
+            try {
+                const res = await ApiClient.request('GET', '/usuarios/me');
+                if (res && res.ok) { userData = res.data; localStorage.setItem('mz_auth_user_data', JSON.stringify(res.data)); }
+            } catch(e) {}
             document.getElementById('pNombres').value   = userData.nombres   || '';
             document.getElementById('pApellidos').value = userData.apellidos || '';
             document.getElementById('pEmail').value     = userData.email     || '';
@@ -1609,6 +2718,10 @@
                 document.getElementById('profileAvatarImgEl').src = savedAvatar;
                 document.getElementById('profileAvatarImgEl').style.display = 'block';
                 document.getElementById('profileAvatarText').style.display  = 'none';
+            } else if (userData.ruta_imagen) {
+                document.getElementById('profileAvatarImgEl').src = CONFIG.API_BASE + userData.ruta_imagen;
+                document.getElementById('profileAvatarImgEl').style.display = 'block';
+                document.getElementById('profileAvatarText').style.display  = 'none';
             } else {
                 document.getElementById('profileAvatarImgEl').style.display = 'none';
                 document.getElementById('profileAvatarText').style.display  = 'flex';
@@ -1617,18 +2730,29 @@
             if (adminSec) adminSec.style.display = ['admin','supervisor'].includes(getAuthRole()) ? 'block' : 'none';
             const ri = localStorage.getItem('mz_refresh_interval') || '60000';
             if (document.getElementById('cfgRefreshInterval')) document.getElementById('cfgRefreshInterval').value = ri;
+            const verified = userData.email_verificado === true;
             const verifEl = document.getElementById('emailVerifStatus');
-            if (verifEl) verifEl.innerHTML = userData.email_verificado
-                ? '<span style="color:var(--success)"><i class="bi bi-patch-check-fill"></i> Email verificado</span>'
-                : '<span style="color:var(--warning)"><i class="bi bi-exclamation-triangle"></i> Email no verificado</span>';
+            if (verifEl) verifEl.innerHTML = verified
+                ? '<span style="color:var(--success);font-weight:600"><i class="bi bi-patch-check-fill"></i> Email verificado</span>'
+                : '<span style="color:var(--warning)"><i class="bi bi-exclamation-triangle-fill"></i> Email no verificado — haz clic en <strong>Verificar</strong> para recibir el código</span>';
+            const btnVerif = document.getElementById('btnVerifEmail');
+            if (btnVerif) btnVerif.style.display = verified ? 'none' : 'inline-block';
+            const verifBox = document.getElementById('verifTokenBox');
+            if (verifBox && verified) verifBox.style.display = 'none';
             switchProfileTab('perfil');
             document.getElementById('profilePanel').classList.add('open');
             document.getElementById('profileOverlay').classList.add('show');
         }
 
         function closeProfilePanel() {
-            document.getElementById('profilePanel').classList.remove('open');
-            document.getElementById('profileOverlay').classList.remove('show');
+            const panel = document.getElementById('profilePanel');
+            const overlay = document.getElementById('profileOverlay');
+            panel.classList.remove('open');
+            overlay.classList.remove('show');
+            // Esperar a que termine la animación antes de permitir reapertura
+            setTimeout(() => {
+                overlay.style.pointerEvents = 'none';
+            }, 300);
         }
 
         function switchProfileTab(tab) {
@@ -1642,6 +2766,8 @@
 
         function onAvatarChange(input) {
             if (!input.files[0]) return;
+            const file = input.files[0];
+            // Preview local inmediato
             const reader = new FileReader();
             reader.onload = e => {
                 localStorage.setItem('mz_user_avatar', e.target.result);
@@ -1650,24 +2776,41 @@
                 document.getElementById('profileAvatarText').style.display  = 'none';
                 document.querySelectorAll('.user-avatar').forEach(el => { el.innerHTML=`<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; });
             };
-            reader.readAsDataURL(input.files[0]);
+            reader.readAsDataURL(file);
+            // Subida al servidor
+            const formData = new FormData();
+            formData.append('file', file);
+            const token = getAuthToken();
+            fetch(`${CONFIG.API_BASE}/usuarios/me/avatar`, {
+                method: 'POST',
+                headers: token ? {'Authorization': `Bearer ${token}`} : {},
+                body: formData
+            }).then(r => r.ok ? r.json() : Promise.reject(r.status))
+              .then(data => {
+                if (data?.url) {
+                    const cached = JSON.parse(localStorage.getItem('mz_auth_user_data') || '{}');
+                    cached.ruta_imagen = data.url;
+                    localStorage.setItem('mz_auth_user_data', JSON.stringify(cached));
+                }
+                showToast('Foto de perfil guardada');
+              })
+              .catch(() => showToast('Foto guardada solo localmente', 'info'));
         }
 
         async function saveProfile() {
             const btn = document.querySelector('#tabPerfil .btn-save');
             if (btn) { btn.disabled=true; btn.textContent='Guardando...'; }
             try {
-                const userData = JSON.parse(localStorage.getItem('mz_auth_user_data') || '{}');
-                const userId   = userData.id_usuario;
-                if (!userId) throw new Error('No se encontró ID — abre el perfil de nuevo');
-                const payload  = { nombres:document.getElementById('pNombres').value.trim(), apellidos:document.getElementById('pApellidos').value.trim(), email:document.getElementById('pEmail').value.trim() };
+                const payload = { nombres:document.getElementById('pNombres').value.trim(), apellidos:document.getElementById('pApellidos').value.trim(), email:document.getElementById('pEmail').value.trim() };
                 const pass = document.getElementById('pPass').value;
                 if (pass) payload.password = pass;
-                const res = await ApiClient.request('PUT', `/usuarios/${userId}`, payload);
+                const res = await ApiClient.request('PUT', '/usuarios/me', payload);
                 if (!res.ok) throw new Error(res.data?.detail || 'Error al guardar');
-                Object.assign(userData, payload);
-                localStorage.setItem('mz_auth_user_data', JSON.stringify(userData));
+                const cached = JSON.parse(localStorage.getItem('mz_auth_user_data') || '{}');
+                Object.assign(cached, res.data || payload);
+                localStorage.setItem('mz_auth_user_data', JSON.stringify(cached));
                 document.getElementById('profileName').textContent = (payload.nombres+' '+payload.apellidos).trim();
+                document.getElementById('pPass').value = '';
                 showToast('Perfil actualizado correctamente');
             } catch(e) { showToast(e.message||'Error al guardar perfil','error'); }
             finally { if (btn) { btn.disabled=false; btn.innerHTML='<i class="bi bi-floppy-fill"></i> Guardar cambios'; } }
@@ -1795,25 +2938,321 @@
                 const axesOpts={ticks:{color:'rgba(160,185,215,0.7)',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'}};
                 const ctx=id=>document.getElementById(id)?.getContext('2d');
                 if(window._rcs) window._rcs.destroy();
-                if(ctx('chartReportStates')&&s.por_estado){const e=Object.entries(s.por_estado);window._rcs=new Chart(ctx('chartReportStates'),{type:'bar',data:{labels:e.map(([k])=>ESTADO_LABELS[k]||k),datasets:[{label:'Contenedores',data:e.map(([,v])=>v),backgroundColor:['#00c896','#42a5f5','#ffca28','#ce93d8','#ffb74d','#ff8a80']}]},options:{...chartOpts,scales:{x:axesOpts,y:{...axesOpts,beginAtZero:true}}}});}
+                if(ctx('chartReportStates')&&s.por_estado){const e=Object.entries(s.por_estado);const rk=e.map(([k])=>k);window._rcs=new Chart(ctx('chartReportStates'),{type:'bar',data:{labels:e.map(([k])=>ESTADO_LABELS[k]||k),datasets:[{label:'Contenedores',data:e.map(([,v])=>v),backgroundColor:['#00c896','#42a5f5','#ffca28','#ce93d8','#ffb74d','#ff8a80']}]},options:{...chartOpts,scales:{x:axesOpts,y:{...axesOpts,beginAtZero:true}},onClick:(evt,elems)=>{if(!elems.length)return;const k=rk[elems[0].index];if(k)drillByEstado(k);}}});}
                 if(window._rct) window._rct.destroy();
-                if(ctx('chartReportTypes')&&s.por_tipo){const e=Object.entries(s.por_tipo);window._rct=new Chart(ctx('chartReportTypes'),{type:'doughnut',data:{labels:e.map(([k])=>k),datasets:[{data:e.map(([,v])=>v),backgroundColor:['#D32F2F','#42a5f5','#00c896','#ffca28','#ce93d8','#ffb74d']}]},options:{...chartOpts,cutout:'65%'}});}
+                if(ctx('chartReportTypes')&&s.por_tipo){const e=Object.entries(s.por_tipo);window._rct=new Chart(ctx('chartReportTypes'),{type:'doughnut',data:{labels:e.map(([k])=>k),datasets:[{data:e.map(([,v])=>v),backgroundColor:['#D32F2F','#42a5f5','#00c896','#ffca28','#ce93d8','#ffb74d'],hoverOffset:8}]},options:{...chartOpts,cutout:'65%',onClick:(evt,elems)=>{if(!elems.length)return;const lbl=window._rct.data.labels[elems[0].index];if(lbl)drillByTipo(lbl);}}});}
                 if(window._rcc) window._rcc.destroy();
-                if(ctx('chartReportClients')&&s.por_cliente){const e=Object.entries(s.por_cliente).sort((a,b)=>b[1]-a[1]).slice(0,10);window._rcc=new Chart(ctx('chartReportClients'),{type:'bar',data:{labels:e.map(([k])=>k),datasets:[{label:'Contenedores',data:e.map(([,v])=>v),backgroundColor:'#42a5f5'}]},options:{...chartOpts,scales:{x:axesOpts,y:{...axesOpts,beginAtZero:true}}}});}
+                if(ctx('chartReportClients')&&s.por_cliente){const e=Object.entries(s.por_cliente).sort((a,b)=>b[1]-a[1]).slice(0,10);window._rcc=new Chart(ctx('chartReportClients'),{type:'bar',data:{labels:e.map(([k])=>k),datasets:[{label:'Contenedores',data:e.map(([,v])=>v),backgroundColor:'#42a5f5',hoverBackgroundColor:'#64b5f6'}]},options:{...chartOpts,scales:{x:axesOpts,y:{...axesOpts,beginAtZero:true}},onClick:(evt,elems)=>{if(!elems.length)return;const lbl=window._rcc.data.labels[elems[0].index];if(lbl)drillByCliente(lbl);}}});}
             } catch(e){ console.error('Error cargando reportes:',e); }
+        }
+
+        // ── MODAL CAMBIAR ESTADO (operador) ──────────────────────────────────────
+        let _estadoContId = null;
+        function openEstadoModal(id, estadoActual, codigo) {
+            _estadoContId = id;
+            document.getElementById('modalEstadoCodigo').textContent = `Contenedor: ${codigo}`;
+            const sel = document.getElementById('esEstado');
+            sel.value = estadoActual || 'disponible';
+            ['esOrigen','esDestino','esTransporte','esResponsable','esFechaSalida'].forEach(i => { const el = document.getElementById(i); if(el) el.value = ''; });
+            toggleEstadoTransitFields();
+            document.getElementById('modalEstado').classList.add('show');
+        }
+        function toggleEstadoTransitFields() {
+            const v = document.getElementById('esEstado')?.value;
+            document.getElementById('esTransitFields').style.display = v === 'en_transito' ? 'block' : 'none';
+        }
+        async function saveEstadoChange() {
+            if (!_estadoContId) return;
+            const estado = document.getElementById('esEstado').value;
+            if (estado === 'en_transito') {
+                if (!document.getElementById('esOrigen').value.trim())     { showToast('Origen requerido', 'error'); return; }
+                if (!document.getElementById('esDestino').value.trim())    { showToast('Destino requerido', 'error'); return; }
+                if (!document.getElementById('esTransporte').value.trim()) { showToast('Transporte requerido', 'error'); return; }
+                if (!document.getElementById('esResponsable').value.trim()){ showToast('Responsable requerido', 'error'); return; }
+                if (!document.getElementById('esFechaSalida').value)       { showToast('Fecha de salida requerida', 'error'); return; }
+            }
+            const btn = document.getElementById('saveEstadoBtn');
+            btn.disabled = true;
+            try {
+                await ApiClient.request('PATCH', `/contenedores/${_estadoContId}/estado?estado=${encodeURIComponent(estado)}`);
+                if (estado === 'en_transito' && currentUserId) {
+                    await ApiClient.request('POST', '/movimientos', {
+                        id_contenedor:     _estadoContId,
+                        id_usuario:        currentUserId,
+                        fecha_salida:      document.getElementById('esFechaSalida').value || null,
+                        ubicacion_origen:  document.getElementById('esOrigen').value.trim(),
+                        ubicacion_destino: document.getElementById('esDestino').value.trim(),
+                        medio_transporte:  document.getElementById('esTransporte').value.trim(),
+                        responsable:       document.getElementById('esResponsable').value.trim(),
+                    });
+                }
+                closeModal('modalEstado');
+                loadContainers();
+                updateKPIs();
+                showToast('Estado actualizado correctamente');
+            } catch(e) { showToast('Error: ' + (e.message || ''), 'error'); }
+            btn.disabled = false;
+        }
+
+        // ── MODAL REGISTRAR MOVIMIENTO ────────────────────────────────────────────
+        async function openMovModal() {
+            const sel = document.getElementById('mvContenedor');
+            if (sel) {
+                const data = DB_CONTENEDORES_API.length ? DB_CONTENEDORES_API : [];
+                sel.innerHTML = data.length
+                    ? data.map(c => `<option value="${c.id_contenedor}">${c.id_codigo} — ${c.estado}</option>`).join('')
+                    : '<option value="">Cargando...</option>';
+                if (!data.length) {
+                    const res = await ApiClient.request('GET', '/contenedores?limit=500');
+                    if (res.ok) sel.innerHTML = res.data.map(c => `<option value="${c.id_contenedor}">${c.id_codigo} — ${c.estado}</option>`).join('');
+                }
+            }
+            ['mvTransporte','mvOrigen','mvDestino','mvResponsable'].forEach(i => { const el = document.getElementById(i); if(el) el.value = ''; });
+            document.getElementById('modalMov').classList.add('show');
+        }
+        async function saveMovimiento() {
+            const contId = parseInt(document.getElementById('mvContenedor').value);
+            const origen = document.getElementById('mvOrigen').value.trim();
+            const destino = document.getElementById('mvDestino').value.trim();
+            const transporte = document.getElementById('mvTransporte').value.trim();
+            const responsable = document.getElementById('mvResponsable').value.trim();
+            if (!contId)      { showToast('Selecciona un contenedor', 'error'); return; }
+            if (!origen)      { showToast('Origen requerido', 'error'); return; }
+            if (!destino)     { showToast('Destino requerido', 'error'); return; }
+            if (!transporte)  { showToast('Medio de transporte requerido', 'error'); return; }
+            if (!responsable) { showToast('Responsable requerido', 'error'); return; }
+            const btn = document.getElementById('saveMovBtn');
+            btn.disabled = true;
+            try {
+                await ApiClient.request('POST', '/movimientos', {
+                    id_contenedor:    contId,
+                    id_usuario:       currentUserId,
+                    ubicacion_origen: origen,
+                    ubicacion_destino:destino,
+                    medio_transporte: transporte,
+                    responsable,
+                });
+                closeModal('modalMov');
+                loadMovimientos();
+                showToast('Movimiento registrado correctamente');
+            } catch(e) { showToast('Error: ' + (e.message || ''), 'error'); }
+            btn.disabled = false;
         }
 
         function openRentalModal() { openRentalModalWithData(); }
         async function saveRental() {
             const payload = { id_contenedor:parseInt(document.getElementById('rContenedor').value), id_cliente:parseInt(document.getElementById('rCliente').value), fecha_inicio:document.getElementById('rInicio').value, fecha_fin:document.getElementById('rFin').value||null, valor_alquiler:parseFloat(document.getElementById('rValor').value), estado_arrendamiento:document.getElementById('rEstado').value };
-            try { await ApiClient.request('POST','/arrendamientos',payload); closeModal('modalRental'); loadArrendamientosAPI(); showToast('Contrato guardado'); } catch(e) { showToast(e.message||'Error','error'); }
+            try { await ApiClient.request('POST','/arrendamientos',payload); closeModal('modalRental'); loadArrendamientosAPI(); updateKPIs(); loadNotifications(); showToast('Contrato guardado'); } catch(e) { showToast(e.message||'Error','error'); }
         }
         async function openRentalModalWithData() {
-            const [rC, rCont] = await Promise.all([ApiClient.request('GET','/clientes'), ApiClient.request('GET','/contenedores?limit=500')]);
-            if(rC.ok)    document.getElementById('rCliente').innerHTML    = rC.data.map(c=>`<option value="${c.id_cliente}">${c.nombre}</option>`).join('');
-            if(rCont.ok) document.getElementById('rContenedor').innerHTML = rCont.data.map(c=>`<option value="${c.id_contenedor}">${c.id_codigo}</option>`).join('');
-            document.getElementById('modalRental').classList.add('show');
+            try {
+                const [rC, rCont] = await Promise.all([ApiClient.request('GET','/clientes'), ApiClient.request('GET','/contenedores?limit=500')]);
+                
+                // Limpiar y agregar opción inicial para Clientes
+                let clienteHtml = '<option value="">-- Seleccionar cliente --</option>';
+                if(rC.ok && rC.data.length > 0) {
+                    clienteHtml += rC.data.map(c=>`<option value="${c.id_cliente}">${c.nombre}</option>`).join('');
+                } else {
+                    clienteHtml += '<option disabled>Sin clientes disponibles</option>';
+                }
+                document.getElementById('rCliente').innerHTML = clienteHtml;
+                
+                // Limpiar y agregar opción inicial para Contenedores
+                let contenedorHtml = '<option value="">-- Seleccionar contenedor --</option>';
+                if(rCont.ok && rCont.data.length > 0) {
+                    contenedorHtml += rCont.data.map(c=>`<option value="${c.id_contenedor}">${c.id_codigo}</option>`).join('');
+                } else {
+                    contenedorHtml += '<option disabled>Sin contenedores disponibles</option>';
+                }
+                document.getElementById('rContenedor').innerHTML = contenedorHtml;
+                
+                // Limpiar otros campos
+                document.getElementById('rInicio').value = '';
+                document.getElementById('rFin').value = '';
+                document.getElementById('rValor').value = '';
+                document.getElementById('rEstado').value = 'activo';
+                
+                document.getElementById('modalRental').classList.add('show');
+            } catch(e) {
+                console.error('Error cargando datos para arrendamiento:', e);
+                showToast('Error al cargar datos del formulario', 'error');
+            }
         }
+        // ── DRILL-DOWN MODAL ────────────────────────────────────────────────
+        function openDrillModal(title, content) {
+            document.getElementById('drillTitle').textContent = title;
+            document.getElementById('drillContent').innerHTML = content;
+            document.getElementById('drillModal').classList.add('show');
+        }
+        function closeDrillModal() {
+            document.getElementById('drillModal').classList.remove('show');
+        }
+
+        function _drillTable(headers, rows) {
+            if (!rows.length) return '<div class="empty-state">Sin resultados</div>';
+            return `<div style="overflow-x:auto"><table class="data-table">
+                <thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+                <tbody>${rows.join('')}</tbody>
+            </table></div>`;
+        }
+
+        async function drillByEstado(estadoKey) {
+            openDrillModal(
+                `Contenedores — ${ESTADO_LABELS[estadoKey] || estadoKey}`,
+                '<div class="empty-state"><div class="loader-spinner" style="margin:0 auto"></div></div>'
+            );
+            try {
+                const res = await ApiClient.request('GET', `/contenedores?estado=${estadoKey}&limit=500`);
+                if (!res.ok) { document.getElementById('drillContent').innerHTML='<div class="empty-state">Error cargando datos</div>'; return; }
+                const rows = res.data.map(c => `<tr>
+                    <td><strong>${sanitizeHTML(c.id_codigo)}</strong></td>
+                    <td>${sanitizeHTML(DB_TIPOS.find(t=>t.id_tipo===c.id_tipo)?.nombre || `Tipo ${c.id_tipo}`)}</td>
+                    <td>${sanitizeHTML(DB_CLIENTES.find(cl=>cl.id_cliente===c.id_cliente)?.nombre || 'Sin cliente')}</td>
+                    <td style="font-size:.75rem;color:var(--text-muted)">${sanitizeHTML(c.ubicacion_actual||'—')}</td>
+                    <td>${c.updated_at||'—'}</td>
+                </tr>`);
+                document.getElementById('drillContent').innerHTML = _drillTable(['Código','Tipo','Cliente','Ubicación','Actualizado'], rows)
+                    + `<div style="font-size:.72rem;color:var(--text-muted);margin-top:.5rem;text-align:right">${res.data.length} contenedores</div>`;
+            } catch(e) { document.getElementById('drillContent').innerHTML='<div class="empty-state">Error: '+sanitizeHTML(e.message)+'</div>'; }
+        }
+
+        async function drillByTipo(tipoNombre) {
+            const tipo = DB_TIPOS.find(t => t.nombre === tipoNombre);
+            openDrillModal(
+                `Contenedores de tipo — ${tipoNombre}`,
+                '<div class="empty-state"><div class="loader-spinner" style="margin:0 auto"></div></div>'
+            );
+            try {
+                const url = tipo ? `/contenedores?id_tipo=${tipo.id_tipo}&limit=500` : `/contenedores?limit=500`;
+                const res  = await ApiClient.request('GET', url);
+                if (!res.ok) { document.getElementById('drillContent').innerHTML='<div class="empty-state">Error cargando datos</div>'; return; }
+                const data = tipo ? res.data : res.data.filter(c=>DB_TIPOS.find(t=>t.id_tipo===c.id_tipo)?.nombre===tipoNombre);
+                const rows = data.map(c => `<tr>
+                    <td><strong>${sanitizeHTML(c.id_codigo)}</strong></td>
+                    <td><span class="badge-status ${c.estado}">${c.estado.replace('_',' ')}</span></td>
+                    <td>${sanitizeHTML(DB_CLIENTES.find(cl=>cl.id_cliente===c.id_cliente)?.nombre||'Sin cliente')}</td>
+                    <td style="font-size:.75rem;color:var(--text-muted)">${sanitizeHTML(c.ubicacion_actual||'—')}</td>
+                </tr>`);
+                document.getElementById('drillContent').innerHTML = _drillTable(['Código','Estado','Cliente','Ubicación'], rows)
+                    + `<div style="font-size:.72rem;color:var(--text-muted);margin-top:.5rem;text-align:right">${data.length} contenedores</div>`;
+            } catch(e) { document.getElementById('drillContent').innerHTML='<div class="empty-state">Error: '+sanitizeHTML(e.message)+'</div>'; }
+        }
+
+        async function drillByCliente(clienteNombre) {
+            const cliente = DB_CLIENTES.find(c => c.nombre === clienteNombre);
+            openDrillModal(
+                `Contenedores de — ${clienteNombre}`,
+                '<div class="empty-state"><div class="loader-spinner" style="margin:0 auto"></div></div>'
+            );
+            try {
+                const url = cliente ? `/contenedores?id_cliente=${cliente.id_cliente}&limit=500` : `/contenedores?limit=500`;
+                const res  = await ApiClient.request('GET', url);
+                if (!res.ok) { document.getElementById('drillContent').innerHTML='<div class="empty-state">Error cargando datos</div>'; return; }
+                const data = cliente ? res.data : res.data.filter(c=>!c.id_cliente);
+                const rows = data.map(c => `<tr>
+                    <td><strong>${sanitizeHTML(c.id_codigo)}</strong></td>
+                    <td><span class="badge-status ${c.estado}">${c.estado.replace('_',' ')}</span></td>
+                    <td>${sanitizeHTML(DB_TIPOS.find(t=>t.id_tipo===c.id_tipo)?.nombre||`Tipo ${c.id_tipo}`)}</td>
+                    <td style="font-size:.75rem;color:var(--text-muted)">${sanitizeHTML(c.ubicacion_actual||'—')}</td>
+                </tr>`);
+                document.getElementById('drillContent').innerHTML = _drillTable(['Código','Estado','Tipo','Ubicación'], rows)
+                    + `<div style="font-size:.72rem;color:var(--text-muted);margin-top:.5rem;text-align:right">${data.length} contenedores</div>`;
+            } catch(e) { document.getElementById('drillContent').innerHTML='<div class="empty-state">Error: '+sanitizeHTML(e.message)+'</div>'; }
+        }
+
+        function drillByMes(yearMonth, mesLabel) {
+            const data = _movimientosAPI.filter(m => m.fecha_hora && m.fecha_hora.startsWith(yearMonth));
+            const contMap = {};
+            DB_CONTENEDORES_API.forEach(c => contMap[c.id_contenedor] = c.id_codigo);
+            const rows = data.map(m => `<tr>
+                <td><strong>${sanitizeHTML(contMap[m.id_contenedor]||'#'+m.id_contenedor)}</strong></td>
+                <td>${sanitizeHTML(m.ubicacion_origen||'—')}</td>
+                <td>${sanitizeHTML(m.ubicacion_destino||'—')}</td>
+                <td>${sanitizeHTML(m.medio_transporte||'—')}</td>
+                <td>${sanitizeHTML(m.responsable||'—')}</td>
+                <td style="font-size:.75rem;color:var(--text-muted)">${m.fecha_hora?m.fecha_hora.substring(0,10):'—'}</td>
+            </tr>`);
+            openDrillModal(
+                `Movimientos de ${mesLabel} (${yearMonth})`,
+                _drillTable(['Contenedor','Origen','Destino','Transporte','Responsable','Fecha'], rows)
+                    + `<div style="font-size:.72rem;color:var(--text-muted);margin-top:.5rem;text-align:right">${data.length} movimientos</div>`
+            );
+        }
+
+        async function drillArrendamientos(tipo) {
+            openDrillModal(
+                tipo === 'activo' ? 'Arrendamientos activos' : 'Arrendamientos finalizados',
+                '<div class="empty-state"><div class="loader-spinner" style="margin:0 auto"></div></div>'
+            );
+            try {
+                const res = await ApiClient.request('GET', '/arrendamientos');
+                if (!res.ok) { document.getElementById('drillContent').innerHTML='<div class="empty-state">Error cargando datos</div>'; return; }
+                const data = res.data.filter(a => tipo==='activo' ? a.estado_arrendamiento==='activo' : a.estado_arrendamiento!=='activo');
+                const contMap = {}, cliMap = {};
+                DB_CONTENEDORES_API.forEach(c => contMap[c.id_contenedor] = c.id_codigo);
+                DB_CLIENTES.forEach(c => cliMap[c.id_cliente] = c.nombre);
+                const rows = data.map(a => `<tr>
+                    <td><strong>${sanitizeHTML(contMap[a.id_contenedor]||'#'+a.id_contenedor)}</strong></td>
+                    <td>${sanitizeHTML(cliMap[a.id_cliente]||'—')}</td>
+                    <td>${a.fecha_inicio||'—'}</td>
+                    <td>${a.fecha_fin||'—'}</td>
+                    <td>$${Number(a.valor_alquiler||0).toLocaleString('es-CO')}</td>
+                    <td><span class="badge-status ${a.estado_arrendamiento==='activo'?'disponible':'fuera_de_servicio'}">${a.estado_arrendamiento}</span></td>
+                </tr>`);
+                document.getElementById('drillContent').innerHTML = _drillTable(['Contenedor','Cliente','Inicio','Fin','Valor/mes','Estado'], rows)
+                    + `<div style="font-size:.72rem;color:var(--text-muted);margin-top:.5rem;text-align:right">${data.length} contratos</div>`;
+            } catch(e) { document.getElementById('drillContent').innerHTML='<div class="empty-state">Error: '+sanitizeHTML(e.message)+'</div>'; }
+        }
+
+        // ── MÉTRICAS FINANCIERAS ─────────────────────────────────────────────
+        async function updateFinanciero() {
+            try {
+                const res = await ApiClient.request('GET', '/dashboard/financiero');
+                if (!res.ok) {
+                    console.error('Error en financiero:', res.status, res.statusText);
+                    return;
+                }
+                const f = res.data;
+                console.log('Datos financieros:', f);
+                
+                const el = id => document.getElementById(id);
+                
+                // Clientes
+                const kpiClientes = el('kpiClientes');
+                if (kpiClientes) {
+                    const val = f.total_clientes ?? 0;
+                    kpiClientes.textContent = val;
+                    console.log('kpiClientes actualizado a:', val);
+                }
+                
+                // Facturas pendientes
+                const kpiFactPend = el('kpiFactPend');
+                if (kpiFactPend) {
+                    const val = f.fact_pendiente_count ?? 0;
+                    kpiFactPend.textContent = val;
+                    console.log('kpiFactPend actualizado a:', val);
+                }
+                
+                // Facturas en mora
+                const kpiFactMora = el('kpiFactMora');
+                if (kpiFactMora) {
+                    const val = f.fact_mora_count ?? 0;
+                    kpiFactMora.textContent = val;
+                    console.log('kpiFactMora actualizado a:', val);
+                }
+                
+                // Ingresos del mes
+                const kpiIngresosMes = el('kpiIngresosMes');
+                if (kpiIngresosMes) {
+                    const val = f.ingresos_mes != null ? `$${Number(f.ingresos_mes).toLocaleString('es-CO', {maximumFractionDigits:0})}` : '0';
+                    kpiIngresosMes.textContent = val;
+                    console.log('kpiIngresosMes actualizado a:', val);
+                }
+            } catch(e) { 
+                console.error('Error updateFinanciero:', e);
+            }
+        }
+
     </script>
 </body>
 </html>

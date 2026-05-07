@@ -1,15 +1,22 @@
-from datetime import date, timedelta
+import asyncio
+from datetime import date, timedelta, datetime
 from typing import List
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from collections import Counter
 from sqlalchemy.orm import Session
 
-from schemas import DashboardStats, NotificacionItem
+from schemas import DashboardStats, NotificacionItem, MovimientoResumenDash
 from database import get_db
-from models import Contenedor, TipoContenedor, Cliente, Arrendamiento, Movimiento
+from models import Contenedor, TipoContenedor, Cliente, Arrendamiento, Movimiento, Usuario, Facturacion
 from auth.dependencies import get_current_user
+from auth.jwt import decode_access_token
+from broadcaster import broadcaster
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
+
+MESES_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+            'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
 ZONA_MAP = [
     ("cartagena",    "Puerto Cartagena"),
@@ -39,21 +46,88 @@ def get_stats(current=Depends(get_current_user), db: Session = Depends(get_db)):
     tipos          = db.query(TipoContenedor).all()
     clientes       = db.query(Cliente).all()
     arrendamientos = db.query(Arrendamiento).all()
-    movimientos    = db.query(Movimiento).all()
 
     tipo_dict    = {t.id_tipo: t.nombre for t in tipos}
     cliente_dict = {cl.id_cliente: cl.nombre for cl in clientes}
+    cont_dict    = {c.id_contenedor: c.id_codigo for c in contenedores}
 
-    por_estado  = dict(Counter(c.estado        for c in contenedores))
-    por_tipo    = dict(Counter(tipo_dict.get(c.id_tipo, "Desconocido")      for c in contenedores))
+    # Conversión explícita de enum a string para compatibilidad con JSON
+    por_estado: dict = {}
+    for c in contenedores:
+        estado_str = c.estado.value if hasattr(c.estado, "value") else str(c.estado)
+        por_estado[estado_str] = por_estado.get(estado_str, 0) + 1
+
+    por_tipo    = dict(Counter(tipo_dict.get(c.id_tipo, "Desconocido")       for c in contenedores))
     por_cliente = dict(Counter(cliente_dict.get(c.id_cliente, "Sin cliente") for c in contenedores))
 
     hoy    = date.today()
     limit  = hoy + timedelta(days=7)
-    activos  = sum(1 for a in arrendamientos if a.estado_arrendamiento == "activo")
-    proximos = sum(1 for a in arrendamientos
-                   if a.estado_arrendamiento == "activo"
-                   and a.fecha_fin and hoy <= a.fecha_fin <= limit)
+    activos   = sum(1 for a in arrendamientos if a.estado_arrendamiento == "activo")
+    total_arr = len(arrendamientos)
+    proximos  = sum(1 for a in arrendamientos
+                    if a.estado_arrendamiento == "activo"
+                    and a.fecha_fin and hoy <= a.fecha_fin <= limit)
+
+    # ── Datos para gráficas ──────────────────────────────────────────────────
+
+    arr_activos     = activos
+    arr_finalizados = sum(1 for a in arrendamientos if a.estado_arrendamiento != "activo")
+
+    # Ventana de 6 meses calendario: calcular el inicio del mes más antiguo
+    m_inicio = hoy.month - 5
+    y_inicio = hoy.year
+    if m_inicio <= 0:
+        m_inicio += 12
+        y_inicio -= 1
+    desde = datetime(y_inicio, m_inicio, 1)
+
+    # Inicializar contadores para los 6 meses
+    meses_conteo: dict[str, int] = {}
+    for i in range(5, -1, -1):
+        m = hoy.month - i
+        y = hoy.year
+        if m <= 0:
+            m += 12
+            y -= 1
+        meses_conteo[f"{y}-{m:02d}"] = 0
+
+    # Sólo traer movimientos del período (consulta eficiente)
+    movimientos_chart = (db.query(Movimiento)
+                         .filter(Movimiento.fecha_hora >= desde)
+                         .all())
+    for mv in movimientos_chart:
+        if mv.fecha_hora:
+            k = f"{mv.fecha_hora.year}-{mv.fecha_hora.month:02d}"
+            if k in meses_conteo:
+                meses_conteo[k] += 1
+
+    movimientos_por_mes = [
+        {"key": k, "label": MESES_ES[int(k[5:7]) - 1], "count": v}
+        for k, v in sorted(meses_conteo.items())
+    ]
+
+    # Total real de movimientos (sin cargar todos en memoria)
+    total_movimientos = db.query(Movimiento).count()
+
+    # Últimos 20 movimientos para la tabla del panel (con código de contenedor)
+    ultimos = (db.query(Movimiento)
+               .order_by(Movimiento.fecha_hora.desc())
+               .limit(20)
+               .all())
+
+    ultimos_movimientos = [
+        MovimientoResumenDash(
+            id_movimiento    =m.id_movimiento,
+            id_contenedor    =m.id_contenedor,
+            codigo_contenedor=cont_dict.get(m.id_contenedor),
+            ubicacion_origen =m.ubicacion_origen,
+            ubicacion_destino=m.ubicacion_destino,
+            medio_transporte =m.medio_transporte,
+            responsable      =m.responsable,
+            fecha_hora       =m.fecha_hora.isoformat() if m.fecha_hora else None,
+        )
+        for m in ultimos
+    ]
 
     return DashboardStats(
         total_contenedores    =len(contenedores),
@@ -61,8 +135,13 @@ def get_stats(current=Depends(get_current_user), db: Session = Depends(get_db)):
         por_tipo              =por_tipo,
         por_cliente           =por_cliente,
         arrendamientos_activos=activos,
+        total_arrendamientos  =total_arr,
         proximos_vencer       =proximos,
-        total_movimientos     =len(movimientos),
+        total_movimientos     =total_movimientos,
+        movimientos_por_mes   =movimientos_por_mes,
+        arr_activos           =arr_activos,
+        arr_finalizados       =arr_finalizados,
+        ultimos_movimientos   =ultimos_movimientos,
     )
 
 
@@ -131,3 +210,70 @@ def get_zonas_distribucion(current=Depends(get_current_user), db: Session = Depe
             zonas[zona]["otros"] += 1
 
     return zonas
+
+
+@router.get("/financiero", summary="Estadísticas financieras del sistema")
+def get_financiero(current=Depends(get_current_user), db: Session = Depends(get_db)):
+    hoy    = date.today()
+    todas  = db.query(Facturacion).all()
+
+    pendientes  = [f for f in todas if f.estado_pago == "pendiente"]
+    mora_list   = [f for f in todas if f.estado_pago == "mora"]
+    pagadas_mes = [
+        f for f in todas
+        if f.estado_pago == "pagado"
+        and f.fecha_facturacion
+        and f.fecha_facturacion.month == hoy.month
+        and f.fecha_facturacion.year  == hoy.year
+    ]
+
+    total_pendiente = sum((f.monto or 0) for f in pendientes) if pendientes else 0
+    total_mora = sum((f.monto or 0) for f in mora_list) if mora_list else 0
+    ingresos = sum((f.monto or 0) for f in pagadas_mes) if pagadas_mes else 0
+
+    return {
+        "total_clientes":       db.query(Cliente).count(),
+        "fact_pendiente_count": len(pendientes),
+        "fact_pendiente_monto": total_pendiente,
+        "fact_mora_count":      len(mora_list),
+        "fact_mora_monto":      total_mora,
+        "ingresos_mes":         ingresos,
+        "ingresos_mes_count":   len(pagadas_mes),
+    }
+
+
+@router.get("/events", summary="Stream de eventos en tiempo real (SSE)")
+async def sse_events(
+    token: str = Query(..., description="JWT de autenticación"),
+    db: Session = Depends(get_db),
+):
+    payload = decode_access_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+
+    user = db.query(Usuario).filter(Usuario.user == payload.get("sub")).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    user_id: int = user.id_usuario
+
+    async def generator():
+        queue = broadcaster.subscribe(user_id)
+        try:
+            yield "data: {\"type\":\"connected\"}\n\n"
+            while True:
+                try:
+                    msg = await asyncio.wait_for(queue.get(), timeout=25)
+                    yield msg
+                except asyncio.TimeoutError:
+                    yield ": ping\n\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            broadcaster.unsubscribe(user_id, queue)
+
+    return StreamingResponse(
+        generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

@@ -1,7 +1,8 @@
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles 
+from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import logging
 
@@ -9,7 +10,9 @@ from routers import usuarios, clientes, tipos_contenedores, contenedores
 from routers import movimientos, historial_estado, fotos, facturacion
 from routers import arrendamiento, ventas, dashboard
 from routers import auth
+from routers import notificaciones
 from database import engine, Base
+from broadcaster import broadcaster
 from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
@@ -18,10 +21,11 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    broadcaster.set_loop(asyncio.get_event_loop())
     logger.info("\n" + "="*70)
     logger.info("🚀 INICIANDO API - Sistema de Logística de Contenedores")
     logger.info("="*70)
-    
+
     try:
         # Verificar conexión a BD
         with engine.connect() as conn:
@@ -70,21 +74,20 @@ app.include_router(arrendamiento.router)
 app.include_router(ventas.router)
 app.include_router(dashboard.router)
 app.include_router(auth.router)
+app.include_router(notificaciones.router)
 
 # ── Servir archivos estáticos ────────────────────────────────────────────────
 app.mount("/static", StaticFiles(directory="static", html=False), name="static")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
-@app.get("/", tags=["Root"])
-def root():
-    return {
-        "sistema": "Logística y Monitoreo de Contenedores",
-        "version": "1.0.0",
-        "docs": "/docs",
-        "estado": "activo",
-        "autenticacion": "JWT Bearer Token requerido para la mayoría de endpoints",
-    }
+@app.get("/", response_class=FileResponse, tags=["Root"])
+async def root():
+    response = FileResponse("login.html")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @app.get("/login", response_class=FileResponse, tags=["Autenticación"])
 async def login():

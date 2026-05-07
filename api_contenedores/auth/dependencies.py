@@ -38,8 +38,15 @@ def only_admin(current=Depends(get_current_user)):
     return current['user']
 
 
-def only_operador(current=Depends(get_current_user)):
-    """Solo permite acceso a operadores."""
-    if current['role'] != 'operador':
-        raise HTTPException(status_code=403, detail='Solo operadores')
+def only_admin_or_supervisor(current=Depends(get_current_user)):
+    """Permite acceso a admin y supervisores."""
+    if current['role'] not in ('admin', 'supervisor'):
+        raise HTTPException(status_code=403, detail='Requiere rol admin o supervisor')
+    return current['user']
+
+
+def only_staff(current=Depends(get_current_user)):
+    """Permite acceso a admin, supervisores y operadores (personal operativo)."""
+    if current['role'] not in ('admin', 'supervisor', 'operador'):
+        raise HTTPException(status_code=403, detail='Acceso restringido a personal operativo')
     return current['user']
