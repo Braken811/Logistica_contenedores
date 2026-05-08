@@ -119,6 +119,7 @@ class Facturacion(Base):
     id_contenedor     = Column(Integer, ForeignKey("contenedores.id_contenedor"), nullable=False)
     fecha_facturacion = Column(Date, default=datetime.utcnow().date)
     monto             = Column(Float, nullable=False)
+    monto_pagado      = Column(Float, default=0.0)
     observaciones     = Column(String)
     codigo_factura    = Column(String)
     fecha_vencimiento = Column(Date)

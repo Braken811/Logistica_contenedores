@@ -225,9 +225,11 @@ class FacturacionCreate(BaseModel):
     codigo_factura    : Optional[str]  = None
     fecha_vencimiento : Optional[date] = None
     estado_pago       : str            = "pendiente"
+    id_arrendamiento  : Optional[int]  = None
 
 class FacturacionUpdate(BaseModel):
     monto             : Optional[float] = None
+    monto_pagado      : Optional[float] = None
     observaciones     : Optional[str]   = None
     estado_pago       : Optional[str]   = None
     fecha_vencimiento : Optional[date]  = None
@@ -237,13 +239,20 @@ class FacturacionOut(BaseModel):
     id_contenedor     : int
     fecha_facturacion : Optional[date]
     monto             : float
+    monto_pagado      : float
     observaciones     : Optional[str]
     codigo_factura    : Optional[str]
     fecha_vencimiento : Optional[date]
     estado_pago       : str
+    id_arrendamiento  : Optional[int]
 
     class Config:
         from_attributes = True
+
+
+# ── Abono (pago parcial/total a factura) ──────────────────────────────────
+class AbonoRequest(BaseModel):
+    monto: float
 
 
 # ── Ventas ────────────────────────────────────────────────────────────────────

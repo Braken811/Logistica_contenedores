@@ -15,6 +15,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         /* ═══════════════════════ VARIABLES & THEME ═══════════════════════ */
@@ -476,14 +479,46 @@
                     <div class="kpi-card blue" style="cursor:pointer" onclick="showDetailModal('en_transito', 'Contenedores en Tránsito')" title="Ver detalles"><div class="kpi-icon blue"><i class="bi bi-truck"></i></div><div class="kpi-value" id="kpiTrans">0</div><div class="kpi-label">En tránsito</div><div class="kpi-trend" id="trendTrans">— Sin cambio</div></div>
                     <div class="kpi-card yellow" style="cursor:pointer" onclick="showDetailModal('alertas', 'Alertas - Arrendamientos por Vencer')" title="Ver detalles"><div class="kpi-icon yellow"><i class="bi bi-exclamation-triangle-fill"></i></div><div class="kpi-value" id="kpiAlert">0</div><div class="kpi-label">Alertas activas</div><div class="kpi-trend stable"><i class="bi bi-dash"></i> Sin cambio</div></div>
                 </div>
-                <!-- Segunda fila de KPIs: métricas financieras -->
-                <div class="kpi-grid" style="margin-top:-.35rem">
+                <!-- Segunda fila de KPIs: métricas financieras (AU1) -->
+                <div class="kpi-grid" style="margin-top:-.35rem" id="kpiFinancieros">
                     <div class="kpi-card blue" style="cursor:pointer" onclick="navigateTo('clientes')" title="Ver clientes"><div class="kpi-icon blue"><i class="bi bi-people-fill"></i></div><div class="kpi-value" id="kpiClientes">—</div><div class="kpi-label">Clientes registrados</div></div>
                     <div class="kpi-card yellow" style="cursor:pointer" onclick="navigateTo('facturacion')" title="Ver facturas pendientes"><div class="kpi-icon yellow"><i class="bi bi-receipt"></i></div><div class="kpi-value" id="kpiFactPend">—</div><div class="kpi-label">Facturas pendientes</div></div>
                     <div class="kpi-card red" style="cursor:pointer" onclick="navigateTo('facturacion')" title="Ver facturas en mora"><div class="kpi-icon red"><i class="bi bi-exclamation-octagon-fill"></i></div><div class="kpi-value" id="kpiFactMora">—</div><div class="kpi-label">Facturas en mora</div></div>
                     <div class="kpi-card green"><div class="kpi-icon green"><i class="bi bi-cash-coin"></i></div><div class="kpi-value" id="kpiIngresosMes">—</div><div class="kpi-label">Ingresos del mes</div></div>
                 </div>
                 <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;margin-top:.6rem"><span id="updateLabel">Última actualización: hace 0 min</span></div>
+                
+                <!-- A1: Panel de salud del sistema -->
+                <div class="card" id="sysHealthCard" style="display:none; margin-bottom:1.1rem; background:linear-gradient(to right, rgba(0,200,150,0.05), transparent); border-left:4px solid var(--success)">
+                    <div class="chart-header">
+                        <div><div class="chart-title"><i class="bi bi-heart-pulse-fill" style="color:var(--success)"></i> Salud del Sistema</div><div class="chart-subtitle">Diagnóstico general de la plataforma (Solo Admin)</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;padding:0.5rem 0">
+                        <div>
+                            <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.2rem">Contenedores Activos</div>
+                            <div style="display:flex;align-items:center;gap:.5rem">
+                                <div style="font-size:1.4rem;font-weight:600" id="sysContActivos">0%</div>
+                                <div style="flex:1;height:6px;background:var(--border-color);border-radius:3px;overflow:hidden">
+                                    <div id="sysContBar" style="height:100%;background:var(--info);width:0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.2rem">Eficiencia Facturación</div>
+                            <div style="display:flex;align-items:center;gap:.5rem">
+                                <div style="font-size:1.4rem;font-weight:600" id="sysFactEficiencia">0%</div>
+                                <div style="flex:1;height:6px;background:var(--border-color);border-radius:3px;overflow:hidden">
+                                    <div id="sysFactBar" style="height:100%;background:var(--success);width:0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:.2rem">Usuarios Activos</div>
+                            <div style="font-size:1.4rem;font-weight:600" id="sysUserActive">0 / 0</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="charts-row">
                     <div class="card"><div class="chart-header"><div><div class="chart-title">Envíos y traslados registrados</div><div class="chart-subtitle">Total de movimientos · Últimos 6 meses</div></div><span class="chart-badge">Movimientos</span></div><div class="chart-wrap"><canvas id="chartMovimientos" style="cursor:pointer"></canvas></div></div>
                     <div class="card"><div class="chart-header"><div><div class="chart-title">Por tipo de contenedor</div><div class="chart-subtitle">Distribución actual · clic para detalles</div></div><span class="chart-badge">Dona</span></div><div class="chart-wrap"><canvas id="chartTipo" style="cursor:pointer"></canvas></div></div>
@@ -573,6 +608,7 @@
                     <input class="filter-input" type="date" id="movFilterStart" onchange="filterMovements()" aria-label="Fecha inicio">
                     <input class="filter-input" type="date" id="movFilterEnd" onchange="filterMovements()" aria-label="Fecha fin">
                     <button class="btn-reset" onclick="resetMovementFilters()"><i class="bi bi-x-circle"></i> Limpiar</button>
+                    <button class="btn-reset" id="btnMisMov" onclick="toggleMisMovimientos()" title="Ver solo mis movimientos" style="display:none"><i class="bi bi-person-fill"></i> Mis movimientos</button>
                     <button class="btn-primary-sm" id="btnExportMov" onclick="exportCSV('movimientos')"><i class="bi bi-download"></i> Exportar CSV</button>
                     <button class="btn-primary-sm" id="btnNewMov" onclick="openMovModal()"><i class="bi bi-plus-lg"></i> Registrar movimiento</button>
                 </div>
@@ -584,14 +620,26 @@
                 <div class="filters-bar">
                     <select class="filter-select" id="arrFilterState" onchange="loadArrendamientosAPI()"><option value="">Todos los estados</option><option value="activo">Activos</option><option value="finalizado">Finalizados</option></select>
                     <button class="btn-reset" onclick="document.getElementById('arrFilterState').value='';loadArrendamientosAPI()"><i class="bi bi-x-circle"></i> Limpiar</button>
+                    <button class="btn-reset" onclick="printCurrentSection('arrendamientos')"><i class="bi bi-printer-fill"></i> Imprimir</button>
                     <button class="btn-primary-sm" onclick="openRentalModal()" id="btnNewRental"><i class="bi bi-plus-lg"></i> Nuevo contrato</button>
                 </div>
-                <div class="card"><div class="chart-header"><div><div class="chart-title">Contratos de Arrendamiento</div><div class="chart-subtitle" id="arrCount">0 contratos</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Contenedor</th><th>Cliente</th><th>Inicio</th><th>Fin</th><th>Valor/mes</th><th>Estado</th><th id="arrActionsHeader">Resumen</th></tr></thead><tbody id="arrTable"></tbody></table></div></div>
+                <div class="card"><div class="chart-header"><div><div class="chart-title">Contratos de Arrendamiento</div><div class="chart-subtitle" id="arrCount">0 contratos</div></div></div><div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Contenedor</th><th>Cliente</th><th>Inicio</th><th>Fin</th><th>Valor/mes</th><th>Estado</th><th id="arrFactStatusHeader">Facturación</th><th id="arrActionsHeader">Acciones</th></tr></thead><tbody id="arrTable"></tbody></table></div></div>
             </div>
 
             <!-- HISTORIAL -->
             <div class="page" id="page-historial">
-                <!-- Eventos recientes (todos los contenedores) -->
+                <!-- Filtros avanzados (AU3) -->
+                <div class="filters-bar" style="margin-bottom:.75rem" id="histAdvancedFilters">
+                    <select class="filter-select" id="histFilterContainer" onchange="loadRecentEvents()" style="flex:1;max-width:260px" aria-label="Seleccionar contenedor">
+                        <option value="">Todos los contenedores</option>
+                    </select>
+                    <input class="filter-input" type="date" id="histFilterStart" onchange="loadRecentEvents()" aria-label="Fecha inicio" style="max-width:160px">
+                    <input class="filter-input" type="date" id="histFilterEnd" onchange="loadRecentEvents()" aria-label="Fecha fin" style="max-width:160px">
+                    <input class="filter-input" id="histFilterUser" type="text" placeholder="Responsable..." oninput="loadRecentEvents()" style="max-width:180px" id="histAdminUserFilter">
+                    <button class="btn-reset" onclick="resetHistFilters()"><i class="bi bi-x-circle"></i> Limpiar</button>
+                    <button class="btn-reset" onclick="printCurrentSection('historial')"><i class="bi bi-printer-fill"></i> Imprimir</button>
+                </div>
+                <!-- Eventos recientes -->
                 <div class="card" style="margin-bottom:1.1rem">
                     <div class="chart-header">
                         <div><div class="chart-title"><i class="bi bi-activity" style="color:var(--info)"></i> Eventos recientes</div><div class="chart-subtitle" id="recentEventsCount">Cargando...</div></div>
@@ -599,20 +647,21 @@
                     </div>
                     <div id="recentEventsBody"><div class="empty-state"><div class="loader-spinner" style="margin:0 auto"></div></div></div>
                 </div>
-                <!-- Filtro por contenedor -->
-                <div class="filters-bar" style="margin-bottom:.75rem">
-                    <select class="filter-select" id="histFilterContainer" onchange="showHistory()" style="flex:1;max-width:340px" aria-label="Seleccionar contenedor">
-                        <option value="">Ver historial detallado de un contenedor...</option>
-                    </select>
-                    <button class="btn-reset" onclick="document.getElementById('histFilterContainer').value='';showHistory()"><i class="bi bi-x-circle"></i> Limpiar</button>
-                </div>
                 <!-- Historial detallado del contenedor seleccionado -->
                 <div class="card" id="historyContainer">
                     <div class="empty-state" id="historyEmpty">
                         <i class="bi bi-clock-history" style="font-size:2rem;opacity:.4"></i>
-                        <p style="margin-top:.6rem;font-size:.85rem">Selecciona un contenedor arriba para ver su línea de tiempo completa.</p>
+                        <p style="margin-top:.6rem;font-size:.85rem">Selecciona un contenedor en el filtro de arriba para ver su línea de tiempo completa.</p>
                     </div>
                     <div id="historyContent" style="display:none"></div>
+                </div>
+                <!-- Log de auditoría (A5 — solo admin) -->
+                <div class="card" id="auditLogCard" style="display:none;margin-top:1.1rem">
+                    <div class="chart-header">
+                        <div><div class="chart-title"><i class="bi bi-shield-lock-fill" style="color:var(--warning)"></i> Log de Auditoría del Sistema</div><div class="chart-subtitle" id="auditLogCount">Solo visible para administradores</div></div>
+                        <button class="btn-reset" onclick="loadAuditLog()" title="Actualizar"><i class="bi bi-arrow-clockwise"></i></button>
+                    </div>
+                    <div id="auditLogBody"><div class="empty-state">Cargando...</div></div>
                 </div>
             </div>
 
@@ -631,10 +680,11 @@
                 <div class="card">
                     <div class="chart-header">
                         <div><div class="chart-title">Gestión de Usuarios</div><div class="chart-subtitle" id="userCount">Solo administradores</div></div>
+                        <button class="btn-reset" onclick="printCurrentSection('usuarios')"><i class="bi bi-printer-fill"></i> Imprimir</button>
                     </div>
                     <div class="table-wrapper">
                         <div style="overflow-x:auto"><table class="data-table"><thead><tr>
-                            <th>Usuario</th><th>Nombre completo</th><th>Email</th><th>Rol</th><th>Verificado</th><th>Acciones</th>
+                            <th>Usuario</th><th>Nombre completo</th><th>Email</th><th>Rol</th><th>Verificado</th><th>Movimientos</th><th>Estado</th><th>Acciones</th>
                         </tr></thead><tbody id="usersTable"></tbody></table></div>
                     </div>
                 </div>
@@ -656,14 +706,21 @@
             <!-- FACTURACIÓN -->
             <div class="page" id="page-facturacion">
                 <div class="filters-bar">
-                    <select class="filter-select" id="filtFactEstado" onchange="loadFacturacionAPI()"><option value="">Todos los estados</option><option value="pendiente">Pendiente</option><option value="pagado">Pagado</option><option value="mora">En mora</option></select>
+                    <select class="filter-select" id="filtFactEstado" onchange="loadFacturacionAPI()"><option value="">Todos los estados</option><option value="pendiente">Pendiente</option><option value="parcial">Parcial</option><option value="pagado">Pagado</option><option value="mora">En mora</option></select>
                     <button class="btn-reset" onclick="document.getElementById('filtFactEstado').value='';loadFacturacionAPI()"><i class="bi bi-x-circle"></i> Limpiar</button>
+                    <button class="btn-reset" id="btnFactByClient" onclick="toggleFactByClient()" title="Agrupar por cliente"><i class="bi bi-people-fill"></i> Por cliente</button>
+                    <button class="btn-reset" onclick="printCurrentSection('facturacion')"><i class="bi bi-printer-fill"></i> Imprimir</button>
                     <button class="btn-primary-sm" onclick="exportCSV('facturacion')" id="btnExportFact"><i class="bi bi-download"></i> Exportar CSV</button>
                     <button class="btn-primary-sm" onclick="openFactModal()" id="btnNewFact"><i class="bi bi-plus-lg"></i> Nueva factura</button>
                 </div>
                 <div class="card">
                     <div class="chart-header"><div><div class="chart-title">Facturación</div><div class="chart-subtitle" id="factCount">0 facturas</div></div></div>
-                    <div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Código</th><th>Contenedor</th><th>Monto</th><th>Emisión</th><th>Vencimiento</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="factTable"></tbody></table></div>
+                    <div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Código</th><th>Contenedor</th><th>Monto</th><th>Pagado</th><th>Emisión</th><th>Vencimiento</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="factTable"></tbody></table></div>
+                </div>
+                <!-- AU4: Desglose por cliente -->
+                <div class="card" id="factByClientCard" style="display:none;margin-top:1rem">
+                    <div class="chart-header"><div><div class="chart-title"><i class="bi bi-people-fill" style="color:var(--info)"></i> Desglose por Cliente</div><div class="chart-subtitle" id="factByClientCount">Resumen financiero por cliente</div></div></div>
+                    <div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Cliente</th><th>Total Facturas</th><th>Total Facturado</th><th>Pagado</th><th>Pendiente</th><th>En Mora</th></tr></thead><tbody id="factByClientTable"></tbody></table></div>
                 </div>
             </div>
 
@@ -777,6 +834,10 @@
                     <div class="modal-field"><label class="modal-label">Fecha de salida <span style="color:var(--red)">*</span></label><input class="modal-input" id="esFechaSalida" type="date"></div>
                 </div>
             </div>
+            <div class="modal-field" style="margin-top:.8rem">
+                <label class="modal-label">Observación <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
+                <input class="modal-input" id="esObservacion" placeholder="Ej: Contenedor con leve daño en esquina inferior...">
+            </div>
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="closeModal('modalEstado')">Cancelar</button>
                 <button class="btn-save" id="saveEstadoBtn" onclick="saveEstadoChange()"><i class="bi bi-floppy-fill"></i> Aplicar cambio</button>
@@ -858,8 +919,81 @@
                     </div>
                 </div>
             </div>
+            <div class="modal-actions" style="justify-content:space-between">
+                <div>
+                    <button class="btn-cancel" onclick="closeModal('modalRentalSummary')"><i class="bi bi-x-circle"></i> Cerrar</button>
+                </div>
+                <div>
+                    <button class="btn-primary-sm" id="btnRenovarRental" onclick="renovarArrendamiento()" style="display:none;margin-right:.5rem"><i class="bi bi-arrow-repeat"></i> Renovar Contrato</button>
+                    <button class="btn-primary-sm" id="btnCreateInvoice" onclick="createFacturaFromRental()" style="display:none;"><i class="bi bi-file-earmark-plus"></i> Crear Factura</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL FINALIZAR ARRENDAMIENTO -->
+    <div class="modal-overlay" id="modalFinishRental">
+        <div class="modal-box" style="width:500px">
+            <div class="modal-title"><i class="bi bi-exclamation-triangle-fill" style="color:var(--warning);margin-right:.4rem"></i>Finalizar Contrato</div>
+            <div class="modal-sub">Verifica el estado de cuenta antes de finalizar.</div>
+            
+            <div style="background:var(--modal-input-bg);padding:1rem;border-radius:8px;margin:1rem 0;border:1px solid var(--modal-border)">
+                <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+                    <span style="color:var(--text-muted)">Total Facturado:</span>
+                    <strong id="finishFacturado">$0</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+                    <span style="color:var(--text-muted)">Total Pagado:</span>
+                    <strong style="color:var(--success)" id="finishPagado">$0</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border-color);padding-top:.5rem;margin-top:.5rem">
+                    <span style="color:var(--text-muted)">Saldo Pendiente:</span>
+                    <strong style="color:var(--red)" id="finishPendiente">$0</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--border-color)">
+                    <span style="color:var(--text-muted)">Total Facturas:</span>
+                    <strong id="finishTotalFacturas">0</strong>
+                </div>
+            </div>
+
+            <div id="finishWarningMsg" style="font-size:.82rem;margin-bottom:1rem;display:none;padding:.75rem;border-radius:8px"></div>
+
             <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeModal('modalRentalSummary')" style="margin-left:auto;"><i class="bi bi-x-circle"></i> Cerrar</button>
+                <button class="btn-cancel" onclick="closeModal('modalFinishRental')"><i class="bi bi-x-lg" style="margin-right:.3rem"></i>Cancelar</button>
+                <div style="display:flex;gap:.5rem">
+                    <button class="btn-save" id="btnFinishCreateInvoice" style="display:none;background:var(--info)" onclick="finishRentalCreateInvoice()"><i class="bi bi-receipt"></i> Crear Factura</button>
+                    <button class="btn-save" id="btnConfirmFinishRental" onclick="confirmFinishRental()" style="background:var(--red)"><i class="bi bi-stop-circle-fill"></i> Confirmar y Finalizar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ABONAR / PAGAR -->
+    <div class="modal-overlay" id="modalAbonar" onclick="if(event.target===this)closeModal('modalAbonar')">
+        <div class="modal-box" style="width:460px">
+            <div class="modal-title"><i class="bi bi-cash-stack" style="color:var(--success);margin-right:.4rem"></i>Registrar Abono / Pago</div>
+            <div class="modal-sub">Ingrese el monto a pagar para esta factura.</div>
+            <div style="background:var(--modal-input-bg);padding:1rem;border-radius:8px;margin-bottom:1rem;border:1px solid var(--modal-border)">
+                <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+                    <span style="color:var(--text-muted)">Total Factura:</span>
+                    <strong id="abonarMontoTotal">$0</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+                    <span style="color:var(--text-muted)">Pagado:</span>
+                    <strong id="abonarMontoPagado" style="color:var(--success)">$0</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border-color);padding-top:.5rem;margin-top:.5rem">
+                    <span style="color:var(--text-muted)">Faltante:</span>
+                    <strong id="abonarMontoFaltante" style="color:var(--red)">$0</strong>
+                </div>
+            </div>
+            <div class="modal-field">
+                <label class="modal-label">Monto a abonar ($)</label>
+                <input class="modal-input" type="number" id="aMonto" min="0" step="0.01" placeholder="Ingrese el monto...">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal('modalAbonar')"><i class="bi bi-x-lg" style="margin-right:.3rem"></i>Cancelar</button>
+                <button class="btn-save" id="saveAbonoBtn" onclick="saveAbono()" style="background:var(--success)"><i class="bi bi-check-lg"></i> Registrar Pago</button>
             </div>
         </div>
     </div>
@@ -1223,12 +1357,13 @@
         function canAccessPage(id) {
             const perms={
                 panel:          ['admin','supervisor','operador','auditor'],
+                // Operador SOLO ve contenedores y movimientos; no ve arrendamientos, clientes ni facturación
                 contenedores:   ['admin','supervisor','operador','auditor'],
                 zonas:          ['admin','supervisor','operador','auditor'],
                 movimientos:    ['admin','supervisor','operador','auditor'],
-                arrendamientos: ['admin','supervisor','operador','auditor'],
+                arrendamientos: ['admin','supervisor','auditor'],
                 historial:      ['admin','supervisor','operador','auditor'],
-                clientes:       ['admin','supervisor','auditor'],
+                clientes:       ['admin','supervisor'],
                 facturacion:    ['admin','supervisor','auditor'],
                 usuarios:       ['admin'],
             };
@@ -1236,29 +1371,56 @@
         }
         function canPerformAction(a) {
             const perms={
+                // Contenedores
                 createContainer:     ['admin','supervisor'],
                 editContainer:       ['admin','supervisor'],
                 deleteContainer:     ['admin'],
                 changeEstado:        ['admin','supervisor','operador'],
+                // Movimientos
                 createMovimiento:    ['admin','supervisor','operador'],
+                // Arrendamientos
                 createArrendamiento: ['admin','supervisor'],
+                editArrendamiento:   ['admin','supervisor'],
+                deleteArrendamiento: ['admin'],
+                // Clientes
                 createCliente:       ['admin','supervisor'],
+                editCliente:         ['admin','supervisor'],
+                deleteCliente:       ['admin'],
+                // Facturación
                 createFactura:       ['admin','supervisor'],
+                editFactura:         ['admin','supervisor'],
+                deleteFactura:       ['admin'],
+                // Exportar
                 exportCSV:           ['admin','supervisor','auditor'],
             };
             return currentUserRole && perms[a]?.includes(currentUserRole);
         }
         function applyRoleBasedUI() {
             buildSidebar();
-            document.getElementById('btnNewContainer').style.display = canPerformAction('createContainer') ? '' : 'none';
-            document.getElementById('btnExportCont').style.display   = canPerformAction('exportCSV')        ? '' : 'none';
-            document.getElementById('btnExportMov').style.display    = canPerformAction('exportCSV')        ? '' : 'none';
-            document.getElementById('btnNewMov').style.display       = canPerformAction('createMovimiento') ? '' : 'none';
-            document.getElementById('btnNewRental').style.display    = canPerformAction('createArrendamiento') ? '' : 'none';
-            document.getElementById('btnNewClient').style.display    = canPerformAction('createCliente')    ? '' : 'none';
-            document.getElementById('btnNewFact').style.display      = canPerformAction('createFactura')    ? '' : 'none';
-            document.getElementById('btnExportFact').style.display   = canPerformAction('exportCSV')        ? '' : 'none';
+            document.getElementById('btnNewContainer').style.display = canPerformAction('createContainer')    ? '' : 'none';
+            document.getElementById('btnExportCont').style.display   = canPerformAction('exportCSV')          ? '' : 'none';
+            document.getElementById('btnExportMov').style.display    = canPerformAction('exportCSV')          ? '' : 'none';
+            document.getElementById('btnNewMov').style.display       = canPerformAction('createMovimiento')   ? '' : 'none';
+            document.getElementById('btnNewRental').style.display    = canPerformAction('createArrendamiento')? '' : 'none';
+            document.getElementById('btnNewClient').style.display    = canPerformAction('createCliente')      ? '' : 'none';
+            document.getElementById('btnNewFact').style.display      = canPerformAction('createFactura')      ? '' : 'none';
+            document.getElementById('btnExportFact').style.display   = canPerformAction('exportCSV')          ? '' : 'none';
             document.getElementById('page-usuarios').style.display   = currentUserRole === 'admin' ? '' : 'none';
+
+            // O2: Mis movimientos para operador
+            document.getElementById('btnMisMov').style.display = (currentUserRole === 'operador') ? '' : 'none';
+            
+            // O4, AU1: Ocultar KPIs financieros al operador
+            const financialKPIs = document.getElementById('kpiFinancieros');
+            if (financialKPIs && currentUserRole === 'operador') financialKPIs.style.display = 'none';
+
+            // A5: Auditoría solo admin
+            const auditCard = document.getElementById('auditLogCard');
+            if (auditCard) auditCard.style.display = (currentUserRole === 'admin') ? '' : 'none';
+            
+            // AU3: Filtros avanzados historial
+            const histAdvFilters = document.getElementById('histAdvancedFilters');
+            if (histAdvFilters) histAdvFilters.style.display = (currentUserRole === 'operador') ? 'none' : ''; // Operador no ve filtros avanzados
         }
 
         function showLoader(id) { const l=document.getElementById(id); if(l) l.classList.add('active'); }
@@ -1308,6 +1470,141 @@
             } catch(e) { console.error('Error updateKPIs:', e); }
         }
 
+        // === NUEVAS FUNCIONES DE UTILIDAD ===
+        function printCurrentSection(section) {
+            if (section === 'arrendamientos') {
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    
+                    doc.setFontSize(18);
+                    doc.text("Reporte de Contratos de Arrendamiento", 14, 20);
+                    
+                    doc.setFontSize(11);
+                    doc.text(`Fecha de generación: ${new Date().toLocaleDateString()}`, 14, 28);
+                    
+                    const rows = _arrendamientosAPI.map(a => {
+                        const cl = DB_CLIENTES.find(c => c.id_cliente === a.id_cliente)?.nombre || 'Sin cliente';
+                        const co = DB_CONTENEDORES_API.find(c => c.id_contenedor === a.id_contenedor)?.id_codigo || a.id_contenedor;
+                        return [
+                            co,
+                            cl,
+                            a.fecha_inicio || '—',
+                            a.fecha_fin || '—',
+                            `$${Number(a.valor_alquiler || 0).toLocaleString('es-CO')}`,
+                            a.estado_arrendamiento === 'activo' ? 'Activo' : 'Finalizado'
+                        ];
+                    });
+
+                    doc.autoTable({
+                        startY: 35,
+                        head: [['Contenedor', 'Cliente', 'Inicio', 'Fin', 'Valor/mes', 'Estado']],
+                        body: rows,
+                        theme: 'grid',
+                        headStyles: { fillColor: [26, 43, 76] },
+                        styles: { fontSize: 9 }
+                    });
+                    
+                    doc.save(`Arrendamientos_${new Date().toISOString().split('T')[0]}.pdf`);
+                    showToast('PDF generado correctamente', 'success');
+                } catch(e) {
+                    showToast('Error al generar PDF: ' + e.message, 'error');
+                }
+                return;
+            }
+
+            // Fallback para otras secciones
+            const origTitle = document.title;
+            document.title = `Reporte_${section}_${new Date().toISOString().split('T')[0]}`;
+            window.print();
+            document.title = origTitle;
+        }
+
+        let _misMovimientosActive = false;
+        function toggleMisMovimientos() {
+            _misMovimientosActive = !_misMovimientosActive;
+            const btn = document.getElementById('btnMisMov');
+            if (_misMovimientosActive) {
+                btn.style.backgroundColor = 'var(--accent)';
+                btn.style.color = '#fff';
+            } else {
+                btn.style.backgroundColor = '';
+                btn.style.color = '';
+            }
+            filterMovements();
+        }
+
+        let _factByClientActive = false;
+        function toggleFactByClient() {
+            _factByClientActive = !_factByClientActive;
+            const btn = document.getElementById('btnFactByClient');
+            const tableCard = document.getElementById('factTable').closest('.card');
+            const clientCard = document.getElementById('factByClientCard');
+            
+            if (_factByClientActive) {
+                btn.style.backgroundColor = 'var(--accent)';
+                btn.style.color = '#fff';
+                tableCard.style.display = 'none';
+                clientCard.style.display = '';
+                _renderFactByClient();
+            } else {
+                btn.style.backgroundColor = '';
+                btn.style.color = '';
+                tableCard.style.display = '';
+                clientCard.style.display = 'none';
+            }
+        }
+
+        function _renderFactByClient() {
+            if (!DB_FACTURAS_API.length) return;
+            const agrupar = {};
+            DB_FACTURAS_API.forEach(f => {
+                const arr = DB_ARRENDAMIENTOS_API.find(a => a.id_arrendamiento === f.id_arrendamiento);
+                const cliId = arr?.cliente?.id_cliente || 'Desconocido';
+                const cliNom = arr?.cliente?.nombre || 'Desconocido';
+                
+                if (!agrupar[cliId]) agrupar[cliId] = { nombre: cliNom, total: 0, facturado: 0, pagado: 0, pendiente: 0, mora: 0 };
+                agrupar[cliId].total++;
+                agrupar[cliId].facturado += f.monto;
+                if (f.estado_pago === 'pagado') agrupar[cliId].pagado += f.monto;
+                if (f.estado_pago === 'pendiente') agrupar[cliId].pendiente += f.monto;
+                if (f.estado_pago === 'mora') agrupar[cliId].mora += f.monto;
+            });
+            
+            const tbody = document.getElementById('factByClientTable');
+            tbody.innerHTML = Object.values(agrupar).map(c => `
+                <tr>
+                    <td><strong>${c.nombre}</strong></td>
+                    <td>${c.total}</td>
+                    <td>$${c.facturado.toLocaleString()}</td>
+                    <td style="color:var(--success)">$${c.pagado.toLocaleString()}</td>
+                    <td style="color:var(--warning)">$${c.pendiente.toLocaleString()}</td>
+                    <td style="color:var(--red);font-weight:bold">$${c.mora.toLocaleString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadAuditLog() {
+            if (currentUserRole !== 'admin') return;
+            const body = document.getElementById('auditLogBody');
+            body.innerHTML = '<div class="loader-spinner" style="margin:2rem auto"></div>';
+            try {
+                // Como no hay endpoint dedicado aún, simulamos con el historial de eventos
+                const res = await ApiClient.request('GET', '/movimientos?limit=20');
+                if (!res.ok) return;
+                const html = res.data.map(m => `
+                    <div style="padding:.8rem;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:1rem">
+                        <div style="font-size:1.2rem;color:var(--text-muted)"><i class="bi bi-person-badge"></i></div>
+                        <div style="flex:1">
+                            <div style="font-size:.85rem">Usuario <strong>${m.responsable}</strong> registró evento en <strong>${m.contenedor?.codigo}</strong></div>
+                            <div style="font-size:.7rem;color:var(--text-muted)">${new Date(m.fecha_movimiento).toLocaleString()}</div>
+                        </div>
+                    </div>
+                `).join('');
+                body.innerHTML = html || '<div class="empty-state">No hay registros</div>';
+            } catch(e) { body.innerHTML = '<div class="empty-state">Error cargando log</div>'; }
+        }
+
         function renderContainers(data, meta) {
             const tbody=document.getElementById('contTableBody');
             document.getElementById('contMetaInfo').textContent=`${meta.total} registros · Página ${meta.page} de ${meta.totalPages}`;
@@ -1343,9 +1640,23 @@
             const count = document.getElementById('userCount');
             if (!data) return;
             if (count) count.textContent = `${data.length} usuario${data.length!==1?'s':''}`;
-            if (!data.length) { tbody.innerHTML='<tr><td colspan="6"><div class="empty-state">Sin usuarios</div></td></tr>'; return; }
+            if (!data.length) { tbody.innerHTML='<tr><td colspan="8"><div class="empty-state">Sin usuarios</div></td></tr>'; return; }
             const rolClass = r => r==='admin'?'disponible':r==='supervisor'?'en_transito':r==='operador'?'en_patio':'asignado';
-            tbody.innerHTML = data.map(u => `<tr>
+            
+            // Calculate stats for A2
+            const movsPerUser = {};
+            _movimientosAPI.forEach(m => {
+                const uid = m.id_usuario;
+                if (!movsPerUser[uid]) movsPerUser[uid] = 0;
+                movsPerUser[uid]++;
+            });
+
+            tbody.innerHTML = data.map(u => {
+                const movsCount = movsPerUser[u.id] || 0;
+                // Asumimos is_active o similar, o lo simulamos si no existe en BD
+                const isActivo = u.is_active !== false; 
+                
+                return `<tr>
                 <td><strong>${sanitizeHTML(u.username)}</strong></td>
                 <td>${sanitizeHTML(u.name)}</td>
                 <td style="font-size:.78rem">${sanitizeHTML(u.email||'—')}</td>
@@ -1354,12 +1665,34 @@
                     ? '<span style="color:var(--success);font-size:.8rem"><i class="bi bi-patch-check-fill"></i> Verificado</span>'
                     : '<span style="color:var(--warning);font-size:.75rem"><i class="bi bi-exclamation-triangle-fill"></i> Pendiente</span>'
                 }</td>
+                <td style="text-align:center"><span class="badge" style="background:var(--bg-lighter);color:var(--text-secondary);font-size:.7rem">${movsCount}</span></td>
+                <td style="text-align:center">
+                    <button class="btn-icon" style="color:${isActivo ? 'var(--success)' : 'var(--text-muted)'}" onclick="toggleUserStatus(${u.id}, ${isActivo})" title="${isActivo ? 'Activo (Clic para desactivar)' : 'Inactivo (Clic para activar)'}">
+                        <i class="bi bi-toggle-${isActivo ? 'on' : 'off'}" style="font-size:1.2rem"></i>
+                    </button>
+                </td>
                 <td><div class="table-actions">
                     <div class="btn-icon" onclick="openUserModal(${u.id})" title="Editar" aria-label="Editar"><i class="bi bi-pencil-fill"></i></div>
                     ${!u.verified ? `<div class="btn-icon" onclick="forceVerifyUser(${u.id})" title="Marcar como verificado" style="color:var(--success)" aria-label="Verificar"><i class="bi bi-patch-check"></i></div>` : ''}
                     ${u.id!==currentUserId ? `<div class="btn-icon danger" onclick="deleteUser(${u.id})" title="Eliminar" aria-label="Eliminar"><i class="bi bi-trash-fill"></i></div>` : ''}
                 </div></td>
-            </tr>`).join('');
+            </tr>`;
+            }).join('');
+        }
+        
+        async function toggleUserStatus(id, currentlyActive) {
+            if (id === currentUserId) {
+                showToast('No puedes desactivar tu propio usuario', 'error');
+                return;
+            }
+            try {
+                // Assuming an endpoint exists or simulating it:
+                await ApiClient.request('PUT', `/usuarios/${id}`, { is_active: !currentlyActive });
+                loadUsers();
+                showToast(`Usuario ${!currentlyActive ? 'activado' : 'desactivado'}`);
+            } catch(e) {
+                showToast(e.message || 'Error al cambiar estado', 'error');
+            }
         }
         function filterUsersLocal() {
             const q = (document.getElementById('filtUserSearch')?.value||'').toLowerCase();
@@ -1465,6 +1798,36 @@
                 chartEstado.data.datasets[0].data = entries.map(([, v]) => v);
                 chartEstado._rawKeys              = entries.map(([k]) => k);
                 chartEstado.update();
+            }
+
+            // A1: System Health logic
+            const sysHealthCard = document.getElementById('sysHealthCard');
+            if (sysHealthCard && currentUserRole === 'admin') {
+                sysHealthCard.style.display = 'block';
+                // Contenedores activos (no fuera de servicio / mantenimiento)
+                const totalCont = stats.total_contenedores || 0;
+                const disp = stats.por_estado?.disponible || 0;
+                const trans = stats.por_estado?.en_transito || 0;
+                const activos = disp + trans;
+                const pctActivos = totalCont > 0 ? Math.round((activos / totalCont) * 100) : 0;
+                
+                document.getElementById('sysContActivos').textContent = `${pctActivos}%`;
+                document.getElementById('sysContBar').style.width = `${pctActivos}%`;
+                if (pctActivos < 70) document.getElementById('sysContBar').style.background = 'var(--red)';
+                
+                // Eficiencia facturación
+                let pctFact = 0;
+                if (typeof DB_FACTURAS_API !== 'undefined' && DB_FACTURAS_API.length > 0) {
+                    const pagadas = DB_FACTURAS_API.filter(f => f.estado_pago === 'pagado').length;
+                    pctFact = Math.round((pagadas / DB_FACTURAS_API.length) * 100);
+                }
+                document.getElementById('sysFactEficiencia').textContent = `${pctFact}%`;
+                document.getElementById('sysFactBar').style.width = `${pctFact}%`;
+                if (pctFact < 60) document.getElementById('sysFactBar').style.background = 'var(--red)';
+
+                // Usuarios activos
+                const verifiedUsers = _usuariosFiltrados.filter(u => u.verified).length;
+                document.getElementById('sysUserActive').textContent = `${verifiedUsers} / ${_usuariosFiltrados.length}`;
             }
 
             // ── Gráfica: Por cliente ──────────────────────────────────────────
@@ -2123,6 +2486,17 @@
             } catch(e) { console.error('Error cargando movimientos:', e); }
         }
 
+        let _globalContMap = {};
+        function getGlobalContenedorCode(id) {
+            if (_globalContMap[id]) return _globalContMap[id];
+            if (window._contMap && window._contMap[id]) return window._contMap[id];
+            if (typeof DB_CONTENEDORES_API !== 'undefined') {
+                const c = DB_CONTENEDORES_API.find(x => x.id_contenedor === parseInt(id));
+                if (c && c.id_codigo) return c.id_codigo;
+            }
+            return `#${id}`;
+        }
+
         function renderMovimientosAPI(data) {
             const isPanel = document.getElementById('page-panel').classList.contains('active');
             const tbody = document.getElementById(isPanel ? 'movTable' : 'movPageTable') || document.getElementById('movTable');
@@ -2130,16 +2504,18 @@
             if (count) count.textContent = `${data.length} registros`;
             if (!tbody) return;
             if (!data.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Sin movimientos registrados</div></td></tr>'; return; }
-            tbody.innerHTML = data.map(m => `
+            tbody.innerHTML = data.map(m => {
+                const code = m.codigo_contenedor || getGlobalContenedorCode(m.id_contenedor);
+                return `
                 <tr>
                     <td style="color:var(--text-muted)">#${m.id_movimiento}</td>
-                    <td><strong>${sanitizeHTML(m.id_contenedor)}</strong></td>
+                    <td><strong>${sanitizeHTML(code)}</strong></td>
                     <td>${sanitizeHTML(m.ubicacion_origen||'—')}</td>
                     <td>${sanitizeHTML(m.ubicacion_destino||'—')}</td>
                     <td>${sanitizeHTML(m.medio_transporte||'—')}</td>
                     <td>${sanitizeHTML(m.responsable||'—')}</td>
                     <td style="font-size:.72rem;color:var(--text-muted)">${m.fecha_hora ? m.fecha_hora.substring(0,10) : '—'}</td>
-                </tr>`).join('');
+                </tr>`}).join('');
         }
 
         function filterMovements() {
@@ -2150,6 +2526,7 @@
             if (idC) data = data.filter(m => String(m.id_contenedor) === idC);
             if (s)   data = data.filter(m => m.fecha_hora && m.fecha_hora.substring(0,10) >= s);
             if (e)   data = data.filter(m => m.fecha_hora && m.fecha_hora.substring(0,10) <= e);
+            if (_misMovimientosActive) data = data.filter(m => m.id_usuario === currentUserId);
             renderMovimientosAPI(data);
         }
         function resetMovementFilters() {
@@ -2178,12 +2555,6 @@
                 window._clienteMap = clienteMap;
                 window._contMap    = contMap;
 
-                // Actualizar encabezado según permisos
-                const headerEl = document.getElementById('arrActionsHeader');
-                if (headerEl) {
-                    headerEl.textContent = canPerformAction('createFactura') ? 'Acciones' : 'Resumen';
-                }
-
                 renderArrendamientosAPI(_arrendamientosAPI, clienteMap, contMap);
                 if (!estado) {
                     const ba = document.getElementById('badgeArr');
@@ -2193,30 +2564,37 @@
         }
 
         function renderArrendamientosAPI(data, clienteMap=window._clienteMap||{}, contMap=window._contMap||{}) {
-            const tbody = document.getElementById('arrTable');
+            const tbody = document.getElementById('arrTableBody') || document.getElementById('arrTable');
             const count = document.getElementById('arrCount');
             if (count) count.textContent = `${data.length} contratos`;
             if (!tbody) return;
-            if (!data.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state">Sin arrendamientos</div></td></tr>'; return; }
+            if (!data.length) { tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">Sin arrendamientos</div></td></tr>'; return; }
             tbody.innerHTML = data.map(a => {
-                // Botón de resumen: disponible para todos
-                const btnResumen = `<button class="btn-icon" title="Ver resumen" onclick="openRentalSummary(${a.id_arrendamiento})"><i class="bi bi-file-text-fill"></i></button>`;
-
-                // Botón de factura: solo para admin y supervisor
-                const canCreateFactura = canPerformAction('createFactura');
-                const btnFactura = canCreateFactura
-                    ? `<button class="btn-icon" title="Crear factura" onclick="crearFacturaDesdeArrendamiento(${a.id_arrendamiento})"><i class="bi bi-receipt"></i></button>`
-                    : '';
-
+                const isActivo = a.estado_arrendamiento === 'activo';
+                // Buscar factura asociada si existe
+                let facturaEstadoHTML = '<span style="color:var(--text-muted)">—</span>';
+                if (typeof DB_FACTURAS_API !== 'undefined') {
+                    const facturasDelContrato = DB_FACTURAS_API.filter(f => f.id_arrendamiento === a.id_arrendamiento);
+                    if (facturasDelContrato.length > 0) {
+                        const pendiente = facturasDelContrato.some(f => f.estado_pago !== 'pagado');
+                        facturaEstadoHTML = pendiente ? '<span style="color:var(--warning);font-size:.8rem"><i class="bi bi-clock-history"></i> Pendiente</span>' : '<span style="color:var(--success);font-size:.8rem"><i class="bi bi-check-circle-fill"></i> Pagada</span>';
+                    }
+                }
+                const code = a.codigo_contenedor || getGlobalContenedorCode(a.id_contenedor);
                 return `
                 <tr>
-                    <td><strong>${sanitizeHTML(contMap[a.id_contenedor] || '#'+a.id_contenedor)}</strong></td>
+                    <td><strong>${sanitizeHTML(code)}</strong></td>
                     <td>${sanitizeHTML(clienteMap[a.id_cliente] || '#'+a.id_cliente)}</td>
                     <td>${a.fecha_inicio || '—'}</td>
                     <td>${a.fecha_fin || '—'}</td>
                     <td>$${Number(a.valor_alquiler).toLocaleString('es-CO')}</td>
-                    <td><span class="badge-status ${a.estado_arrendamiento==='activo'?'disponible':'fuera_de_servicio'}">${a.estado_arrendamiento==='activo'?'Activo':'Finalizado'}</span></td>
-                    <td style="display:flex;gap:0.5rem;align-items:center;">${btnResumen}${btnFactura}</td>
+                    <td><span class="badge-status ${isActivo?'disponible':'fuera_de_servicio'}">${isActivo?'Activo':'Finalizado'}</span></td>
+                    <td style="text-align:center">${facturaEstadoHTML}</td>
+                    <td><div class="table-actions">
+                        <button class="btn-icon" title="Ver resumen" onclick="openRentalSummary(${a.id_arrendamiento})"><i class="bi bi-file-text-fill"></i></button>
+                        ${canPerformAction('editArrendamiento') ? `<button class="btn-icon" title="Editar contrato" onclick="openRentalModal(${a.id_arrendamiento})"><i class="bi bi-pencil-fill"></i></button>` : ''}
+                        ${isActivo && canPerformAction('editArrendamiento') ? `<button class="btn-icon danger" title="Finalizar contrato rápido" onclick="openFinishRentalModal(${a.id_arrendamiento})"><i class="bi bi-stop-circle-fill"></i></button>` : ''}
+                    </div></td>
                 </tr>`;
             }).join('');
         }
@@ -2246,21 +2624,22 @@
                     ApiClient.request('GET', '/contenedores?limit=500'),
                 ]);
                 if (!movRes.ok) { body.innerHTML='<div class="empty-state">Sin datos</div>'; return; }
-                const contMap = {};
-                if (contRes.ok) contRes.data.forEach(c => contMap[c.id_contenedor] = c.id_codigo);
+                if (contRes.ok) contRes.data.forEach(c => _globalContMap[c.id_contenedor] = c.id_codigo);
                 const movs = movRes.data;
                 if (count) count.textContent = `${movs.length} movimientos más recientes en el sistema`;
                 if (!movs.length) { body.innerHTML='<div class="empty-state">Sin movimientos registrados.</div>'; return; }
                 body.innerHTML = `<div style="overflow-x:auto"><table class="data-table">
                     <thead><tr><th>Contenedor</th><th>Origen</th><th>Destino</th><th>Medio</th><th>Responsable</th><th>Fecha</th></tr></thead>
-                    <tbody>${movs.map(m=>`<tr>
-                        <td><strong style="cursor:pointer;color:var(--info)" onclick="selectHistContainer(${m.id_contenedor})">${sanitizeHTML(contMap[m.id_contenedor]||'#'+m.id_contenedor)}</strong></td>
+                    <tbody>${movs.map(m=>{
+                        const code = m.codigo_contenedor || getGlobalContenedorCode(m.id_contenedor);
+                        return `<tr>
+                        <td><strong style="cursor:pointer;color:var(--info)" onclick="selectHistContainer(${m.id_contenedor})">${sanitizeHTML(code)}</strong></td>
                         <td>${sanitizeHTML(m.ubicacion_origen||'—')}</td>
                         <td>${sanitizeHTML(m.ubicacion_destino||'—')}</td>
                         <td>${sanitizeHTML(m.medio_transporte||'—')}</td>
                         <td>${sanitizeHTML(m.responsable||'—')}</td>
                         <td>${m.fecha_hora?m.fecha_hora.substring(0,10):'—'}</td>
-                    </tr>`).join('')}</tbody>
+                    </tr>`}).join('')}</tbody>
                 </table></div>`;
             } catch(e) { body.innerHTML='<div class="empty-state">Error cargando eventos recientes.</div>'; }
         }
@@ -2365,6 +2744,8 @@
                 const res = await ApiClient.request('GET', url);
                 if (!res.ok) return;
                 const data = res.data;
+                // Guardar como variable global en window
+                window.DB_FACTURAS_API = data;
                 const count = document.getElementById('factCount');
                 if (count) count.textContent = `${data.length} facturas`;
                 const tbody = document.getElementById('factTable');
@@ -2378,10 +2759,15 @@
                         <td><strong>${sanitizeHTML(f.codigo_factura||'—')}</strong></td>
                         <td>${sanitizeHTML(contMap[f.id_contenedor]||'#'+f.id_contenedor)}</td>
                         <td>$${Number(f.monto).toLocaleString('es-CO')}</td>
+                        <td>$${Number(f.monto_pagado || 0).toLocaleString('es-CO')}</td>
                         <td>${f.fecha_facturacion||'—'}</td>
                         <td>${f.fecha_vencimiento||'—'}</td>
-                        <td><span class="badge-status ${f.estado_pago==='pagado'?'disponible':f.estado_pago==='mora'?'fuera_de_servicio':'asignado'}">${f.estado_pago||'pendiente'}</span></td>
-                        <td><div class="table-actions"><div class="btn-icon" title="Editar" onclick="openFactModal(${f.id_factura})"><i class="bi bi-pencil-fill"></i></div></div></td>
+                        <td><span class="badge-status ${f.estado_pago==='pagado'?'disponible':f.estado_pago==='mora'?'fuera_de_servicio':f.estado_pago==='parcial'?'en_transito':'asignado'}">${f.estado_pago||'pendiente'}</span></td>
+                        <td><div class="table-actions">
+                            ${canPerformAction('editFactura') && f.estado_pago !== 'pagado' ? `<div class="btn-icon" title="Abonar / Pagar" onclick="openAbonarModal(${f.id_factura}, ${f.monto}, ${f.monto_pagado||0})"><i class="bi bi-cash-stack"></i></div>` : ''}
+                            ${canPerformAction('editFactura')?`<div class="btn-icon" title="Editar" onclick="openFactModal(${f.id_factura})"><i class="bi bi-pencil-fill"></i></div>`:''}
+                            ${canPerformAction('deleteFactura')?`<div class="btn-icon danger" title="Eliminar" onclick="deleteFactura(${f.id_factura})"><i class="bi bi-trash-fill"></i></div>`:''}
+                        </div></td>
                     </tr>`).join('');
             } catch(e) { console.error('Error cargando facturación:', e); }
         }
@@ -2439,11 +2825,15 @@
 
         function _getNotifDest(n) {
             const t = n.titulo || '';
-            if (t.includes('Arrendamiento') || t.includes('contrato')) return { id: 'arrendamientos', label: 'Arrendamientos' };
-            if (t.includes('Movimiento'))  return { id: 'movimientos',   label: 'Movimientos' };
-            if (t.includes('Factura'))     return { id: 'facturacion',   label: 'Facturación' };
-            if (t.includes('Contenedor'))  return { id: 'contenedores',  label: 'Contenedores' };
-            return { id: '', label: '' };
+            // Determinar destino potencial según título
+            let dest = { id: '', label: '' };
+            if (t.includes('Arrendamiento') || t.includes('contrato')) dest = { id: 'arrendamientos', label: 'Arrendamientos' };
+            else if (t.includes('Movimiento'))  dest = { id: 'movimientos',  label: 'Movimientos' };
+            else if (t.includes('Factura'))     dest = { id: 'facturacion',  label: 'Facturación' };
+            else if (t.includes('Contenedor'))  dest = { id: 'contenedores', label: 'Contenedores' };
+            // Solo devolver destino si el rol actual tiene acceso a esa sección
+            if (dest.id && !canAccessPage(dest.id)) return { id: '', label: '' };
+            return dest;
         }
 
         function _renderNotifItem(n, tipo) {
@@ -2453,7 +2843,8 @@
             const markBtn = !n.leido
                 ? `<button class="btn-notif-sm mark-read" onclick="event.stopPropagation();markNotifRead(${n.id_notificacion})"><i class="bi bi-check2"></i> Marcar como leído</button>`
                 : `<span class="notif-read-tag"><i class="bi bi-check2-all"></i> Ya leído</span>`;
-            const goBtn = dest.id
+            // Mostrar botón "Ir a..." solo si el rol tiene acceso a esa sección
+            const goBtn = dest.id && canAccessPage(dest.id)
                 ? `<button class="btn-notif-sm go-section" onclick="event.stopPropagation();goToNotifSection('${dest.id}')"><i class="bi bi-arrow-right-circle"></i> Ir a ${dest.label}</button>`
                 : '';
             return `
@@ -2653,9 +3044,11 @@
         function closeNotifPanel()        { document.getElementById('notifPanel').classList.remove('open'); document.getElementById('notifOverlay').classList.remove('show'); }
         function markAllNotificationsRead() { markAllRead(); }
 
-        // Polling de notificaciones y KPIs (intervalo configurable, mínimo 30s)
-        setInterval(loadNotifications, Math.max(30000, parseInt(localStorage.getItem('mz_refresh_interval') || '60000')));
-        setInterval(updateKPIs, Math.max(30000, parseInt(localStorage.getItem('mz_refresh_interval') || '60000')));
+        // Polling de notificaciones, KPIs y financieros (intervalo configurable, mínimo 30s)
+        const _pollInterval = Math.max(30000, parseInt(localStorage.getItem('mz_refresh_interval') || '60000'));
+        setInterval(loadNotifications, _pollInterval);
+        setInterval(updateKPIs, _pollInterval);
+        setInterval(updateFinanciero, _pollInterval);
 
         // ── SSE: tiempo real para todos los roles excepto quien hizo el cambio ──
         let _sseSource = null;
@@ -2669,6 +3062,7 @@
             _sseSource.addEventListener('arrendamiento', () => {
                 loadArrendamientosAPI();
                 updateKPIs();
+                updateFinanciero();
                 loadNotifications();
             });
 
@@ -2679,6 +3073,19 @@
                 }
                 updateKPIs();
                 loadNotifications();
+            });
+
+            // Facturación creada/actualizada/abonada/eliminada por otro usuario
+            _sseSource.addEventListener('facturacion', () => {
+                updateFinanciero();
+                if (document.getElementById('page-facturacion')?.classList.contains('active')) {
+                    loadFacturacionAPI();
+                }
+                if (document.getElementById('page-arrendamientos')?.classList.contains('active')) {
+                    loadArrendamientosAPI();
+                }
+                // Also update KPIs since billing efficiency metrics depend on invoices
+                updateKPIs();
             });
 
             _sseSource.onerror = () => {
@@ -2697,9 +3104,35 @@
                 DB_CONTENEDORES_API.forEach(c=>csv+=`${c.id_contenedor},"${c.id_codigo}","${DB_TIPOS.find(t=>t.id_tipo===c.id_tipo)?.nombre||c.id_tipo}","${DB_CLIENTES.find(cl=>cl.id_cliente===c.id_cliente)?.nombre||''}","${c.estado}","${c.ubicacion_actual||''}","${c.created_at||''}"\n`);
                 _downloadCSV(csv,'contenedores');
             } else if(type==='movimientos'){
-                let csv='ID,Contenedor,Origen,Destino,Transporte,Responsable,Fecha\n';
-                _movimientosAPI.forEach(m=>csv+=`${m.id_movimiento},${m.id_contenedor},"${m.ubicacion_origen||''}","${m.ubicacion_destino||''}","${m.medio_transporte||''}","${m.responsable||''}","${m.fecha_hora?.substring(0,10)||''}"\n`);
-                _downloadCSV(csv,'movimientos');
+                try {
+                    const wsData = [['ID', 'Contenedor', 'Origen', 'Destino', 'Transporte', 'Responsable', 'Fecha']];
+                    _movimientosAPI.forEach(m => {
+                        wsData.push([
+                            m.id_movimiento,
+                            DB_CONTENEDORES_API.find(c=>c.id_contenedor===m.id_contenedor)?.id_codigo || m.id_contenedor,
+                            m.ubicacion_origen || '',
+                            m.ubicacion_destino || '',
+                            m.medio_transporte || '',
+                            m.responsable || '',
+                            m.fecha_hora?.substring(0, 16).replace('T', ' ') || ''
+                        ]);
+                    });
+                    
+                    const wb = XLSX.utils.book_new();
+                    const ws = XLSX.utils.aoa_to_sheet(wsData);
+                    
+                    // Ajustar ancho de columnas
+                    const wscols = [
+                        {wch:8}, {wch:15}, {wch:25}, {wch:25}, {wch:20}, {wch:20}, {wch:20}
+                    ];
+                    ws['!cols'] = wscols;
+                    
+                    XLSX.utils.book_append_sheet(wb, ws, "Movimientos");
+                    XLSX.writeFile(wb, `Movimientos_${new Date().toISOString().split('T')[0]}.xlsx`);
+                    showToast('Excel descargado correctamente');
+                } catch(e) {
+                    showToast('Error al generar Excel: ' + e.message, 'error');
+                }
             } else if(type==='facturacion'){
                 ApiClient.request('GET','/facturacion').then(res=>{
                     if(!res.ok) return;
@@ -3036,6 +3469,12 @@
 
         // ── FACTURA MODAL ────────────────────────────────────────────────────
         async function openFactModal(id=null) {
+            // Verificar permisos: crear requiere 'createFactura', editar requiere 'editFactura'
+            const action = id ? 'editFactura' : 'createFactura';
+            if (!canPerformAction(action)) {
+                showToast('No tienes permisos para realizar esta acción', 'error');
+                return;
+            }
             document.getElementById('factModalTitle').textContent = id ? 'Editar factura' : 'Nueva factura';
             if (!id) {
                 ['fMonto','fCodigo','fVencimiento','fObs'].forEach(i=>document.getElementById(i).value='');
@@ -3051,11 +3490,31 @@
             if(!contenedor||!monto){showToast('Contenedor y monto son obligatorios','error');return;}
             const btn=document.getElementById('saveFactBtn'); btn.disabled=true;
             try {
-                const payload={id_contenedor:parseInt(contenedor),monto:parseFloat(monto),codigo_factura:document.getElementById('fCodigo').value.trim()||null,fecha_vencimiento:document.getElementById('fVencimiento').value||null,estado_pago:document.getElementById('fEstado').value,observaciones:document.getElementById('fObs').value.trim()||null};
+                const payload={
+                    id_contenedor:parseInt(contenedor),
+                    monto:parseFloat(monto),
+                    codigo_factura:document.getElementById('fCodigo').value.trim()||null,
+                    fecha_vencimiento:document.getElementById('fVencimiento').value||null,
+                    estado_pago:document.getElementById('fEstado').value,
+                    observaciones:document.getElementById('fObs').value.trim()||null,
+                    id_arrendamiento: window._currentFacturaArrendamientoId || null
+                };
                 await ApiClient.request('POST','/facturacion',payload);
-                closeModal('modalFact'); loadFacturacionAPI(); showToast('Factura guardada');
+                closeModal('modalFact'); loadFacturacionAPI(); updateFinanciero(); showToast('Factura guardada');
+                // Limpiar la variable temporal
+                window._currentFacturaArrendamientoId = null;
             } catch(e){ showToast(e.message||'Error al guardar factura','error'); }
             btn.disabled=false;
+        }
+        async function deleteFactura(id) {
+            if (!canPerformAction('deleteFactura')) { showToast('No tienes permisos para eliminar facturas','error'); return; }
+            if (!confirm('¿Eliminar esta factura? Esta acción no se puede deshacer.')) return;
+            try {
+                await ApiClient.request('DELETE', `/facturacion/${id}`);
+                loadFacturacionAPI();
+                updateFinanciero();
+                showToast('Factura eliminada', 'info');
+            } catch(e) { showToast(e.message || 'Error al eliminar factura', 'error'); }
         }
 
         // ── CLIENTES ────────────────────────────────────────────────────────
@@ -3086,8 +3545,8 @@
                 <td>${sanitizeHTML(c.email||'—')}</td>
                 <td>${sanitizeHTML(c.direccion||'—')}</td>
                 <td><div class="table-actions">
-                    ${canPerformAction('editContainer')?`<div class="btn-icon" onclick="openClientModal(${c.id_cliente})" title="Editar"><i class="bi bi-pencil-fill"></i></div>`:''}
-                    ${canPerformAction('deleteContainer')?`<div class="btn-icon danger" onclick="deleteCliente(${c.id_cliente})" title="Eliminar"><i class="bi bi-trash-fill"></i></div>`:''}
+                    ${canPerformAction('editCliente')?`<div class="btn-icon" onclick="openClientModal(${c.id_cliente})" title="Editar"><i class="bi bi-pencil-fill"></i></div>`:''}
+                    ${canPerformAction('deleteCliente')?`<div class="btn-icon danger" onclick="deleteCliente(${c.id_cliente})" title="Eliminar"><i class="bi bi-trash-fill"></i></div>`:''}
                 </div></td></tr>`).join('');
         }
         let editClientId=null;
@@ -3123,7 +3582,7 @@
             document.getElementById('modalEstadoCodigo').textContent = `Contenedor: ${codigo}`;
             const sel = document.getElementById('esEstado');
             sel.value = estadoActual || 'disponible';
-            ['esOrigen','esDestino','esTransporte','esResponsable','esFechaSalida'].forEach(i => { const el = document.getElementById(i); if(el) el.value = ''; });
+            ['esOrigen','esDestino','esTransporte','esResponsable','esFechaSalida','esObservacion'].forEach(i => { const el = document.getElementById(i); if(el) el.value = ''; });
             toggleEstadoTransitFields();
             document.getElementById('modalEstado').classList.add('show');
         }
@@ -3144,7 +3603,12 @@
             const btn = document.getElementById('saveEstadoBtn');
             btn.disabled = true;
             try {
-                await ApiClient.request('PATCH', `/contenedores/${_estadoContId}/estado?estado=${encodeURIComponent(estado)}`);
+                // Incorporamos la observación si la hay
+                const obs = document.getElementById('esObservacion')?.value.trim();
+                let params = `estado=${encodeURIComponent(estado)}`;
+                if (obs) params += `&observacion=${encodeURIComponent(obs)}`;
+                
+                await ApiClient.request('PATCH', `/contenedores/${_estadoContId}/estado?${params}`);
                 if (estado === 'en_transito' && currentUserId) {
                     await ApiClient.request('POST', '/movimientos', {
                         id_contenedor:     _estadoContId,
@@ -3209,16 +3673,24 @@
             btn.disabled = false;
         }
 
-        function openRentalModal() { openRentalModalWithData(); }
+        let _editRentalId = null;
+        function openRentalModal(id = null) { openRentalModalWithData(id); }
         async function saveRental() {
             const payload = { id_contenedor:parseInt(document.getElementById('rContenedor').value), id_cliente:parseInt(document.getElementById('rCliente').value), fecha_inicio:document.getElementById('rInicio').value, fecha_fin:document.getElementById('rFin').value||null, valor_alquiler:parseFloat(document.getElementById('rValor').value), estado_arrendamiento:document.getElementById('rEstado').value };
-            try { await ApiClient.request('POST','/arrendamientos',payload); closeModal('modalRental'); loadArrendamientosAPI(); updateKPIs(); loadNotifications(); showToast('Contrato guardado'); } catch(e) { showToast(e.message||'Error','error'); }
+            try { 
+                if (_editRentalId) {
+                    await ApiClient.request('PUT', `/arrendamientos/${_editRentalId}`, payload);
+                } else {
+                    await ApiClient.request('POST', '/arrendamientos', payload); 
+                }
+                closeModal('modalRental'); loadArrendamientosAPI(); updateKPIs(); updateFinanciero(); loadNotifications(); showToast('Contrato guardado'); 
+            } catch(e) { showToast(e.message||'Error','error'); }
         }
-        async function openRentalModalWithData() {
+        async function openRentalModalWithData(id = null) {
+            _editRentalId = id;
             try {
                 const [rC, rCont] = await Promise.all([ApiClient.request('GET','/clientes'), ApiClient.request('GET','/contenedores?limit=500')]);
                 
-                // Limpiar y agregar opción inicial para Clientes
                 let clienteHtml = '<option value="">-- Seleccionar cliente --</option>';
                 if(rC.ok && rC.data.length > 0) {
                     clienteHtml += rC.data.map(c=>`<option value="${c.id_cliente}">${c.nombre}</option>`).join('');
@@ -3227,7 +3699,6 @@
                 }
                 document.getElementById('rCliente').innerHTML = clienteHtml;
                 
-                // Limpiar y agregar opción inicial para Contenedores
                 let contenedorHtml = '<option value="">-- Seleccionar contenedor --</option>';
                 if(rCont.ok && rCont.data.length > 0) {
                     contenedorHtml += rCont.data.map(c=>`<option value="${c.id_contenedor}">${c.id_codigo}</option>`).join('');
@@ -3235,17 +3706,44 @@
                     contenedorHtml += '<option disabled>Sin contenedores disponibles</option>';
                 }
                 document.getElementById('rContenedor').innerHTML = contenedorHtml;
+
+                document.getElementById('rentalModalTitle').textContent = id ? 'Editar contrato de arrendamiento' : 'Nuevo contrato de arrendamiento';
                 
-                // Limpiar otros campos
-                document.getElementById('rInicio').value = '';
-                document.getElementById('rFin').value = '';
-                document.getElementById('rValor').value = '';
-                document.getElementById('rEstado').value = 'activo';
+                if (id) {
+                    const a = _arrendamientosAPI.find(x => x.id_arrendamiento === id);
+                    if (a) {
+                        document.getElementById('rContenedor').value = a.id_contenedor;
+                        document.getElementById('rCliente').value = a.id_cliente;
+                        document.getElementById('rInicio').value = a.fecha_inicio || '';
+                        document.getElementById('rFin').value = a.fecha_fin || '';
+                        document.getElementById('rValor').value = a.valor_alquiler || '';
+                        document.getElementById('rEstado').value = a.estado_arrendamiento || 'activo';
+                    }
+                } else {
+                    document.getElementById('rInicio').value = '';
+                    document.getElementById('rFin').value = '';
+                    document.getElementById('rValor').value = '';
+                    document.getElementById('rEstado').value = 'activo';
+                }
                 
                 document.getElementById('modalRental').classList.add('show');
             } catch(e) {
                 console.error('Error cargando datos para arrendamiento:', e);
                 showToast('Error al cargar datos del formulario', 'error');
+            }
+        }
+        
+        async function finalizarArrendamiento(id) {
+            if (!confirm('¿Marcar este contrato como finalizado?')) return;
+            try {
+                const a = _arrendamientosAPI.find(x => x.id_arrendamiento === id);
+                if (!a) return;
+                const payload = { ...a, estado_arrendamiento: 'finalizado' };
+                await ApiClient.request('PUT', `/arrendamientos/${id}`, payload);
+                loadArrendamientosAPI();
+                showToast('Contrato finalizado', 'info');
+            } catch(e) {
+                showToast(e.message || 'Error al finalizar contrato', 'error');
             }
         }
 
@@ -3272,6 +3770,7 @@
                 : '<span class="badge-status fuera_de_servicio">Finalizado</span>';
             document.getElementById('sumStatus').innerHTML = statusBadge;
 
+            let daysLeft = 0;
             if (a.fecha_inicio && a.fecha_fin) {
                 const start = new Date(a.fecha_inicio);
                 const end = new Date(a.fecha_fin);
@@ -3284,8 +3783,12 @@
 
                 const today = new Date();
                 const endDate = new Date(a.fecha_fin);
-                const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                 document.getElementById('sumDaysLeft').textContent = daysLeft > 0 ? `${daysLeft} días` : 'Finalizado';
+            } else {
+                document.getElementById('sumDuration').textContent = '—';
+                document.getElementById('sumTotal').textContent = '—';
+                document.getElementById('sumDaysLeft').textContent = '—';
             }
 
             const btnCreateInvoice = document.getElementById('btnCreateInvoice');
@@ -3294,8 +3797,133 @@
             } else {
                 btnCreateInvoice.style.display = 'none';
             }
+            
+            const btnRenovar = document.getElementById('btnRenovarRental');
+            if (canPerformAction('createArrendamiento') && a.estado_arrendamiento === 'activo' && daysLeft <= 15 && a.fecha_fin) {
+                btnRenovar.style.display = 'inline-flex';
+            } else {
+                btnRenovar.style.display = 'none';
+            }
 
             document.getElementById('modalRentalSummary').classList.add('show');
+        }
+
+        function renovarArrendamiento() {
+            if (!_currentRentalData) return;
+            const a = _currentRentalData;
+            closeModal('modalRentalSummary');
+            openRentalModalWithData();
+            
+            setTimeout(() => {
+                document.getElementById('rentalModalTitle').textContent = 'Renovar contrato de arrendamiento';
+                document.getElementById('rContenedor').value = a.id_contenedor;
+                document.getElementById('rCliente').value = a.id_cliente;
+                document.getElementById('rValor').value = a.valor_alquiler;
+                document.getElementById('rEstado').value = 'activo';
+                
+                if (a.fecha_fin) {
+                    const nextDay = new Date(a.fecha_fin);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    document.getElementById('rInicio').value = nextDay.toISOString().split('T')[0];
+                }
+            }, 100);
+        }
+
+        let _finishRentalId = null;
+        async function openFinishRentalModal(id) {
+            _finishRentalId = id;
+            const a = _arrendamientosAPI.find(x => x.id_arrendamiento === id);
+            if (!a) return;
+
+            let totalFacturado = 0;
+            let totalPagado = 0;
+
+            let facturas = [];
+            try {
+                const res = await ApiClient.request('GET', `/facturacion/arrendamiento/${id}`);
+                if (res.ok) facturas = res.data;
+            } catch (e) {
+                console.error("Error al obtener facturas", e);
+            }
+
+            facturas.forEach(f => {
+                totalFacturado += f.monto;
+                totalPagado += (f.monto_pagado || 0);
+            });
+
+            const pendiente = totalFacturado - totalPagado;
+            
+            // Lógica para permitir o bloquear la finalización
+            let blockFinish = false;
+            let warningHTML = '';
+
+            if (facturas.length === 0 && a.valor_alquiler > 0) {
+                blockFinish = true;
+                warningHTML = `<i class="bi bi-x-circle-fill"></i> No puedes finalizar el contrato porque <strong>no has generado ninguna factura</strong> y el valor de alquiler es > $0.`;
+            } else if (pendiente > 0) {
+                blockFinish = true;
+                warningHTML = `<i class="bi bi-x-circle-fill"></i> No puedes finalizar el contrato. Tienes un <strong>saldo pendiente de $${pendiente.toLocaleString('es-CO')}</strong>.`;
+            }
+
+            document.getElementById('finishFacturado').textContent = `$${totalFacturado.toLocaleString('es-CO')}`;
+            document.getElementById('finishPagado').textContent = `$${totalPagado.toLocaleString('es-CO')}`;
+            document.getElementById('finishPendiente').textContent = `$${pendiente.toLocaleString('es-CO')}`;
+            const lblFacturas = document.getElementById('finishTotalFacturas');
+            if (lblFacturas) lblFacturas.textContent = facturas.length;
+
+            const btnConfirm = document.getElementById('btnConfirmFinishRental');
+            const btnCreateInvoice = document.getElementById('btnFinishCreateInvoice');
+            const msgWarning = document.getElementById('finishWarningMsg');
+
+            if (blockFinish) {
+                btnConfirm.disabled = true;
+                msgWarning.style.display = 'block';
+                msgWarning.style.background = 'rgba(211,47,47,0.1)';
+                msgWarning.style.color = 'var(--red)';
+                msgWarning.innerHTML = warningHTML;
+                
+                // Si no hay facturas, mostrar el botón de crear factura rápido
+                if (facturas.length === 0 && canPerformAction('createFactura')) {
+                    btnCreateInvoice.style.display = 'inline-flex';
+                } else {
+                    btnCreateInvoice.style.display = 'none';
+                }
+            } else {
+                btnConfirm.disabled = false;
+                btnCreateInvoice.style.display = 'none';
+                if (facturas.length === 0 && a.valor_alquiler === 0) {
+                    msgWarning.style.display = 'block';
+                    msgWarning.style.background = 'rgba(255,202,40,0.1)';
+                    msgWarning.style.color = 'var(--warning)';
+                    msgWarning.innerHTML = `<i class="bi bi-info-circle-fill"></i> Nota: No hay facturas, pero el contrato es gratuito ($0). Puedes finalizarlo.`;
+                } else {
+                    msgWarning.style.display = 'none';
+                }
+            }
+
+            document.getElementById('modalFinishRental').classList.add('show');
+        }
+
+        function finishRentalCreateInvoice() {
+            if (!_finishRentalId) return;
+            crearFacturaDesdeArrendamiento(_finishRentalId);
+            closeModal('modalFinishRental');
+        }
+
+        async function confirmFinishRental() {
+            if (!_finishRentalId) return;
+            try {
+                const a = _arrendamientosAPI.find(x => x.id_arrendamiento === _finishRentalId);
+                if (!a) return;
+                const payload = { ...a, estado_arrendamiento: 'finalizado' };
+                await ApiClient.request('PUT', `/arrendamientos/${_finishRentalId}`, payload);
+                closeModal('modalFinishRental');
+                loadArrendamientosAPI();
+                updateFinanciero();
+                showToast('Contrato finalizado exitosamente', 'info');
+            } catch(e) {
+                showToast(e.message || 'Error al finalizar contrato', 'error');
+            }
         }
 
         function crearFacturaDesdeArrendamiento(rentalId) {
@@ -3315,22 +3943,54 @@
         async function createFacturaFromRental() {
             if (!_currentRentalData) return;
 
-            try {
-                const payload = {
-                    id_contenedor: _currentRentalData.id_contenedor,
-                    monto: _currentRentalData.valor_alquiler,
-                    codigo_factura: `FAC-${Date.now()}`,
-                    fecha_vencimiento: _currentRentalData.fecha_fin || new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
-                    estado_pago: 'pendiente'
-                };
+            // 1. Cerrar el modal del resumen del arrendamiento
+            closeModal('modalRentalSummary');
 
-                await ApiClient.request('POST', '/facturacion', payload);
-                loadFacturacionAPI();
-                showToast('Factura creada exitosamente', 'success');
-                navigateTo('facturacion');
-            } catch(e) {
-                showToast('Error al crear factura: ' + (e.message || ''), 'error');
-            }
+            // 2. Navegar al apartado de facturación
+            const facNavItem = document.querySelector('[data-page="facturacion"]');
+            navigateTo('facturacion', facNavItem || null);
+
+            // 3. Abrir el modal de nueva factura con los datos pre-llenados
+            //    (pequeño delay para que la página termine de cargar)
+            setTimeout(async () => {
+                document.getElementById('factModalTitle').textContent = 'Nueva factura';
+
+                // Limpiar campos
+                ['fMonto','fCodigo','fVencimiento','fObs'].forEach(i => {
+                    const el = document.getElementById(i);
+                    if (el) el.value = '';
+                });
+                const fEstado = document.getElementById('fEstado');
+                if (fEstado) fEstado.value = 'pendiente';
+
+                // Cargar contenedores y pre-seleccionar el del arrendamiento
+                const res = await ApiClient.request('GET', '/contenedores?limit=500');
+                if (res.ok) {
+                    document.getElementById('fContenedor').innerHTML =
+                        res.data.map(c => `<option value="${c.id_contenedor}">${c.id_codigo}</option>`).join('');
+                    document.getElementById('fContenedor').value = _currentRentalData.id_contenedor;
+                }
+
+                // Pre-llenar monto y otros datos del arrendamiento
+                const fMonto = document.getElementById('fMonto');
+                if (fMonto) fMonto.value = _currentRentalData.valor_alquiler;
+
+                const fCodigo = document.getElementById('fCodigo');
+                if (fCodigo) fCodigo.value = `FAC-ARR-${_currentRentalData.id_arrendamiento || Date.now()}`;
+
+                const fVenc = document.getElementById('fVencimiento');
+                if (fVenc) fVenc.value = _currentRentalData.fecha_fin
+                    || new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
+
+                const fObs = document.getElementById('fObs');
+                if (fObs) fObs.value = `Factura generada desde arrendamiento #${_currentRentalData.id_arrendamiento || ''}`;
+
+                // Mostrar el modal
+                document.getElementById('modalFact').classList.add('show');
+
+                // Si hay un botón de guardar factura, inyectar el id_arrendamiento para enviarlo
+                window._currentFacturaArrendamientoId = _currentRentalData.id_arrendamiento;
+            }, 150);
         }
 
         // ── DRILL-DOWN MODAL ────────────────────────────────────────────────
@@ -3505,6 +4165,68 @@
                 }
             } catch(e) { 
                 console.error('Error updateFinanciero:', e);
+            }
+        }
+
+        // ── ABONAR / PAGAR ───────────────────────────────────────────────────
+        let _abonarFacturaId = null;
+        let _abonarMontoMax = 0;
+        function openAbonarModal(id, montoTotal, pagado) {
+            _abonarFacturaId = id;
+            _abonarMontoMax = montoTotal - pagado;
+            document.getElementById('abonarMontoTotal').textContent = `$${Number(montoTotal).toLocaleString('es-CO')}`;
+            document.getElementById('abonarMontoPagado').textContent = `$${Number(pagado).toLocaleString('es-CO')}`;
+            document.getElementById('abonarMontoFaltante').textContent = `$${Number(_abonarMontoMax).toLocaleString('es-CO')}`;
+            document.getElementById('aMonto').value = _abonarMontoMax; // Prellenar con lo que falta
+            document.getElementById('modalAbonar').classList.add('show');
+        }
+
+        async function saveAbono() {
+            if (!_abonarFacturaId) { console.error('saveAbono: no _abonarFacturaId'); return; }
+            const montoInput = document.getElementById('aMonto');
+            const monto = parseFloat(montoInput.value);
+            if (isNaN(monto) || monto <= 0) {
+                showToast('El monto debe ser mayor a 0', 'error');
+                return;
+            }
+            // Tolerancia para comparación de floats (centavos)
+            if (monto > _abonarMontoMax + 0.01) {
+                showToast(`Monto inválido. Máximo permitido: $${Number(_abonarMontoMax).toLocaleString('es-CO')}`, 'error');
+                return;
+            }
+
+            const btn = document.getElementById('saveAbonoBtn');
+            const btnOrigHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Procesando...';
+            try {
+                console.log(`saveAbono: POST /facturacion/${_abonarFacturaId}/abonar`, { monto });
+                const res = await ApiClient.request('POST', `/facturacion/${_abonarFacturaId}/abonar`, { monto });
+                if (res.ok) {
+                    closeModal('modalAbonar');
+                    showToast('✅ Pago registrado correctamente', 'success');
+
+                    // Refrescar todas las vistas relacionadas en paralelo
+                    await Promise.all([
+                        loadFacturacionAPI(),
+                        updateFinanciero()
+                    ]);
+                    
+                    // Refrescar la tabla de arrendamientos si está visible
+                    const activePage = document.querySelector('.page.active')?.id;
+                    if (activePage === 'page-arrendamientos') {
+                        loadArrendamientosAPI();
+                    }
+                    
+                    // Actualizar KPIs del panel general
+                    updateKPIs();
+                }
+            } catch (e) {
+                console.error('saveAbono error:', e);
+                showToast(e.message || 'Error al registrar el pago', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = btnOrigHTML;
             }
         }
 

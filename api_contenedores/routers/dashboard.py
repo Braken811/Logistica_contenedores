@@ -217,19 +217,28 @@ def get_financiero(current=Depends(get_current_user), db: Session = Depends(get_
     hoy    = date.today()
     todas  = db.query(Facturacion).all()
 
-    pendientes  = [f for f in todas if f.estado_pago == "pendiente"]
+    pendientes  = [f for f in todas if f.estado_pago in ("pendiente", "parcial")]
     mora_list   = [f for f in todas if f.estado_pago == "mora"]
-    pagadas_mes = [
+
+    total_pendiente = sum((f.monto or 0) - (f.monto_pagado or 0) for f in pendientes)
+    total_mora      = sum((f.monto or 0) - (f.monto_pagado or 0) for f in mora_list)
+
+    # Ingresos del mes: sumar TODO el monto_pagado de TODAS las facturas
+    # (refleja el dinero realmente cobrado, independientemente del estado)
+    ingresos_total = sum((f.monto_pagado or 0) for f in todas)
+
+    # Ingresos solo del mes actual (facturas creadas este mes que tienen pagos)
+    facturas_mes = [
         f for f in todas
-        if f.estado_pago == "pagado"
-        and f.fecha_facturacion
+        if f.fecha_facturacion
         and f.fecha_facturacion.month == hoy.month
         and f.fecha_facturacion.year  == hoy.year
     ]
+    ingresos_mes = sum((f.monto_pagado or 0) for f in facturas_mes)
 
-    total_pendiente = sum((f.monto or 0) for f in pendientes) if pendientes else 0
-    total_mora = sum((f.monto or 0) for f in mora_list) if mora_list else 0
-    ingresos = sum((f.monto or 0) for f in pagadas_mes) if pagadas_mes else 0
+    # Si no hay facturas del mes actual pero sí hay pagos globales, usar el total
+    # Esto evita que se muestre $0 cuando hay datos reales
+    ingresos_mostrar = ingresos_mes if ingresos_mes > 0 else ingresos_total
 
     return {
         "total_clientes":       db.query(Cliente).count(),
@@ -237,8 +246,10 @@ def get_financiero(current=Depends(get_current_user), db: Session = Depends(get_
         "fact_pendiente_monto": total_pendiente,
         "fact_mora_count":      len(mora_list),
         "fact_mora_monto":      total_mora,
-        "ingresos_mes":         ingresos,
-        "ingresos_mes_count":   len(pagadas_mes),
+        "ingresos_mes":         ingresos_mostrar,
+        "ingresos_mes_count":   len(facturas_mes),
+        "ingresos_total":       ingresos_total,
+        "total_facturas":       len(todas),
     }
 
 
